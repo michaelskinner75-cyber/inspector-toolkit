@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspector Toolkit Cloud</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="machine">
+    <div class="title">INSPECTOR TOOLKIT CLOUD</div>
+    <div class="credit">Designed &amp; Developed by Michael Skinner</div>
+
+    <section id="home" class="section active">
+      <div class="panel">
+        <label>Inspector</label>
+        <select class="field" id="inspectorSelect">
+          <option>M Skinner</option>
+          <option>A Duncan</option>
+          <option>A Fairbairn</option>
+          <option>Other</option>
+        </select>
+        <input class="field" id="otherInspector" placeholder="Other inspector name" style="display:none">
+        <div id="homeClock" class="lcd"></div>
+        <div class="status" id="syncStatus">Cloud ready.</div>
+      </div>
+      <div class="nav">
+        <button data-open="checksheet">Inspector Check Sheet</button>
+        <button data-open="ticket">Ticket Log</button>
+        <button data-open="nsa">NSA Faults</button>
+        <button data-open="driverReports">Driver Reports</button>
+        <button data-open="earlyRunning">Early Running</button>
+        <button data-open="database">Driver & Fleet Database</button>
+        <button data-open="busTimes">BusTimes</button>
+        <button data-open="utrack">UTrack Trips</button>
+        <button data-open="ticketFinder">Ticket Finder</button>
+        <button data-open="journeyPlanner">Plan a Journey</button>
+        <button data-open="timesheet">Timesheet</button>
+        <button data-open="cloud">Cloud Data</button>
+      </div>
+    </section>
+
+    <section id="checksheet" class="section">
+      <button class="backBtn" data-open="home">← Back</button>
+      <h2>Inspector Check Sheet</h2>
+      <div class="grid">
+        <input class="field" id="csDate" type="date">
+        <input class="field" id="csDepot" placeholder="Depot">
+        <input class="field" id="csDriver" placeholder="Driver">
+        <input class="field" id="csService" placeholder="Service">
+        <input class="field" id="csFleet" placeholder="Fleet number">
+        <input class="field" id="csTimeOn" type="time">
+        <input class="field" id="csBoarding" placeholder="Boarding point">
+        <input class="field" id="csDestination" placeholder="Destination">
+        <label class="fieldLabel">NSA Working
+          <select id="csNSA"><option>Yes</option><option>No</option></select>
+        </label>
+      </div>
+      <div class="grid">
+        <select class="field" id="csNSAFault">
+          <option>No Audio</option><option>No Visual</option><option>Wrong Announcement</option>
+          <option>Nothing Working</option><option>Intermittent</option><option>Other</option>
+        </select>
+        <input class="field" id="csNSANotes" placeholder="NSA notes">
+        <select class="field" id="csDriverReport">
+          <option>No Driver Report</option><option>Advised</option><option>Offence Report Submitted</option>
+        </select>
+      </div>
+      <textarea class="field" id="csDriverReason" placeholder="Driver report reason / inspection notes"></textarea>
+      <div class="grid">
+        <button class="btn" id="saveCheckSheetBtn">SAVE CHECK SHEET</button>
+        <button class="btn danger" id="clearCheckFormBtn">CLEAR FORM</button>
+        <button class="btn" id="refreshChecksBtn">REFRESH CLOUD</button>
+      </div>
+      <div class="panel">
+        <div class="filterBar">
+          <button data-check-filter="today">Today</button>
+          <button data-check-filter="week">This Week</button>
+          <button data-check-filter="month">This Month</button>
+          <button data-check-filter="all">All</button>
+        </div>
+        <input class="searchBar" id="checkSearch" placeholder="Search driver, fleet, service, depot...">
+        <div class="small">Tap a check to open full details.</div>
+      </div>
+      <div class="log" id="checkList"></div>
+    </section>
+
+    <section id="ticket" class="section">
+      <button class="backBtn" data-open="home">← Back</button>
+      <h2>Ticket Log</h2>
+      <div id="ticketLcd" class="lcd"></div>
+      <div class="grid" id="ticketButtons"></div>
+      <div class="grid">
+        <button class="btn" id="exportTicketsBtn">EXPORT LOCAL CSV</button>
+        <button class="btn danger" id="clearTicketsBtn">CLEAR LOCAL</button>
+        <button class="btn" id="toggleTicketSettingsBtn">TICKET SETTINGS</button>
+      </div>
+      <div class="panel" id="ticketSettingsPanel" style="display:none">
+        <h3>Ticket Button Settings</h3>
+        <div class="grid">
+          <input class="field" id="newTicketName" placeholder="Ticket name">
+          <input class="field" id="newTicketPrice" placeholder="Price e.g. £4.70">
+          <select class="field" id="newTicketCategory">
+            <option>paper</option><option>mobile</option><option>free</option>
+          </select>
+        </div>
+        <div class="grid">
+          <button class="btn" id="addTicketButtonBtn">ADD BUTTON</button>
+          <button class="btn danger" id="resetTicketButtonsBtn">RESET DEFAULTS</button>
+        </div>
+        <div id="ticketSettingsList"></div>
+      </div>
+      <div class="log" id="ticketLog"></div>
+    </section>
+
+    <section id="nsa" class="section"><button class="backBtn" data-open="home">← Back</button><h2>NSA Faults</h2><button class="btn refreshCloud">REFRESH CLOUD</button><div class="log" id="nsaList"></div></section>
+    <section id="driverReports" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Driver Reports</h2><button class="btn refreshCloud">REFRESH CLOUD</button><div class="log" id="driverReportsList"></div></section>
+
+    <section id="earlyRunning" class="section">
+      <button class="backBtn" data-open="home">← Back</button>
+      <h2>Early Running</h2>
+      <div class="grid">
+        <input class="field" id="erDriver" placeholder="Driver">
+        <input class="field" id="erDepot" placeholder="Depot">
+        <input class="field" id="erService" placeholder="Service">
+        <input class="field" id="erLocation" placeholder="Location">
+        <input class="field" id="erScheduled" type="time">
+        <input class="field" id="erActual" type="time">
+      </div>
+      <textarea class="field" id="erNotes" placeholder="Notes"></textarea>
+      <button class="btn" id="saveEarlyBtn">SAVE EARLY RUNNING</button>
+      <div class="log" id="earlyRunningList"></div>
+    </section>
+
+    <section id="database" class="section">
+      <button class="backBtn" data-open="home">← Back</button>
+      <h2>Driver & Fleet Database</h2>
+      <div class="grid2">
+        <input class="field" id="driverSearch" placeholder="Search driver">
+        <input class="field" id="fleetSearch" placeholder="Search fleet">
+      </div>
+      <button class="btn refreshCloud">REFRESH CLOUD</button>
+      <div class="panel"><h3>Drivers</h3><div id="driverDbList"></div></div>
+      <div class="panel"><h3>Fleet</h3><div id="fleetDbList"></div></div>
+    </section>
+
+    <section id="busTimes" class="section"><button class="backBtn" data-open="home">← Back</button><h2>BusTimes</h2><a class="openLink" href="https://bustimes.org/operators/stagecoach-east-scotland" target="_blank">Open BusTimes</a><iframe class="serviceFrame" src="https://bustimes.org/operators/stagecoach-east-scotland"></iframe></section>
+    <section id="utrack" class="section"><button class="backBtn" data-open="home">← Back</button><h2>UTrack Trips</h2><a class="openLink" href="https://stagecoach.origin.utrack.com/data/trips/by-operator/ESAH/2026-05-12" target="_blank">Open UTrack</a><iframe class="serviceFrame" src="https://stagecoach.origin.utrack.com/data/trips/by-operator/ESAH/2026-05-12"></iframe></section>
+    <section id="ticketFinder" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Ticket Finder</h2><a class="openLink" href="https://www.stagecoachbus.com/tickets" target="_blank">Open Ticket Finder in New Tab</a><iframe class="serviceFrame" src="https://www.stagecoachbus.com/tickets"></iframe><p class="small">If this does not load inside the toolkit, use the orange button above.</p></section>
+    <section id="journeyPlanner" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Plan a Journey</h2><a class="openLink" href="https://www.stagecoachbus.com/plan-a-journey" target="_blank">Open Journey Planner in New Tab</a><iframe class="serviceFrame" src="https://www.stagecoachbus.com/plan-a-journey"></iframe><p class="small">If this does not load inside the toolkit, use the orange button above.</p></section>
+
+    <section id="timesheet" class="section">
+      <button class="backBtn" data-open="home">← Back</button>
+      <h2>Timesheet</h2>
+      <div class="panel" id="timesheetRows"></div>
+      <div class="lcd" id="weekTotal"></div>
+      <button class="btn" id="exportTimesheetBtn">EXPORT TIMESHEET</button>
+    </section>
+
+    <section id="cloud" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Cloud Data</h2><button class="btn refreshCloud">REFRESH CLOUD DATA</button><div class="log" id="cloudLog"></div></section>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
