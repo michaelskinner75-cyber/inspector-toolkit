@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspector Toolkit Cloud</title>
+<style>
+:root{--orange:#f58220;--dark:#111;--panel:#2f2f2f;--lcd:#9fd18b;--lcdText:#062000}
+*{box-sizing:border-box}body{margin:0;background:var(--dark);font-family:Arial,sans-serif;color:#fff}
+.wrap{max-width:980px;margin:auto;padding:10px}.machine{background:var(--panel);border:6px solid #555;border-radius:20px;padding:12px}
+.title{background:var(--orange);color:#111;text-align:center;font-weight:bold;font-size:24px;padding:12px;border-radius:12px}
+.credit{text-align:center;color:#ccc;font-size:11px;font-style:italic;margin:6px 0 10px}.section{display:none}.section.active{display:block}
+.nav{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:12px 0}
+button,.backBtn,.btn{background:var(--orange);color:#111;border:none;border-radius:11px;padding:14px;font-weight:bold;font-size:15px;cursor:pointer}
+.panel,.log{background:#181818;border-radius:10px;padding:12px;margin-top:12px;overflow:auto}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.field{width:100%;padding:12px;border:none;border-radius:8px;margin:5px 0;font-size:16px}textarea.field{min-height:90px}
+.fieldLabel{display:block;background:#fff;color:#111;border-radius:8px;padding:4px 8px;margin:5px 0;font-size:12px;font-weight:bold}
+.fieldLabel select{width:100%;border:none;font-size:16px;padding:8px 0;background:#fff}
+.checkCard{background:#101010;border-left:7px solid #f58220;border-radius:8px;padding:10px;margin:8px 0}
+.checkCard h3{margin:0 0 6px 0}
+.checkGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:14px}
+.checkGrid div{background:#181818;border-radius:6px;padding:6px}
+.checkActions{display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px}
+.lcd{background:var(--lcd);color:var(--lcdText);border:5px inset #444;border-radius:10px;padding:12px;font:15px "Courier New",monospace;white-space:pre;min-height:180px;overflow:auto}
+.paper{background:#1976d2;color:#fff}.mobile{background:#7b1fa2;color:#fff}.free{background:#00c853;color:#111}.danger{background:#c62828!important;color:#fff!important}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;background:#101010;border-radius:8px;padding:8px;margin-bottom:8px}
+.small{font-size:12px;color:#aaa}.status{font:14px "Courier New",monospace;background:#101010;border-radius:8px;padding:8px;margin-top:8px}
+.dbCard{background:#101010;border-left:7px solid var(--orange);border-radius:8px;padding:10px;margin:8px 0}.dbCard.driver{border-left-color:#00c853}.dbCard.fleet{border-left-color:#1976d2}
+.dbStats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.dbStat{background:#222;border-radius:8px;padding:8px;text-align:center}.dbStat b{display:block;font-size:20px;color:#f58220}
+.serviceFrame{width:100%;height:650px;border:0;border-radius:12px;background:#fff}.openLink{display:inline-block;background:var(--orange);color:#111;text-decoration:none;border-radius:10px;padding:12px 14px;font-weight:bold;margin:8px 0}
+@media(max-width:650px){.checkGrid{grid-template-columns:1fr}.wrap{padding:6px}.machine{border-width:3px;border-radius:14px;padding:8px}.title{font-size:20px}.nav,.grid,.grid2{grid-template-columns:repeat(2,1fr)}button,.btn,.backBtn{font-size:14px;padding:13px 8px}.row{grid-template-columns:1fr 1fr}.row .btn{grid-column:1/-1}.dbStats{grid-template-columns:repeat(2,1fr)}.lcd{font-size:13px}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="machine">
+<div class="title">INSPECTOR TOOLKIT CLOUD</div>
+<div class="credit">Designed &amp; Developed by Michael Skinner</div>
+
+<div id="home" class="section active">
+  <div class="panel">
+    <label>Inspector</label>
+    <select class="field" id="inspectorSelect" onchange="saveInspector()">
+      <option>M Skinner</option><option>A Duncan</option><option>A Fairbairn</option><option>Other</option>
+    </select>
+    <input class="field" id="otherInspector" placeholder="Other inspector name" style="display:none" oninput="saveInspector()">
+    <div id="homeClock" class="lcd"></div>
+    <div class="status" id="syncStatus">Cloud ready.</div>
+  </div>
+  <div class="nav">
+    <button onclick="openSection('checksheet')">Inspector Check Sheet</button>
+    <button onclick="openSection('ticket')">Ticket Log</button>
+    <button onclick="openSection('nsa')">NSA Faults</button>
+    <button onclick="openSection('driverReports')">Driver Reports</button>
+    <button onclick="openSection('earlyRunning')">Early Running</button>
+    <button onclick="openSection('database')">Driver & Fleet Database</button>
+    <button onclick="openSection('busTimes')">BusTimes</button>
+    <button onclick="openSection('utrack')">UTrack Trips</button>
+    <button onclick="openSection('timesheet')">Timesheet</button>
+    <button onclick="openSection('cloud')">Cloud Data</button>
+  </div>
+</div>
+
+<div id="checksheet" class="section">
+<button class="backBtn" onclick="openSection('home')">← Back</button><h2>Inspector Check Sheet</h2>
+<div class="grid">
+<input class="field" id="csDate" type="date"><input class="field" id="csDepot" placeholder="Depot"><input class="field" id="csDriver" placeholder="Driver">
+<input class="field" id="csService" placeholder="Service"><input class="field" id="csFleet" placeholder="Fleet number"><input class="field" id="csTimeOn" type="time">
+<input class="field" id="csBoarding" placeholder="Boarding point"><input class="field" id="csDestination" placeholder="Destination"><label class="fieldLabel">NSA Working<select id="csNSA"><option>Yes</option><option>No</option></select></label>
+</div>
+<div class="grid">
+<select class="field" id="csNSAFault"><option>No Audio</option><option>No Visual</option><option>Wrong Announcement</option><option>Nothing Working</option><option>Intermittent</option><option>Other</option></select>
+<input class="field" id="csNSANotes" placeholder="NSA notes">
+<select class="field" id="csDriverReport"><option>No Driver Report</option><option>Advised</option><option>Offence Report Submitted</option></select>
+</div>
+<textarea class="field" id="csDriverReason" placeholder="Driver report reason / inspection notes"></textarea>
+<div class="grid"><button class="btn" onclick="saveCheckSheet()">SAVE CHECK SHEET</button><button class="btn danger" onclick="clearCheckForm()">CLEAR FORM</button><button class="btn" onclick="loadCloud()">REFRESH CLOUD</button><button class="btn" onclick="showClearedChecks()">SHOW CLEARED CHECKS</button></div>
+<div class="log" id="checkList"></div>
+</div>
+
+<div id="ticket" class="section">
+<button class="backBtn" onclick="openSection('home')">← Back</button><h2>Ticket Log</h2>
+<div id="ticketLcd" class="lcd"></div><div class="grid" id="ticketButtons"></div>
+<div class="grid"><button class="btn" onclick="exportLocalTickets()">EXPORT LOCAL CSV</button><button class="btn danger" onclick="clearTickets()">CLEAR LOCAL</button></div>
+<div class="log" id="ticketLog"></div>
+</div>
+
+<div id="nsa" class="section"><button class="backBtn" onclick="openSection('home')">← Back</button><h2>NSA Faults</h2><button class="btn" onclick="loadCloud()">REFRESH CLOUD</button><div class="log" id="nsaList"></div></div>
+<div id="driverReports" class="section"><button class="backBtn" onclick="openSection('home')">← Back</button><h2>Driver Reports</h2><button class="btn" onclick="loadCloud()">REFRESH CLOUD</button><div class="log" id="driverReportsList"></div></div>
+
+<div id="earlyRunning" class="section">
+<button class="backBtn" onclick="openSection('home')">← Back</button><h2>Early Running</h2>
+<div class="grid">
+<input class="field" id="erDriver" placeholder="Driver"><input class="field" id="erDepot" placeholder="Depot"><input class="field" id="erService" placeholder="Service">
+<input class="field" id="erLocation" placeholder="Location"><input class="field" id="erScheduled" type="time"><input class="field" id="erActual" type="time">
+</div>
+<textarea class="field" id="erNotes" placeholder="Notes"></textarea><button class="btn" onclick="saveEarlyRunning()">SAVE EARLY RUNNING</button>
+<div class="log" id="earlyRunningList"></div>
+</div>
+
+<div id="database" class="section">
+<button class="backBtn" onclick="openSection('home')">← Back</button><h2>Driver & Fleet Database</h2>
+<div class="grid2"><input class="field" id="driverSearch" placeholder="Search driver" oninput="renderDatabase()"><input class="field" id="fleetSearch" placeholder="Search fleet" oninput="renderDatabase()"></div>
+<div class="grid"><button class="btn" onclick="loadCloud()">REFRESH CLOUD</button><button class="btn" onclick="exportDriverDatabase()">EXPORT DRIVERS</button><button class="btn" onclick="exportFleetDatabase()">EXPORT FLEET</button></div>
+<div class="panel"><h3>Drivers</h3><div id="driverDbList"></div></div><div class="panel"><h3>Fleet</h3><div id="fleetDbList"></div></div>
+</div>
+
+<div id="busTimes" class="section"><button class="backBtn" onclick="openSection('home')">← Back</button><h2>BusTimes</h2><a class="openLink" href="https://bustimes.org/operators/stagecoach-east-scotland" target="_blank">Open BusTimes</a><iframe class="serviceFrame" src="https://bustimes.org/operators/stagecoach-east-scotland"></iframe></div>
+<div id="utrack" class="section"><button class="backBtn" onclick="openSection('home')">← Back</button><h2>UTrack Trips</h2><a class="openLink" href="https://stagecoach.origin.utrack.com/data/trips/by-operator/ESAH/2026-05-12" target="_blank">Open UTrack</a><iframe class="serviceFrame" src="https://stagecoach.origin.utrack.com/data/trips/by-operator/ESAH/2026-05-12"></iframe></div>
+
+<div id="timesheet" class="section"><button class="backBtn" onclick="openSection('home')">← Back</button><h2>Timesheet</h2><div class="panel" id="timesheetRows"></div><div class="lcd" id="weekTotal"></div><button class="btn" onclick="exportTimesheet()">EXPORT TIMESHEET</button></div>
+<div id="cloud" class="section"><button class="backBtn" onclick="openSection('home')">← Back</button><h2>Cloud Data</h2><button class="btn" onclick="loadCloud()">REFRESH CLOUD DATA</button><div class="log" id="cloudLog"></div></div>
+</div></div>
+
+<script>
+const WEB_APP_URL="https://script.google.com/macros/s/AKfycbz3LPrQ7Y1b7Suq7OvYSyoqoW4iYrAzNjBq6Li7t4SbtrfriBjH16e5iGG2ZRTKyjzk0A/exec";
+const sheets=['Inspections','NSA Faults','Driver Reports','Early Running','Ticket Log'];
+let cloud={'Inspections':[],'NSA Faults':[],'Driver Reports':[],'Early Running':[],'Ticket Log':[]};
+let tickets=JSON.parse(localStorage.getItem('cloudTickets')||'[]');
+let lastTicket=tickets.length?tickets.at(-1).type:'None';
+
+function openSection(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function setStatus(t){syncStatus.textContent=t;}
+function getInspector(){let v=inspectorSelect.value;return v==='Other'?(otherInspector.value||'Other'):v;}
+function saveInspector(){localStorage.setItem('inspectorName',inspectorSelect.value);localStorage.setItem('otherInspectorName',otherInspector.value);otherInspector.style.display=inspectorSelect.value==='Other'?'block':'none';}
+function initInspector(){inspectorSelect.value=localStorage.getItem('inspectorName')||'M Skinner';otherInspector.value=localStorage.getItem('otherInspectorName')||'';saveInspector();}
+function today(){return new Date().toLocaleDateString();} function now(){return new Date().toLocaleTimeString();}
+function esc(v){return `"${String(v??'').replace(/"/g,'""')}"`;}
+function download(name,text){let b=new Blob([text],{type:'text/csv'});let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
+
+async function cloudAppend(sheet,row){
+ setStatus('Saving to cloud...');
+ try{
+  await fetch(WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({sheet,row})});
+  setStatus('Saved to cloud.');
+ }catch(e){setStatus('Cloud save failed. Saved only on this device.');}
+ let key='local_'+sheet;let arr=JSON.parse(localStorage.getItem(key)||'[]');arr.push(row);localStorage.setItem(key,JSON.stringify(arr));
+}
+async function loadCloud(){
+ setStatus('Loading cloud data...');
+ for(const sheet of sheets){
+  try{const res=await fetch(WEB_APP_URL+'?sheet='+encodeURIComponent(sheet));const json=await res.json();cloud[sheet]=json.data||[];}catch(e){console.log(e);}
+ }
+ setStatus('Cloud data loaded.');renderAll();
+}
+
+function saveCheckSheet(){
+ let row=[csDate.value||today(),now(),getInspector(),csDepot.value,csDriver.value,csService.value,csFleet.value,csTimeOn.value,csBoarding.value,csDestination.value,csNSA.value,csNSAFault.value,csNSANotes.value,csDriverReport.value,csDriverReason.value];
+ cloudAppend('Inspections',row);
+ if(csNSA.value==='No') cloudAppend('NSA Faults',[csDate.value||today(),now(),getInspector(),csDepot.value,csFleet.value,csService.value,csDriver.value,csNSAFault.value,csNSANotes.value,csBoarding.value,csDestination.value]);
+ if(csDriverReport.value!=='No Driver Report') cloudAppend('Driver Reports',[csDate.value||today(),now(),getInspector(),csDriver.value,csDepot.value,csDriverReport.value,csDriverReason.value,csService.value,csFleet.value]);
+ clearCheckForm();setTimeout(loadCloud,1200);
+}
+function clearCheckForm(){['csDepot','csDriver','csService','csFleet','csTimeOn','csBoarding','csDestination','csNSANotes','csDriverReason'].forEach(id=>document.getElementById(id).value='');csNSA.value='Yes';csDriverReport.value='No Driver Report';}
+
+const ticketDefs=[['paper','Single','Single'],['paper','Return','Return'],['paper','Paper Local Day','Paper Local<br>£4.70'],['paper','Paper Regional Day','Paper Regional<br>£9.40'],['paper','Paper East Scotland','Paper East<br>£12.80'],['paper','Paper Flexi','Paper Flexi'],['mobile','Mobile Single','Mobile Single'],['mobile','Mobile Return','Mobile Return'],['mobile','Mobile Local Day','Mobile Local<br>£4.70<br>£57.70'],['mobile','Mobile Regional Day','Mobile Regional<br>£9.40<br>£112.30'],['mobile','Mobile East Scotland','Mobile East<br>£12.80<br>£148'],['mobile','Mobile Flexi','Mobile Flexi'],['paper','NightRider','NightRider'],['free','U22','U22'],['free','Under 11','Under 11'],['free','Under 5','Under 5'],['free','Over 60','Over 60'],['free','Concession','Concession'],['free','Staff','Staff'],['danger','Undo','Undo']];
+ticketButtons.innerHTML=ticketDefs.map(d=>`<button class="btn ${d[0]}" onclick="${d[1]=='Undo'?'undoTicket()':"addTicket('"+d[1]+"')"}">${d[2]}</button>`).join('');
+function addTicket(type){let r={date:today(),time:now(),inspector:getInspector(),type};tickets.push(r);lastTicket=type;localStorage.setItem('cloudTickets',JSON.stringify(tickets));cloudAppend('Ticket Log',[r.date,r.time,r.inspector,r.type]);renderTickets();}
+function undoTicket(){tickets.pop();lastTicket=tickets.length?tickets.at(-1).type:'None';localStorage.setItem('cloudTickets',JSON.stringify(tickets));renderTickets();}
+function clearTickets(){if(confirm('Clear local ticket log?')){tickets=[];lastTicket='Cleared';localStorage.setItem('cloudTickets','[]');renderTickets();}}
+function saveEarlyRunning(){cloudAppend('Early Running',[today(),now(),getInspector(),erDriver.value,erDepot.value,erService.value,erLocation.value,erScheduled.value,erActual.value,erNotes.value]);['erDriver','erDepot','erService','erLocation','erScheduled','erActual','erNotes'].forEach(id=>document.getElementById(id).value='');setTimeout(loadCloud,1200);}
+
+function renderHomeClock(){homeClock.textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()}`;}
+function renderTickets(){let counts={};tickets.forEach(x=>counts[x.type]=(counts[x.type]||0)+1);let txt=`LAST: ${lastTicket}\nTOTAL: ${tickets.length}\n------------------------\n`;Object.keys(counts).sort().forEach(k=>txt+=k.padEnd(20,'.')+counts[k]+"\n");ticketLcd.textContent=txt;ticketLog.innerHTML=tickets.slice().reverse().map(x=>`<div><b>${x.type}</b><br><span class=small>${x.date} ${x.time} | ${x.inspector}</span></div><hr>`).join('')||'No tickets.';}
+
+let hiddenInspections=JSON.parse(localStorage.getItem('hiddenCloudInspections')||'[]');
+
+function fmtCell(v){
+  if(v===undefined || v===null) return '-';
+  let s=String(v);
+  if(s.includes('T') && s.includes('Z')){
+    let d=new Date(s);
+    if(!isNaN(d)) return d.toLocaleString();
+  }
+  return s || '-';
+}
+
+function inspectionKey(r){
+  return [r[0],r[1],r[2],r[4],r[5],r[6],r[8],r[9]].join('|');
+}
+
+function clearInspectionCard(key){
+  hiddenInspections.push(key);
+  localStorage.setItem('hiddenCloudInspections',JSON.stringify(hiddenInspections));
+  renderAll();
+}
+
+function showClearedChecks(){
+  hiddenInspections=[];
+  localStorage.setItem('hiddenCloudInspections','[]');
+  renderAll();
+}
+
+function renderInspectionCards(){
+  let rows=(cloud['Inspections']||[]).slice(1).filter(r=>!hiddenInspections.includes(inspectionKey(r)));
+  checkList.innerHTML=rows.reverse().map(r=>{
+    const key=inspectionKey(r).replace(/'/g,"&#39;");
+    return `<div class="checkCard">
+      <h3>${fmtCell(r[5])} | Fleet ${fmtCell(r[6])}</h3>
+      <div class="checkGrid">
+        <div><b>Date</b><br>${fmtCell(r[0])}</div>
+        <div><b>Depot</b><br>${fmtCell(r[3])}</div>
+        <div><b>Driver</b><br>${fmtCell(r[4])}</div>
+        <div><b>Service</b><br>${fmtCell(r[5])}</div>
+        <div><b>Time On</b><br>${fmtCell(r[7])}</div>
+        <div><b>Boarding Point</b><br>${fmtCell(r[8])}</div>
+        <div><b>Destination</b><br>${fmtCell(r[9])}</div>
+        <div><b>NSA Working</b><br>${fmtCell(r[10])} ${r[10]==='No'?' - '+fmtCell(r[11]):''}</div>
+        <div><b>Inspector</b><br>${fmtCell(r[2])}</div>
+        <div><b>Driver Report</b><br>${fmtCell(r[13])}</div>
+      </div>
+      <div class="small" style="margin-top:8px;"><b>Notes:</b> ${fmtCell(r[14])}</div>
+      <div class="checkActions">
+        <button class="btn danger" onclick="clearInspectionCard('${key}')">CLEAR THIS CHECK FROM VIEW</button>
+      </div>
+    </div>`;
+  }).join('')||'No check sheets saved.';
+}
+
+function renderCloudTable(sheet,el){let rows=cloud[sheet]||[];el.innerHTML=rows.slice(1).reverse().map(r=>`<div class=row><div><b>${r[0]||'-'}</b><br><span class=small>${r[1]||''}</span></div><div>${r[2]||''}</div><div>${r.slice(3,7).join(' | ')}</div></div>`).join('')||'No cloud data loaded.';}
+function renderAll(){renderHomeClock();renderTickets();renderInspectionCards();renderCloudTable('NSA Faults',nsaList);renderCloudTable('Driver Reports',driverReportsList);renderCloudTable('Early Running',earlyRunningList);renderDatabase();cloudLog.innerHTML=sheets.map(s=>`<div>${s}: ${(cloud[s]||[]).length} rows</div>`).join('');}
+
+function buildDrivers(){let d={};(cloud['Inspections']||[]).slice(1).forEach(r=>{let name=r[4]||'-';if(!d[name])d[name]={name,inspections:0,nsa:0,reports:0,history:[]};d[name].inspections++;if(r[10]=='No')d[name].nsa++;if(r[13]&&r[13]!='No Driver Report')d[name].reports++;d[name].history.push(r.join(' | '));});return Object.values(d);}
+function buildFleets(){let f={};(cloud['Inspections']||[]).slice(1).forEach(r=>{let fl=r[6]||'-';if(!f[fl])f[fl]={fleet:fl,inspections:0,nsa:0,reports:0,history:[]};f[fl].inspections++;if(r[10]=='No')f[fl].nsa++;if(r[13]&&r[13]!='No Driver Report')f[fl].reports++;f[fl].history.push(r.join(' | '));});return Object.values(f);}
+function renderDatabase(){let dq=(driverSearch?.value||'').toLowerCase(),fq=(fleetSearch?.value||'').toLowerCase();driverDbList.innerHTML=buildDrivers().filter(x=>x.name.toLowerCase().includes(dq)).map(d=>`<div class="dbCard driver"><h3>${d.name}</h3><div class=dbStats><div class=dbStat><b>${d.inspections}</b>Inspections</div><div class=dbStat><b>${d.nsa}</b>NSA</div><div class=dbStat><b>${d.reports}</b>Reports</div></div><details><summary>History</summary>${d.history.map(h=>`<div class=small>${h}</div>`).join('')}</details></div>`).join('')||'No drivers.';fleetDbList.innerHTML=buildFleets().filter(x=>x.fleet.toLowerCase().includes(fq)).map(f=>`<div class="dbCard fleet"><h3>Fleet ${f.fleet}</h3><div class=dbStats><div class=dbStat><b>${f.inspections}</b>Inspections</div><div class=dbStat><b>${f.nsa}</b>NSA</div><div class=dbStat><b>${f.reports}</b>Reports</div></div><details><summary>History</summary>${f.history.map(h=>`<div class=small>${h}</div>`).join('')}</details></div>`).join('')||'No fleet.';}
+function exportDriverDatabase(){download('Driver-Database.csv','Driver,Inspections,NSA,Reports\n'+buildDrivers().map(d=>[esc(d.name),esc(d.inspections),esc(d.nsa),esc(d.reports)].join(',')).join('\n'));}
+function exportFleetDatabase(){download('Fleet-Database.csv','Fleet,Inspections,NSA,Reports\n'+buildFleets().map(f=>[esc(f.fleet),esc(f.inspections),esc(f.nsa),esc(f.reports)].join(',')).join('\n'));}
+function exportLocalTickets(){download('Ticket-Log-Local.csv','Date,Time,Inspector,Ticket\n'+tickets.map(x=>[esc(x.date),esc(x.time),esc(x.inspector),esc(x.type)].join(',')).join('\n'));}
+
+const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];let ts=JSON.parse(localStorage.getItem('tsCloud')||'{}');
+function buildTimesheet(){timesheetRows.innerHTML=days.map(day=>`<div class=row><b>${day}</b><input class=field type=time id="s${day}" value="${ts[day]?.s||''}" onchange="saveTs()"><input class=field type=time id="f${day}" value="${ts[day]?.f||''}" onchange="saveTs()"><span id="t${day}">0</span></div>`).join('');calcTs();}
+function diff(s,f){if(!s||!f)return 0;let [sh,sm]=s.split(':').map(Number),[fh,fm]=f.split(':').map(Number),a=sh*60+sm,b=fh*60+fm;if(b<a)b+=1440;return (b-a)/60;}
+function saveTs(){days.forEach(day=>ts[day]={s:document.getElementById('s'+day).value,f:document.getElementById('f'+day).value});localStorage.setItem('tsCloud',JSON.stringify(ts));calcTs();}
+function calcTs(){let total=0;days.forEach(day=>{let h=diff(ts[day]?.s,ts[day]?.f);total+=h;let el=document.getElementById('t'+day);if(el)el.textContent=h.toFixed(2)+' hrs';});weekTotal.textContent='WEEK TOTAL: '+total.toFixed(2)+' HOURS';}
+function exportTimesheet(){let rows=['Day,Start,Finish,Hours'];days.forEach(day=>rows.push([esc(day),esc(ts[day]?.s||''),esc(ts[day]?.f||''),esc(diff(ts[day]?.s,ts[day]?.f).toFixed(2))].join(',')));download('Timesheet.csv',rows.join('\n'));}
+
+window.addEventListener('load',()=>{initInspector();csDate.valueAsDate=new Date();buildTimesheet();renderAll();loadCloud();setInterval(renderAll,1000);});
+</script>
+</body></html>
