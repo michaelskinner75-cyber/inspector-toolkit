@@ -1,0 +1,81 @@
+name: Update Inspector Toolkit
+
+on:
+  push:
+    paths:
+      - .github/workflows/update-toolkit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-toolkit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch and split toolkit
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          src = Path('app.html') if Path('app.html').exists() else Path('index.html')
+          html = src.read_text(encoding='utf-8')
+
+          # Add Ticket Finder and Journey Planner buttons to the home screen
+          if "openSection('ticketFinder')" not in html:
+              html = html.replace(
+                  "    <button onclick=\"openSection('busTimes')\">BusTimes</button>\n    <button onclick=\"openSection('utrack')\">UTrack Trips</button>",
+                  "    <button onclick=\"openSection('busTimes')\">BusTimes</button>\n    <button onclick=\"openSection('utrack')\">UTrack Trips</button>\n    <button onclick=\"openSection('ticketFinder')\">Ticket Finder</button>\n    <button onclick=\"openSection('journeyPlanner')\">Plan a Journey</button>"
+              )
+
+          ticket_sections = '''
+
+<div id="ticketFinder" class="section">
+<button class="backBtn" onclick="openSection('home')">← Back</button>
+<h2>Ticket Finder</h2>
+<a class="openLink" href="https://www.stagecoachbus.com/tickets" target="_blank">Open Ticket Finder in New Tab</a>
+<iframe class="serviceFrame" src="https://www.stagecoachbus.com/tickets"></iframe>
+<p class="small">If this does not load inside the toolkit, use the orange button above.</p>
+</div>
+
+<div id="journeyPlanner" class="section">
+<button class="backBtn" onclick="openSection('home')">← Back</button>
+<h2>Plan a Journey</h2>
+<a class="openLink" href="https://www.stagecoachbus.com/plan-a-journey" target="_blank">Open Journey Planner in New Tab</a>
+<iframe class="serviceFrame" src="https://www.stagecoachbus.com/plan-a-journey"></iframe>
+<p class="small">If this does not load inside the toolkit, use the orange button above.</p>
+</div>
+'''
+          if 'id="ticketFinder"' not in html:
+              html = html.replace('<div id="timesheet" class="section">', ticket_sections + '\n<div id="timesheet" class="section">')
+
+          # Split the site: app.html holds the app, index.html launches it.
+          Path('app.html').write_text(html, encoding='utf-8')
+          launcher = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspector Toolkit</title>
+<style>
+html,body{margin:0;height:100%;background:#111;font-family:Arial,sans-serif;color:white}
+iframe{border:0;width:100%;height:100vh;display:block;background:#111}
+.notice{position:fixed;inset:0;display:grid;place-items:center;color:#fff;background:#111;z-index:-1;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<div class="notice">Loading Inspector Toolkit...</div>
+<iframe src="app.html" title="Inspector Toolkit"></iframe>
+</body>
+</html>
+'''
+          Path('index.html').write_text(launcher, encoding='utf-8')
+          PY
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html app.html
+          git commit -m "Split app and add Stagecoach tools" || echo "No changes to commit"
+          git push
