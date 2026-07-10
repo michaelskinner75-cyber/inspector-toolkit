@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Inspector Toolkit Cloud</title>
-<link rel="stylesheet" href="style.css?v=20260710-4">
+<link rel="stylesheet" href="style.css?v=20260710-5">
 </head>
 <body>
 <div class="wrap">
@@ -54,13 +54,13 @@
         <input class="field" id="csBoarding" placeholder="Boarding point">
         <input class="field" id="csDestination" placeholder="Destination">
         <label class="fieldLabel">NSA Working
-          <select id="csNSA"><option>Yes</option><option>No</option></select>
+          <select id="csNSA"><option>Yes</option><option>No</option><option>N/A</option></select>
         </label>
       </div>
       <div class="grid">
         <select class="field" id="csNSAFault">
-          <option>No Audio</option><option>No Visual</option><option>Wrong Announcement</option>
-          <option>Nothing Working</option><option>Intermittent</option><option>Other</option>
+          <option>Fully Working</option><option>No Audio</option><option>No Visual</option><option>Wrong Announcement</option>
+          <option>Nothing Working</option><option>Intermittent</option><option>Other</option><option>N/A</option>
         </select>
         <input class="field" id="csNSANotes" placeholder="NSA notes">
         <select class="field" id="csDriverReport">
@@ -114,7 +114,34 @@
       <div class="log" id="ticketLog"></div>
     </section>
 
-    <section id="nsa" class="section"><button class="backBtn" data-open="home">← Back</button><h2>NSA Faults</h2><button class="btn refreshCloud">REFRESH CLOUD</button><div class="log" id="nsaList"></div></section>
+    <section id="nsa" class="section">
+      <button class="backBtn" data-open="home">← Back</button>
+      <h2>NSA Reports</h2>
+      <div class="panel">
+        <h3>Add Manual NSA Report</h3>
+        <div class="grid">
+          <input class="field" id="nsaDate" type="date">
+          <input class="field" id="nsaDepot" placeholder="Depot">
+          <input class="field" id="nsaFleet" placeholder="Fleet number">
+          <input class="field" id="nsaService" placeholder="Service">
+          <input class="field" id="nsaDriver" placeholder="Driver">
+          <input class="field" id="nsaBoarding" placeholder="Location / boarding point">
+          <input class="field" id="nsaDestination" placeholder="Destination">
+          <select class="field" id="nsaWorking"><option>Yes</option><option>No</option><option>N/A</option></select>
+          <select class="field" id="nsaType">
+            <option>Fully Working</option><option>No Audio</option><option>No Visual</option>
+            <option>Wrong Announcement</option><option>Nothing Working</option>
+            <option>Intermittent</option><option>Other</option><option>N/A</option>
+          </select>
+        </div>
+        <textarea class="field" id="nsaManualNotes" placeholder="NSA notes"></textarea>
+        <div class="grid">
+          <button class="btn" id="saveManualNsaBtn">SAVE MANUAL NSA REPORT</button>
+          <button class="btn refreshCloud">REFRESH CLOUD</button>
+        </div>
+      </div>
+      <div class="log" id="nsaList"></div>
+    </section>
     <section id="driverReports" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Driver Reports</h2><button class="btn refreshCloud">REFRESH CLOUD</button><div class="log" id="driverReportsList"></div></section>
 
     <section id="earlyRunning" class="section">
@@ -161,6 +188,6 @@
     <section id="cloud" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Cloud Data</h2><button class="btn refreshCloud">REFRESH CLOUD DATA</button><div class="log" id="cloudLog"></div></section>
   </div>
 </div>
-<script src="app.js?v=20260710-4"></script>
+<script src="app.js?v=20260710-5"></script>
 </body>
 </html>
