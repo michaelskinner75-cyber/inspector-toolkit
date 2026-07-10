@@ -13,18 +13,14 @@ function formatDateValue(v){
   if(v===undefined || v===null || v==='') return '-';
   const s=String(v);
   const d=new Date(s);
-  if(!isNaN(d)){
-    return d.toLocaleDateString('en-GB');
-  }
+  if(!isNaN(d)) return d.toLocaleDateString('en-GB');
   return s;
 }
 function formatTimeValue(v){
   if(v===undefined || v===null || v==='') return '-';
   const s=String(v);
   const d=new Date(s);
-  if(!isNaN(d)){
-    return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
-  }
+  if(!isNaN(d)) return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
   if(/^\d{1,2}:\d{2}/.test(s)) return s.slice(0,5);
   return s;
 }
@@ -39,43 +35,36 @@ function normaliseTimeForSave(v){
 }
 function setStatus(t){$('syncStatus').textContent = t;}
 function download(name,text){const b=new Blob([text],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
-
 function openSection(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');window.scrollTo(0,0);}
-function getInspector(){const v=$('inspectorSelect').value;return v==='Other'?($('otherInspector').value||'Other'):v;}
-function updateInspectorBanner(){
- const el=$('currentInspectorName');
- if(el)el.textContent=getInspector();
+
+let pendingInspector='';
+function getInspector(){return localStorage.getItem('activeInspector')||'';}
+function updateLoggedInDisplay(){const el=$('loggedInInspector');if(el)el.textContent=getInspector()||'Not logged in';}
+function selectLoginInspector(name){
+  pendingInspector=name;
+  document.querySelectorAll('.loginChoice').forEach(b=>b.classList.toggle('selected',b.dataset.loginName===name));
+  const other=$('loginOtherInspector');
+  if(other){other.style.display=name==='Other'?'block':'none';if(name!=='Other')other.value='';}
+  const txt=$('loginSelectionText');if(txt)txt.textContent=name==='Other'?'Enter the inspector name below':`Selected: ${name}`;
 }
-function saveInspector(){
- localStorage.setItem('inspectorName',$('inspectorSelect').value);
- localStorage.setItem('otherInspectorName',$('otherInspector').value);
- $('otherInspector').style.display=$('inspectorSelect').value==='Other'?'block':'none';
- updateInspectorBanner();
+function showLogin(){
+  pendingInspector='';
+  document.querySelectorAll('.loginChoice').forEach(b=>b.classList.remove('selected'));
+  const other=$('loginOtherInspector');if(other){other.value='';other.style.display='none';}
+  const txt=$('loginSelectionText');if(txt)txt.textContent='No inspector selected';
+  $('loginPage').classList.remove('hidden');
 }
-function initInspector(){
- $('inspectorSelect').value=localStorage.getItem('inspectorName')||'M Skinner';
- $('otherInspector').value=localStorage.getItem('otherInspectorName')||'';
- saveInspector();
+function hideLogin(){$('loginPage').classList.add('hidden');}
+function completeLogin(){
+  if(!pendingInspector){alert('Please select an inspector.');return;}
+  const other=$('loginOtherInspector').value.trim();
+  if(pendingInspector==='Other'&&!other){alert('Please enter the inspector name.');return;}
+  const name=pendingInspector==='Other'?other:pendingInspector;
+  localStorage.setItem('activeInspector',name);
+  updateLoggedInDisplay();hideLogin();openSection('home');renderAll();
 }
-function openInspectorModal(){
- $('startupInspectorSelect').value=$('inspectorSelect').value;
- $('startupOtherInspector').value=$('otherInspector').value;
- $('startupOtherInspector').style.display=$('startupInspectorSelect').value==='Other'?'block':'none';
- $('inspectorModal').classList.remove('hidden');
-}
-function confirmStartupInspector(){
- const selected=$('startupInspectorSelect').value;
- const other=$('startupOtherInspector').value.trim();
- if(selected==='Other'&&!other){alert('Please enter the inspector name.');return;}
- $('inspectorSelect').value=selected;
- $('otherInspector').value=other;
- saveInspector();
- sessionStorage.setItem('inspectorConfirmed','yes');
- $('inspectorModal').classList.add('hidden');
-}
-function confirmInspectorBeforeSave(actionLabel){
- return confirm(`${actionLabel}\n\nInspector: ${getInspector()}\n\nIs this the correct inspector?`);
-}
+function changeInspector(){localStorage.removeItem('activeInspector');showLogin();}
+function initInspectorLogin(){updateLoggedInDisplay();showLogin();}
 
 async function cloudAppend(sheet,row){
  setStatus('Saving to cloud...');
@@ -90,7 +79,6 @@ async function loadCloud(){
 }
 
 function saveCheckSheet(){
- if(!confirmInspectorBeforeSave('Save this inspector check?'))return;
  const row=[normaliseDateForSave($('csDate').value),normaliseTimeForSave(now()),getInspector(),$('csDepot').value,$('csDriver').value,$('csService').value,$('csFleet').value,normaliseTimeForSave($('csTimeOn').value),$('csBoarding').value,$('csDestination').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csDriverReport').value,$('csDriverReason').value];
  cloudAppend('Inspections',row);
  cloudAppend('NSA Faults',[row[0],row[1],getInspector(),$('csDepot').value,$('csFleet').value,$('csService').value,$('csDriver').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csBoarding').value,$('csDestination').value,'Inspector Check Sheet']);
@@ -114,19 +102,7 @@ function renderChecks(){
    const date=formatDateValue(r[0]);
    const savedTime=formatTimeValue(r[1]);
    const timeOn=formatTimeValue(r[7]);
-   const details=[
-     `${date} ${savedTime}`,
-     r[2]||'-',
-     r[3]||'-',
-     r[4]||'-',
-     r[5]||'-',
-     r[6]||'-',
-     timeOn,
-     `${r[8]||'-'} to ${r[9]||'-'}`,
-     `NSA: ${r[10]||'-'}${r[10]==='No'?' - '+(r[11]||'-')+' - '+(r[12]||'-'):''}`,
-     `Driver Report: ${r[13]||'-'}`,
-     r[14]||'-'
-   ];
+   const details=[`${date} ${savedTime}`,r[2]||'-',r[3]||'-',r[4]||'-',r[5]||'-',r[6]||'-',timeOn,`${r[8]||'-'} to ${r[9]||'-'}`,`NSA: ${r[10]||'-'}${r[10]==='No'?' - '+(r[11]||'-')+' - '+(r[12]||'-'):''}`,`Driver Report: ${r[13]||'-'}`,r[14]||'-'];
    return `<div class="compactCheck ${statusClass(r)}"><div class="compactTop" data-toggle="cd${i}"><div class="compactMain">${date} ${timeOn} | ${r[5]||'-'} | ${r[6]||'-'} | ${r[4]||'-'} | ${statusMark(r)}</div><div class="compactSub">${r[3]||'-'} • ${r[8]||'-'} → ${r[9]||'-'} • ${r[2]||'-'}</div></div><div class="compactDetails" id="cd${i}">${details.join('<br>')}</div></div>`;
  }).join('')||'No checks for this view.';
 }
@@ -140,37 +116,9 @@ function addTicket(type){const r={date:today(),time:now(),inspector:getInspector
 function undoTicket(){tickets.pop();lastTicket=tickets.length?tickets.at(-1).type:'None';localStorage.setItem('cloudTickets',JSON.stringify(tickets));renderTickets();}
 function renderTickets(){const counts={};tickets.forEach(x=>counts[x.type]=(counts[x.type]||0)+1);let txt=`LAST: ${lastTicket}\nTOTAL: ${tickets.length}\n------------------------\n`;Object.keys(counts).sort().forEach(k=>txt+=k.padEnd(20,'.')+counts[k]+'\n');$('ticketLcd').textContent=txt;$('ticketLog').innerHTML=tickets.slice().reverse().map(x=>`<div><b>${x.type}</b><br><span class=small>${x.date} ${x.time} | ${x.inspector}</span></div><hr>`).join('')||'No tickets.';}
 
-function syncNsaCategory(workingId,typeId){
- const working=$(workingId).value;
- const type=$(typeId);
- if(working==='Yes') type.value='Fully Working';
- else if(working==='N/A') type.value='N/A';
- else if(type.value==='Fully Working'||type.value==='N/A') type.value='No Audio';
-}
-function saveManualNsa(){
- if(!confirmInspectorBeforeSave('Save this manual NSA report?'))return;
- const row=[
-   normaliseDateForSave($('nsaDate').value),
-   normaliseTimeForSave(now()),
-   getInspector(),
-   $('nsaDepot').value,
-   $('nsaFleet').value,
-   $('nsaService').value,
-   $('nsaDriver').value,
-   $('nsaWorking').value,
-   $('nsaType').value,
-   $('nsaManualNotes').value,
-   $('nsaBoarding').value,
-   $('nsaDestination').value,
-   'Manual NSA Report'
- ];
- cloudAppend('NSA Faults',row);
- ['nsaDepot','nsaFleet','nsaService','nsaDriver','nsaBoarding','nsaDestination','nsaManualNotes'].forEach(id=>$(id).value='');
- $('nsaWorking').value='Yes';
- $('nsaType').value='Fully Working';
- setTimeout(loadCloud,1200);
-}
-function saveEarlyRunning(){if(!confirmInspectorBeforeSave('Save this early-running report?'))return;cloudAppend('Early Running',[today(),now(),getInspector(),$('erDriver').value,$('erDepot').value,$('erService').value,$('erLocation').value,$('erScheduled').value,$('erActual').value,$('erNotes').value]);['erDriver','erDepot','erService','erLocation','erScheduled','erActual','erNotes'].forEach(id=>$(id).value='');setTimeout(loadCloud,1200);}
+function syncNsaCategory(workingId,typeId){const working=$(workingId).value;const type=$(typeId);if(working==='Yes')type.value='Fully Working';else if(working==='N/A')type.value='N/A';else if(type.value==='Fully Working'||type.value==='N/A')type.value='No Audio';}
+function saveManualNsa(){const row=[normaliseDateForSave($('nsaDate').value),normaliseTimeForSave(now()),getInspector(),$('nsaDepot').value,$('nsaFleet').value,$('nsaService').value,$('nsaDriver').value,$('nsaWorking').value,$('nsaType').value,$('nsaManualNotes').value,$('nsaBoarding').value,$('nsaDestination').value,'Manual NSA Report'];cloudAppend('NSA Faults',row);['nsaDepot','nsaFleet','nsaService','nsaDriver','nsaBoarding','nsaDestination','nsaManualNotes'].forEach(id=>$(id).value='');$('nsaWorking').value='Yes';$('nsaType').value='Fully Working';setTimeout(loadCloud,1200);}
+function saveEarlyRunning(){cloudAppend('Early Running',[today(),now(),getInspector(),$('erDriver').value,$('erDepot').value,$('erService').value,$('erLocation').value,$('erScheduled').value,$('erActual').value,$('erNotes').value]);['erDriver','erDepot','erService','erLocation','erScheduled','erActual','erNotes'].forEach(id=>$(id).value='');setTimeout(loadCloud,1200);}
 function renderCloudTable(sheet,el){const rows=cloud[sheet]||[];el.innerHTML=rows.slice(1).reverse().map(r=>`<div class=row><div><b>${r[0]||'-'}</b><br><span class=small>${r[1]||''}</span></div><div>${r[2]||''}</div><div>${r.slice(3,7).join(' | ')}</div></div>`).join('')||'No cloud data loaded.';}
 function buildDrivers(){const d={};(cloud['Inspections']||[]).slice(1).forEach(r=>{const name=r[4]||'-';if(!d[name])d[name]={name,inspections:0,nsa:0,reports:0,history:[]};d[name].inspections++;if(r[10]==='No')d[name].nsa++;if(r[13]&&r[13]!=='No Driver Report')d[name].reports++;d[name].history.push(r.join(' | '));});return Object.values(d);}
 function buildFleets(){const f={};(cloud['Inspections']||[]).slice(1).forEach(r=>{const fl=r[6]||'-';if(!f[fl])f[fl]={fleet:fl,inspections:0,nsa:0,reports:0,history:[]};f[fl].inspections++;if(r[10]==='No')f[fl].nsa++;if(r[13]&&r[13]!=='No Driver Report')f[fl].reports++;f[fl].history.push(r.join(' | '));});return Object.values(f);}
@@ -180,15 +128,10 @@ function diff(s,f){if(!s||!f)return 0;let [sh,sm]=s.split(':').map(Number),[fh,f
 function buildTimesheet(){$('timesheetRows').innerHTML=days.map(day=>`<div class=row><b>${day}</b><input class=field type=time id="s${day}" value="${ts[day]?.s||''}"><input class=field type=time id="f${day}" value="${ts[day]?.f||''}"><span id="t${day}">0</span></div>`).join('');calcTs();}
 function saveTs(){days.forEach(day=>ts[day]={s:$('s'+day).value,f:$('f'+day).value});localStorage.setItem('tsCloud',JSON.stringify(ts));calcTs();}
 function calcTs(){let total=0;days.forEach(day=>{const h=diff(ts[day]?.s,ts[day]?.f);total+=h;const el=$('t'+day);if(el)el.textContent=h.toFixed(2)+' hrs';});$('weekTotal').textContent='WEEK TOTAL: '+total.toFixed(2)+' HOURS';}
+function renderAll(){$('homeClock').textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()||'Not logged in'}`;renderTickets();renderChecks();renderCloudTable('NSA Faults',$('nsaList'));renderCloudTable('Driver Reports',$('driverReportsList'));renderCloudTable('Early Running',$('earlyRunningList'));renderDatabase();$('cloudLog').innerHTML=sheets.map(s=>`<div>${s}: ${(cloud[s]||[]).length} rows</div>`).join('');}
 
-function renderAll(){$('homeClock').textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()}`;renderTickets();renderChecks();renderCloudTable('NSA Faults',$('nsaList'));renderCloudTable('Driver Reports',$('driverReportsList'));renderCloudTable('Early Running',$('earlyRunningList'));renderDatabase();$('cloudLog').innerHTML=sheets.map(s=>`<div>${s}: ${(cloud[s]||[]).length} rows</div>`).join('');}
-
-document.addEventListener('click',e=>{const open=e.target.dataset.open;if(open)openSection(open);const filter=e.target.dataset.checkFilter;if(filter){checkFilter=filter;localStorage.setItem('checkFilter',filter);renderChecks();}const toggle=e.target.closest('[data-toggle]');if(toggle)$(toggle.dataset.toggle)?.classList.toggle('show');const ticket=e.target.closest('[data-ticket]');if(ticket)addTicket(ticket.dataset.ticket);if(e.target.id==='undoTicketBtn')undoTicket();if(e.target.classList.contains('refreshCloud'))loadCloud();});
-document.addEventListener('change',e=>{if(e.target.id==='inspectorSelect'||e.target.id==='otherInspector')saveInspector();if(e.target.id==='startupInspectorSelect')$('startupOtherInspector').style.display=e.target.value==='Other'?'block':'none';if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');if(e.target.id==='nsaWorking')syncNsaCategory('nsaWorking','nsaType');if(e.target.id?.startsWith('s')||e.target.id?.startsWith('f'))saveTs();if(e.target.dataset.ti){ticketDefs[e.target.dataset.ti][e.target.dataset.field]=e.target.value;saveTicketButtons();renderTicketButtons();}});
+document.addEventListener('click',e=>{const loginName=e.target.dataset.loginName;if(loginName)selectLoginInspector(loginName);const open=e.target.dataset.open;if(open)openSection(open);const filter=e.target.dataset.checkFilter;if(filter){checkFilter=filter;localStorage.setItem('checkFilter',filter);renderChecks();}const toggle=e.target.closest('[data-toggle]');if(toggle)$(toggle.dataset.toggle)?.classList.toggle('show');const ticket=e.target.closest('[data-ticket]');if(ticket)addTicket(ticket.dataset.ticket);if(e.target.id==='undoTicketBtn')undoTicket();if(e.target.classList.contains('refreshCloud'))loadCloud();});
+document.addEventListener('change',e=>{if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');if(e.target.id==='nsaWorking')syncNsaCategory('nsaWorking','nsaType');if(e.target.id?.startsWith('s')||e.target.id?.startsWith('f'))saveTs();if(e.target.dataset.ti){ticketDefs[e.target.dataset.ti][e.target.dataset.field]=e.target.value;saveTicketButtons();renderTicketButtons();}});
 document.addEventListener('input',e=>{if(e.target.id==='checkSearch')renderChecks();if(e.target.id==='driverSearch'||e.target.id==='fleetSearch')renderDatabase();});
-function updateLiveClock(){
-  const clock=$('homeClock');
-  if(clock) clock.textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()}`;
-}
-window.addEventListener('load',()=>{initInspector();$('confirmInspectorBtn').onclick=confirmStartupInspector;$('currentInspectorBanner').onclick=openInspectorModal;if(sessionStorage.getItem('inspectorConfirmed')!=='yes')openInspectorModal();$('csDate').valueAsDate=new Date();$('nsaDate').valueAsDate=new Date();$('csNSAFault').value='Fully Working';$('nsaType').value='Fully Working';buildTimesheet();renderTicketButtons();renderAll();loadCloud();setInterval(updateLiveClock,1000);
-$('saveCheckSheetBtn').onclick=saveCheckSheet;$('saveManualNsaBtn').onclick=saveManualNsa;$('clearCheckFormBtn').onclick=clearCheckForm;$('refreshChecksBtn').onclick=loadCloud;$('saveEarlyBtn').onclick=saveEarlyRunning;$('clearTicketsBtn').onclick=()=>{tickets=[];lastTicket='Cleared';localStorage.setItem('cloudTickets','[]');renderTickets();};$('exportTicketsBtn').onclick=()=>download('Ticket-Log-Local.csv','Date,Time,Inspector,Ticket\n'+tickets.map(x=>[esc(x.date),esc(x.time),esc(x.inspector),esc(x.type)].join(',')).join('\n'));$('toggleTicketSettingsBtn').onclick=()=>{const p=$('ticketSettingsPanel');p.style.display=p.style.display==='none'?'block':'none';};$('addTicketButtonBtn').onclick=()=>{const name=$('newTicketName').value.trim();if(!name)return;ticketDefs.push([$('newTicketCategory').value,name,name,$('newTicketPrice').value.trim()]);saveTicketButtons();$('newTicketName').value='';$('newTicketPrice').value='';renderTicketButtons();};$('resetTicketButtonsBtn').onclick=()=>{ticketDefs=JSON.parse(JSON.stringify(defaultTicketDefs));saveTicketButtons();renderTicketButtons();};$('exportTimesheetBtn').onclick=()=>{const rows=['Day,Start,Finish,Hours'];days.forEach(day=>rows.push([esc(day),esc(ts[day]?.s||''),esc(ts[day]?.f||''),esc(diff(ts[day]?.s,ts[day]?.f).toFixed(2))].join(',')));download('Timesheet.csv',rows.join('\n'));};});
+function updateLiveClock(){const clock=$('homeClock');if(clock)clock.textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()||'Not logged in'}`;}
+window.addEventListener('load',()=>{initInspectorLogin();$('loginBtn').onclick=completeLogin;$('changeInspectorBtn').onclick=changeInspector;$('csDate').valueAsDate=new Date();$('nsaDate').valueAsDate=new Date();$('csNSAFault').value='Fully Working';$('nsaType').value='Fully Working';buildTimesheet();renderTicketButtons();renderAll();loadCloud();setInterval(updateLiveClock,1000);$('saveCheckSheetBtn').onclick=saveCheckSheet;$('saveManualNsaBtn').onclick=saveManualNsa;$('clearCheckFormBtn').onclick=clearCheckForm;$('refreshChecksBtn').onclick=loadCloud;$('saveEarlyBtn').onclick=saveEarlyRunning;$('clearTicketsBtn').onclick=()=>{tickets=[];lastTicket='Cleared';localStorage.setItem('cloudTickets','[]');renderTickets();};$('exportTicketsBtn').onclick=()=>download('Ticket-Log-Local.csv','Date,Time,Inspector,Ticket\n'+tickets.map(x=>[esc(x.date),esc(x.time),esc(x.inspector),esc(x.type)].join(',')).join('\n'));$('toggleTicketSettingsBtn').onclick=()=>{const p=$('ticketSettingsPanel');p.style.display=p.style.display==='none'?'block':'none';};$('addTicketButtonBtn').onclick=()=>{const name=$('newTicketName').value.trim();if(!name)return;ticketDefs.push([$('newTicketCategory').value,name,name,$('newTicketPrice').value.trim()]);saveTicketButtons();$('newTicketName').value='';$('newTicketPrice').value='';renderTicketButtons();};$('resetTicketButtonsBtn').onclick=()=>{ticketDefs=JSON.parse(JSON.stringify(defaultTicketDefs));saveTicketButtons();renderTicketButtons();};$('exportTimesheetBtn').onclick=()=>{const rows=['Day,Start,Finish,Hours'];days.forEach(day=>rows.push([esc(day),esc(ts[day]?.s||''),esc(ts[day]?.f||''),esc(diff(ts[day]?.s,ts[day]?.f).toFixed(2))].join(',')));download('Timesheet.csv',rows.join('\n'));};});
