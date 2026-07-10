@@ -10,6 +10,102 @@ iframe{border:0;width:100%;height:100vh;display:block;background:#111}
 </style>
 </head>
 <body>
-<iframe src="app.html?v=20260710-8" title="Inspector Toolkit"></iframe>
+<iframe id="toolkitFrame" src="app.html?v=20260710-10" title="Inspector Toolkit"></iframe>
+<script>
+const DEPOTS=['Aberhill','Arbroath','Dunfermline','Glenrothes','St Andrews','Perth','Forfar','Blairgowrie','Other'];
+
+function installDepotPicker(doc,inputId,pickerId,otherId){
+  const original=doc.getElementById(inputId);
+  if(!original || doc.getElementById(pickerId)) return;
+
+  original.type='hidden';
+  original.value='';
+
+  const select=doc.createElement('select');
+  select.id=pickerId;
+  select.className='field';
+  select.innerHTML='<option value="">Select depot...</option>'+DEPOTS.map(d=>`<option value="${d}">${d}</option>`).join('');
+
+  const other=doc.createElement('input');
+  other.id=otherId;
+  other.className='field';
+  other.placeholder='Enter custom depot';
+  other.style.display='none';
+
+  original.parentNode.insertBefore(select,original);
+  original.parentNode.insertBefore(other,original);
+
+  const sync=()=>{
+    const isOther=select.value==='Other';
+    other.style.display=isOther?'block':'none';
+    original.value=isOther?other.value.trim():select.value;
+    if(!isOther) other.value='';
+  };
+  select.addEventListener('change',sync);
+  other.addEventListener('input',sync);
+
+  return {select,other,original};
+}
+
+function resetPicker(doc,pickerId,otherId,inputId){
+  const select=doc.getElementById(pickerId);
+  const other=doc.getElementById(otherId);
+  const original=doc.getElementById(inputId);
+  if(select) select.value='';
+  if(other){other.value='';other.style.display='none';}
+  if(original) original.value='';
+}
+
+function applyDepotUpdate(){
+  const frame=document.getElementById('toolkitFrame');
+  const win=frame.contentWindow;
+  const doc=frame.contentDocument;
+  if(!win || !doc) return;
+
+  installDepotPicker(doc,'csDepot','csDepotPicker','csDepotOther');
+  installDepotPicker(doc,'nsaDepot','nsaDepotPicker','nsaDepotOther');
+  installDepotPicker(doc,'erDepot','erDepotPicker','erDepotOther');
+
+  if(!win.__depotPatchInstalled){
+    win.__depotPatchInstalled=true;
+
+    if(typeof win.clearCheckForm==='function'){
+      const originalClear=win.clearCheckForm;
+      win.clearCheckForm=function(){
+        originalClear();
+        resetPicker(doc,'csDepotPicker','csDepotOther','csDepot');
+      };
+    }
+
+    if(typeof win.saveManualNsa==='function'){
+      const originalSaveNsa=win.saveManualNsa;
+      win.saveManualNsa=function(){
+        originalSaveNsa();
+        resetPicker(doc,'nsaDepotPicker','nsaDepotOther','nsaDepot');
+      };
+      const btn=doc.getElementById('saveManualNsaBtn');
+      if(btn) btn.onclick=win.saveManualNsa;
+    }
+
+    if(typeof win.saveEarlyRunning==='function'){
+      const originalSaveEarly=win.saveEarlyRunning;
+      win.saveEarlyRunning=function(){
+        originalSaveEarly();
+        resetPicker(doc,'erDepotPicker','erDepotOther','erDepot');
+      };
+      const btn=doc.getElementById('saveEarlyBtn');
+      if(btn) btn.onclick=win.saveEarlyRunning;
+    }
+
+    const clearBtn=doc.getElementById('clearCheckFormBtn');
+    if(clearBtn) clearBtn.onclick=win.clearCheckForm;
+  }
+}
+
+document.getElementById('toolkitFrame').addEventListener('load',()=>{
+  setTimeout(applyDepotUpdate,250);
+  setTimeout(applyDepotUpdate,1000);
+});
+</script>
 </body>
 </html>
