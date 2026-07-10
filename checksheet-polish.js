@@ -8,106 +8,177 @@ function addStyles(){
   const style=document.createElement('style');
   style.id='checksheetPolishCss';
   style.textContent=`
-    #checksheet .checkStatusBar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 14px;padding:10px;border:1px solid #31536d;border-radius:12px;background:#10263a;font-size:12px;text-align:center}
+    #checksheet .checkStatusBar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0 14px;padding:10px;border:1px solid #31536d;border-radius:12px;background:#10263a;font-size:12px;text-align:center}
     #checksheet .checkStatusItem{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#d8e5ef}
     #checksheet .checkStatusItem b{display:block;color:#fff;font-size:13px;margin-top:2px}
-    #checksheet .formSectionTitle{margin:16px 0 8px;padding:8px 12px;border-radius:9px;font-weight:800;letter-spacing:.02em;background:#17324b;color:#fff;border-left:6px solid #4d83c4}
-    #checksheet .formSectionTitle.inspection{border-left-color:#e8aa3d}
-    #checksheet .formSectionTitle.outcome{border-left-color:#d64a50}
-    #checksheet #csDriver{height:var(--field-height,56px)!important;min-height:56px!important;max-height:56px!important;padding-top:0!important;padding-bottom:0!important}
+    #checksheet .formSection{margin:12px 0 16px;padding:12px;border:1px solid #31536d;border-radius:13px;background:#10263a}
+    #checksheet .formSectionTitle{margin:-2px 0 10px;padding:8px 12px;border-radius:9px;font-weight:800;letter-spacing:.02em;background:#17324b;color:#fff;border-left:6px solid #e8aa3d}
+    #checksheet .formSectionTitle.journey{border-left-color:#4d83c4}
+    #checksheet .formSectionTitle.vehicle{border-left-color:#49a17f}
+    #checksheet .formSectionTitle.driver{border-left-color:#d64a50}
+    #checksheet .sectionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    #checksheet .sectionGrid .full{grid-column:1/-1}
+    #checksheet #csDriver{height:56px!important;min-height:56px!important;max-height:56px!important;padding-top:0!important;padding-bottom:0!important}
+    #checksheet .locationWrap{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
+    #checksheet .geoBtn{border:1px solid #4d83c4;background:#17324b;color:#fff;border-radius:10px;padding:0 12px;font-weight:800;font-size:13px}
+    #checksheet .geoStatus{font-size:12px;color:#b8c5ce;margin-top:5px;grid-column:1/-1}
     #checksheet .historyToggle{width:100%;margin:14px 0 8px;background:#17324b;border:1px solid #416783;color:#fff;border-radius:10px;padding:12px;font-weight:800;font-size:15px}
     #checksheet .historyHidden{display:none!important}
     #checksheet .historyPanelTitle{font-size:18px;font-weight:800;margin:12px 0 4px;color:#fff}
-    @media(max-width:520px){#checksheet .checkStatusBar{grid-template-columns:repeat(2,minmax(0,1fr));font-size:11px}}
+    #checksheet .serviceRouteText{display:none!important}
+    @media(max-width:520px){#checksheet .checkStatusBar{grid-template-columns:1fr 1fr 1fr;font-size:10px}#checksheet .sectionGrid{grid-template-columns:1fr 1fr}#checksheet .locationWrap{grid-template-columns:1fr auto}}
   `;
   document.head.appendChild(style);
 }
 
 function addStatusBar(){
   const section=$('checksheet');
-  if(!section||$('checkStatusBar'))return;
-  const heading=section.querySelector('h2');
-  const bar=document.createElement('div');
-  bar.id='checkStatusBar';
-  bar.className='checkStatusBar';
+  if(!section)return;
+  let bar=$('checkStatusBar');
+  if(!bar){
+    const heading=section.querySelector('h2');
+    bar=document.createElement('div');
+    bar.id='checkStatusBar';bar.className='checkStatusBar';
+    heading.insertAdjacentElement('afterend',bar);
+  }
   bar.innerHTML=`
     <div class="checkStatusItem">Inspector<b id="checkStatusInspector">-</b></div>
-    <div class="checkStatusItem">Depot<b id="checkStatusDepot">Not selected</b></div>
     <div class="checkStatusItem">Date<b id="checkStatusDate">-</b></div>
     <div class="checkStatusItem">Status<b id="checkStatusCloud">Live</b></div>`;
-  heading.insertAdjacentElement('afterend',bar);
 }
 
-function addSectionTitles(){
-  const section=$('checksheet');
-  if(!section)return;
-  const grids=section.querySelectorAll(':scope > .grid');
-  if(grids[0]&&!section.querySelector('[data-form-title="journey"]')){
-    const h=document.createElement('div');h.className='formSectionTitle';h.dataset.formTitle='journey';h.textContent='Journey Details';grids[0].before(h);
+function makeSection(title,cls){
+  const section=document.createElement('div');section.className='formSection';
+  const heading=document.createElement('div');heading.className='formSectionTitle '+cls;heading.textContent=title;
+  const grid=document.createElement('div');grid.className='sectionGrid';
+  section.append(heading,grid);return{section,grid};
+}
+
+function moveElement(el,container,full){
+  if(!el)return;
+  if(full)el.classList.add('full');
+  container.appendChild(el);
+}
+
+function buildLayout(){
+  const section=$('checksheet');if(!section||section.dataset.layoutRebuilt==='1')return;
+  const saveBtn=$('saveCheckSheetBtn');const saveGrid=saveBtn&&saveBtn.parentElement;if(!saveGrid)return;
+
+  section.querySelectorAll(':scope > .formSectionTitle').forEach(x=>x.remove());
+  const oldGrids=[...section.querySelectorAll(':scope > .grid')].filter(g=>g!==saveGrid);
+
+  const inspection=makeSection('Inspection Details','inspection');
+  const journey=makeSection('Journey Details','journey');
+  const vehicle=makeSection('Vehicle','vehicle');
+  const driver=makeSection('Driver','driver');
+
+  const serviceWrap=document.querySelector('[data-for-service="csService"]');
+  const depot=$('csDepot');
+  const depotOther=$('csDepotOther');
+  const nsaLabel=$('csNSA')?.closest('label')||$('csNSA');
+
+  moveElement($('csDate'),inspection.grid);
+  moveElement($('csTimeOn'),inspection.grid);
+  moveElement(depot,inspection.grid);
+  if(depotOther)moveElement(depotOther,inspection.grid);
+  moveElement($('csDriver'),inspection.grid);
+
+  moveElement(serviceWrap||$('csService'),journey.grid,true);
+  moveElement($('csFleet'),journey.grid);
+
+  const boarding=$('csBoarding');
+  if(boarding){
+    const wrap=document.createElement('div');wrap.className='locationWrap full';
+    const btn=document.createElement('button');btn.type='button';btn.className='geoBtn';btn.id='useCurrentLocationBtn';btn.textContent='Use Location';
+    const status=document.createElement('div');status.className='geoStatus';status.id='geoLocationStatus';status.textContent='';
+    wrap.append(boarding,btn,status);journey.grid.appendChild(wrap);
   }
-  const nsa=$('csNSA');
-  const nsaGrid=nsa&&nsa.closest('.grid');
-  if(nsaGrid&&!section.querySelector('[data-form-title="inspection"]')){
-    const h=document.createElement('div');h.className='formSectionTitle inspection';h.dataset.formTitle='inspection';h.textContent='Inspection';nsaGrid.before(h);
+  moveElement($('csDestination'),journey.grid);
+
+  moveElement(nsaLabel,vehicle.grid);
+  moveElement($('csNSAFault'),vehicle.grid);
+  moveElement($('csNSANotes'),vehicle.grid,true);
+
+  const issueSelect=document.createElement('select');issueSelect.id='csVehicleIssue';issueSelect.className='field';
+  issueSelect.innerHTML='<option value="No Vehicle Issues">No Vehicle Issues</option><option>Defect Card Issue</option><option>Cleanliness</option><option>Interior Damage</option><option>Exterior Damage</option><option>Warning Light</option><option>Destination Display</option><option>Ramp / Accessibility</option><option>Other Vehicle Issue</option>';
+  const issueNotes=document.createElement('textarea');issueNotes.id='csVehicleIssueNotes';issueNotes.className='field full';issueNotes.placeholder='Vehicle defect / issue details';
+  vehicle.grid.append(issueSelect,issueNotes);
+
+  const report=$('csDriverReport');
+  if(report){
+    report.innerHTML='<option value="No Driver Report">No Driver Issues</option><option value="Advised">Driver Advised</option><option value="Offence Report Submitted">Offence Report to be Submitted</option>';
   }
-  const action=$('csDriverReport');
-  const actionGrid=action&&action.closest('.grid');
-  if(actionGrid&&!section.querySelector('[data-form-title="outcome"]')){
-    const h=document.createElement('div');h.className='formSectionTitle outcome';h.dataset.formTitle='outcome';h.textContent='Driver Outcome';actionGrid.before(h);
-  }
+  moveElement(report,driver.grid,true);
+  const notes=$('csDriverReason');if(notes){notes.placeholder='Driver report reason / inspection notes';moveElement(notes,driver.grid,true);}
+
+  oldGrids.forEach(g=>{if(g.isConnected&&g.children.length===0)g.remove();});
+  saveGrid.before(inspection.section,journey.section,vehicle.section,driver.section);
+  section.dataset.layoutRebuilt='1';
+}
+
+function setupGeolocation(){
+  const btn=$('useCurrentLocationBtn');if(!btn||btn.dataset.ready==='1')return;
+  btn.dataset.ready='1';
+  btn.addEventListener('click',()=>{
+    const status=$('geoLocationStatus');const boarding=$('csBoarding');
+    if(!navigator.geolocation){if(status)status.textContent='Location is not supported on this device.';return;}
+    btn.disabled=true;btn.textContent='Locating…';if(status)status.textContent='Waiting for location permission…';
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const lat=pos.coords.latitude.toFixed(5),lon=pos.coords.longitude.toFixed(5);
+      if(boarding)boarding.value=`Current location: ${lat}, ${lon}`;
+      if(status)status.textContent='Location added. You can replace it with a stop name if needed.';
+      btn.disabled=false;btn.textContent='Use Location';
+    },err=>{
+      if(status)status.textContent=err.code===1?'Location permission was not allowed.':'Unable to get current location.';
+      btn.disabled=false;btn.textContent='Use Location';
+    },{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+  });
+}
+
+function wrapSave(){
+  if(typeof window.saveCheckSheet!=='function'||window.saveCheckSheet.__vehicleWrapped)return;
+  const original=window.saveCheckSheet;
+  const wrapped=function(){
+    const notes=$('csDriverReason');
+    const issue=$('csVehicleIssue')?.value||'No Vehicle Issues';
+    const issueNotes=$('csVehicleIssueNotes')?.value.trim()||'';
+    const originalText=notes?.value||'';
+    const vehicleText=issue!=='No Vehicle Issues'?`Vehicle issue: ${issue}${issueNotes?' — '+issueNotes:''}`:'';
+    if(notes&&vehicleText)notes.value=[vehicleText,originalText].filter(Boolean).join('\n');
+    const result=original.apply(this,arguments);
+    if(notes&&notes.value&&vehicleText&&notes.value.startsWith(vehicleText))notes.value=originalText;
+    if($('csVehicleIssue'))$('csVehicleIssue').value='No Vehicle Issues';
+    if($('csVehicleIssueNotes'))$('csVehicleIssueNotes').value='';
+    return result;
+  };
+  wrapped.__vehicleWrapped=true;window.saveCheckSheet=wrapped;
 }
 
 function setupHistoryToggle(){
-  const section=$('checksheet');
-  const list=$('checkList');
-  const search=$('checkSearch');
-  const panel=search&&search.closest('.panel');
-  if(!section||!list||!panel||$('toggleCheckHistoryBtn'))return;
-  const title=document.createElement('div');
-  title.className='historyPanelTitle';
-  title.textContent='Previous Checks';
-  panel.before(title);
-  const btn=document.createElement('button');
-  btn.type='button';btn.id='toggleCheckHistoryBtn';btn.className='historyToggle';
-  title.before(btn);
-  function apply(hidden){
-    panel.classList.toggle('historyHidden',hidden);
-    list.classList.toggle('historyHidden',hidden);
-    title.classList.toggle('historyHidden',hidden);
-    btn.textContent=hidden?'Show Previous Checks':'Hide Previous Checks';
-    btn.setAttribute('aria-expanded',String(!hidden));
-    localStorage.setItem('checkHistoryHidden',hidden?'1':'0');
-  }
-  btn.addEventListener('click',()=>apply(!panel.classList.contains('historyHidden')));
+  const section=$('checksheet');const list=$('checkList');const search=$('checkSearch');const panel=search&&search.closest('.panel');
+  if(!section||!list||!panel)return;
+  let title=section.querySelector('.historyPanelTitle');
+  if(!title){title=document.createElement('div');title.className='historyPanelTitle';title.textContent='Previous Checks';panel.before(title);}
+  let btn=$('toggleCheckHistoryBtn');
+  if(!btn){btn=document.createElement('button');btn.type='button';btn.id='toggleCheckHistoryBtn';btn.className='historyToggle';title.before(btn);}
+  function apply(hidden){panel.classList.toggle('historyHidden',hidden);list.classList.toggle('historyHidden',hidden);title.classList.toggle('historyHidden',hidden);btn.textContent=hidden?'Show Previous Checks':'Hide Previous Checks';btn.setAttribute('aria-expanded',String(!hidden));localStorage.setItem('checkHistoryHidden',hidden?'1':'0');}
+  if(btn.dataset.ready!=='1'){btn.dataset.ready='1';btn.addEventListener('click',()=>apply(!panel.classList.contains('historyHidden')));}
   apply(localStorage.getItem('checkHistoryHidden')==='1');
 }
 
 function updateStatus(){
-  const inspector=$('checkStatusInspector');
-  const depot=$('checkStatusDepot');
-  const date=$('checkStatusDate');
-  const cloud=$('checkStatusCloud');
+  const inspector=$('checkStatusInspector'),date=$('checkStatusDate'),cloud=$('checkStatusCloud');
   if(inspector)inspector.textContent=(typeof getInspector==='function'&&getInspector())||'Not logged in';
-  const depotField=$('csDepot');
-  if(depot)depot.textContent=(depotField&&depotField.value)||'Not selected';
-  const dateField=$('csDate');
-  if(date){
-    const value=dateField&&dateField.value;
-    date.textContent=(value&&typeof formatDateValue==='function')?formatDateValue(value):(value||'-');
-  }
-  const sync=$('syncStatus');
-  if(cloud){
-    const text=(sync&&sync.textContent)||'Live';
-    cloud.textContent=/fail|offline|error/i.test(text)?'Check connection':'Live';
-  }
+  const dateField=$('csDate');if(date){const value=dateField&&dateField.value;date.textContent=(value&&typeof formatDateValue==='function')?formatDateValue(value):(value||'-');}
+  const sync=$('syncStatus');if(cloud){const text=(sync&&sync.textContent)||'Live';cloud.textContent=/fail|offline|error/i.test(text)?'Check connection':'Live';}
 }
 
 function initialise(){
-  addStyles();addStatusBar();addSectionTitles();setupHistoryToggle();updateStatus();
-  ['csDepot','csDate'].forEach(id=>{const el=$(id);if(el){el.addEventListener('change',updateStatus);el.addEventListener('input',updateStatus);}});
+  addStyles();addStatusBar();buildLayout();setupGeolocation();wrapSave();setupHistoryToggle();updateStatus();
+  const date=$('csDate');if(date){date.addEventListener('change',updateStatus);date.addEventListener('input',updateStatus);}
   setInterval(updateStatus,2000);
 }
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(initialise,900));
-else setTimeout(initialise,900);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(initialise,1100));
+else setTimeout(initialise,1100);
 })();
