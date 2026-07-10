@@ -47,6 +47,27 @@ window.renderChecks=function(){
   }).join('')||'No checks for this view.';
 };
 
+window.renderNSA=function(){
+  const el=document.getElementById('nsaList');if(!el)return;
+  const q=(document.getElementById('nsaSearch')?.value||'').toLowerCase();
+  const current=new Date();
+  let rows=rowsWithoutHeader('NSA Faults').filter(r=>{
+    const d=parseRowDate(r[0]);
+    if(nsaFilter==='today'&&!sameDay(d,current))return false;
+    if(nsaFilter==='week'&&!inThisWeek(d))return false;
+    if(nsaFilter==='month'&&!inThisMonth(d))return false;
+    return !q||r.join(' ').toLowerCase().includes(q);
+  });
+  el.innerHTML=rows.reverse().map(r=>{
+    const date=formatDateValue(r[0]),time=formatTimeValue(r[1]);
+    const good=r[7]==='Yes'||r[8]==='Fully Working';
+    const na=r[7]==='N/A'||r[8]==='N/A';
+    const cls=na?'na':(good?'good':'bad');
+    const title=na?'N/A':(good?'FULLY WORKING':(r[8]||'FAULT'));
+    return `<div class="nsaCard ${cls}"><h3>${title}</h3><div>${date} ${time}</div><div><b>Depot:</b> ${r[3]||'-'}</div><div><b>Fleet:</b> ${r[4]||'-'}</div><div><b>Service:</b> ${r[5]||'-'}</div><div><b>Inspector:</b> ${r[2]||'-'}</div>${r[9]?`<div><b>Notes:</b> ${r[9]}</div>`:''}</div>`;
+  }).join('')||'No NSA reports for this view.';
+};
+
 window.clearCheckForm=function(){
   ['csDriver','csService','csFleet','csTimeOn','csBoarding','csDestination','csNSANotes','csDriverReason'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   const depot=document.getElementById('csDepot');if(depot)depot.value='';
@@ -67,15 +88,19 @@ window.saveCheckSheet=function(){
   cloud['Inspections'].push(row);
   cloudAppend('Inspections',row);
   const nsa=[row[0],row[1],getInspector(),depot,fleet,service,driver,row[10],row[11],row[12],row[8],row[9],'Inspector Check Sheet'];
-  if(!cloud['NSA Faults'])cloud['NSA Faults']=[];cloud['NSA Faults'].push(nsa);cloudAppend('NSA Faults',nsa);
+  if(!cloud['NSA Faults'])cloud['NSA Faults']=[];
+  cloud['NSA Faults'].push(nsa);
+  cloudAppend('NSA Faults',nsa);
   if(row[13]!=='No Driver Report'){
     const report=[row[0],row[1],getInspector(),driver,depot,row[13],row[14],service,fleet];
-    if(!cloud['Driver Reports'])cloud['Driver Reports']=[];cloud['Driver Reports'].push(report);cloudAppend('Driver Reports',report);
+    if(!cloud['Driver Reports'])cloud['Driver Reports']=[];
+    cloud['Driver Reports'].push(report);
+    cloudAppend('Driver Reports',report);
   }
   renderChecks();
+  renderNSA();
   if(typeof renderDatabaseV2==='function')renderDatabaseV2();else if(typeof renderDatabase==='function')renderDatabase();
   if(typeof renderCoverage==='function')renderCoverage();
-  if(typeof renderNSA==='function')renderNSA();
   clearCheckForm();
   setStatus('Check saved. Lists updated.');
 };
@@ -85,7 +110,9 @@ function initialiseFix(){
   const save=document.getElementById('saveCheckSheetBtn');if(save)save.onclick=window.saveCheckSheet;
   const clear=document.getElementById('clearCheckFormBtn');if(clear)clear.onclick=window.clearCheckForm;
   const search=document.getElementById('checkSearch');if(search)search.addEventListener('input',window.renderChecks);
+  const nsaSearch=document.getElementById('nsaSearch');if(nsaSearch)nsaSearch.addEventListener('input',window.renderNSA);
   window.renderChecks();
+  window.renderNSA();
   if(typeof renderDatabaseV2==='function')renderDatabaseV2();
 }
 
