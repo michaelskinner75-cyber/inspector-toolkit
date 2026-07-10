@@ -1,4 +1,4 @@
-name: Fix Expanded Inspection Details
+name: Format Inspection Dates and Times
 
 on:
   push:
@@ -10,26 +10,87 @@ permissions:
   contents: write
 
 jobs:
-  fix-details:
+  format-inspections:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch app refresh behaviour
+      - name: Patch date and time formatting
         run: |
           python <<'PY'
           from pathlib import Path
+          import re
+
           p = Path('app.js')
           text = p.read_text(encoding='utf-8')
-          old = "setInterval(renderAll,1000);"
-          new = "setInterval(()=>{const c=document.getElementById('homeClock');if(c)c.textContent=`DATE ${today()}\\nTIME ${now()}\\nINSPECTOR: ${getInspector()}`;},1000);"
-          if old not in text:
-              raise SystemExit('Expected refresh code not found')
-          p.write_text(text.replace(old, new), encoding='utf-8')
+
+          marker = "function esc(v){return `\"${String(v ?? '').replace(/\"/g,'\"\"')}\"`; }"
+          if 'function formatDateValue' not in text:
+              insert_after = "function esc(v){return `\"${String(v ?? '').replace(/\"/g,'\"\"')}\"`; }"
+              # Match the real compact function regardless of spacing.
+              m = re.search(r"function esc\(v\)\{[^\n]+\}\n", text)
+              helpers = '''function formatDateValue(v){
+  if(v===undefined||v===null||v==='')return '-';
+  const d=new Date(String(v));
+  return isNaN(d)?String(v):d.toLocaleDateString('en-GB');
+}
+function formatTimeValue(v){
+  if(v===undefined||v===null||v==='')return '-';
+  const s=String(v),d=new Date(s);
+  if(!isNaN(d))return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
+  return /^\\d{1,2}:\\d{2}/.test(s)?s.slice(0,5):s;
+}
+function normaliseDateForSave(v){
+  if(!v)return new Date().toLocaleDateString('en-GB');
+  const d=new Date(v+'T00:00:00');
+  return isNaN(d)?v:d.toLocaleDateString('en-GB');
+}
+function normaliseTimeForSave(v){
+  if(!v)return new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
+  return String(v).slice(0,5);
+}
+'''
+              if not m: raise SystemExit('Could not find esc helper')
+              text = text[:m.end()] + helpers + text[m.end():]
+
+          text = re.sub(
+              r"const row=\[\$\('csDate'\)\.value\|\|today\(\),now\(\),getInspector\(\),",
+              "const row=[normaliseDateForSave($('csDate').value),normaliseTimeForSave(now()),getInspector(),",
+              text,
+              count=1
+          )
+          text = text.replace("$('csTimeOn').value,$('csBoarding').value", "normaliseTimeForSave($('csTimeOn').value),$('csBoarding').value", 1)
+
+          start = text.find('function renderChecks(){')
+          end = text.find('\n}\n\nconst defaultTicketDefs', start)
+          if start < 0 or end < 0: raise SystemExit('Could not locate renderChecks')
+          replacement = '''function renderChecks(){
+ let rows=(cloud['Inspections']||[]).slice(1);
+ const q=($('checkSearch').value||'').toLowerCase(), n=new Date();
+ rows=rows.filter(r=>{const d=parseRowDate(r[0]);if(checkFilter==='today'&&!sameDay(d,n))return false;if(checkFilter==='week'&&!inThisWeek(d))return false;if(checkFilter==='month'&&!inThisMonth(d))return false;if(q&&!r.join(' ').toLowerCase().includes(q))return false;return true;});
+ $('checkList').innerHTML=rows.reverse().map((r,i)=>{
+   const date=formatDateValue(r[0]),savedTime=formatTimeValue(r[1]),timeOn=formatTimeValue(r[7]);
+   const details=[`${date} ${savedTime}`,r[2]||'-',r[3]||'-',r[4]||'-',r[5]||'-',r[6]||'-',timeOn,`${r[8]||'-'} to ${r[9]||'-'}`,`NSA: ${r[10]||'-'}${r[10]==='No'?' - '+(r[11]||'-')+' - '+(r[12]||'-'):''}`,`Driver Report: ${r[13]||'-'}`,r[14]||'-'];
+   return `<div class="compactCheck ${statusClass(r)}"><div class="compactTop" data-toggle="cd${i}"><div class="compactMain">${date} ${timeOn} | ${r[5]||'-'} | ${r[6]||'-'} | ${r[4]||'-'} | ${statusMark(r)}</div><div class="compactSub">${r[3]||'-'} • ${r[8]||'-'} → ${r[9]||'-'} • ${r[2]||'-'}</div></div><div class="compactDetails" id="cd${i}">${details.join('<br>')}</div></div>`;
+ }).join('')||'No checks for this view.';
+}'''
+          text = text[:start] + replacement + text[end+2:]
+          p.write_text(text, encoding='utf-8')
+
+          app = Path('app.html')
+          html = app.read_text(encoding='utf-8')
+          html = re.sub(r'href="style\.css(?:\?v=[^"]*)?"', 'href="style.css?v=20260710-3"', html)
+          html = re.sub(r'src="app\.js(?:\?v=[^"]*)?"', 'src="app.js?v=20260710-3"', html)
+          app.write_text(html, encoding='utf-8')
+
+          index = Path('index.html')
+          launcher = index.read_text(encoding='utf-8')
+          launcher = re.sub(r'src="app\.html(?:\?v=[^"]*)?"', 'src="app.html?v=20260710-3"', launcher)
+          index.write_text(launcher, encoding='utf-8')
           PY
-      - name: Commit fix
+      - name: Commit formatting fix
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app.js
-          git commit -m "Keep inspection details open" || echo "No changes to commit"
+          git add app.js app.html index.html
+          git commit -m "Display clean UK dates and times" || echo "No changes to commit"
           git push
