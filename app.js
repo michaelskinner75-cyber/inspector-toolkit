@@ -13,14 +13,18 @@ function formatDateValue(v){
   if(v===undefined || v===null || v==='') return '-';
   const s=String(v);
   const d=new Date(s);
-  if(!isNaN(d)) return d.toLocaleDateString('en-GB');
+  if(!isNaN(d)){
+    return d.toLocaleDateString('en-GB');
+  }
   return s;
 }
 function formatTimeValue(v){
   if(v===undefined || v===null || v==='') return '-';
   const s=String(v);
   const d=new Date(s);
-  if(!isNaN(d)) return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
+  if(!isNaN(d)){
+    return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
+  }
   if(/^\d{1,2}:\d{2}/.test(s)) return s.slice(0,5);
   return s;
 }
@@ -56,11 +60,11 @@ async function loadCloud(){
 function saveCheckSheet(){
  const row=[normaliseDateForSave($('csDate').value),normaliseTimeForSave(now()),getInspector(),$('csDepot').value,$('csDriver').value,$('csService').value,$('csFleet').value,normaliseTimeForSave($('csTimeOn').value),$('csBoarding').value,$('csDestination').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csDriverReport').value,$('csDriverReason').value];
  cloudAppend('Inspections',row);
- if($('csNSA').value==='No') cloudAppend('NSA Faults',[row[0],row[1],getInspector(),$('csDepot').value,$('csFleet').value,$('csService').value,$('csDriver').value,$('csNSAFault').value,$('csNSANotes').value,$('csBoarding').value,$('csDestination').value]);
- if($('csDriverReport').value!=='No Driver Report') cloudAppend('Driver Reports',[row[0],row[1],getInspector(),$('csDriver').value,$('csDepot').value,$('csDriverReport').value,$('csDriverReason').value,$('csService').value,$('csFleet').value]);
+ cloudAppend('NSA Faults',[row[0],row[1],getInspector(),$('csDepot').value,$('csFleet').value,$('csService').value,$('csDriver').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csBoarding').value,$('csDestination').value,'Inspector Check Sheet']);
+ if($('csDriverReport').value!=='No Driver Report') cloudAppend('Driver Reports',[$('csDate').value||today(),now(),getInspector(),$('csDriver').value,$('csDepot').value,$('csDriverReport').value,$('csDriverReason').value,$('csService').value,$('csFleet').value]);
  clearCheckForm();setTimeout(loadCloud,1200);
 }
-function clearCheckForm(){['csDepot','csDriver','csService','csFleet','csTimeOn','csBoarding','csDestination','csNSANotes','csDriverReason'].forEach(id=>$(id).value='');$('csNSA').value='Yes';$('csDriverReport').value='No Driver Report';}
+function clearCheckForm(){['csDepot','csDriver','csService','csFleet','csTimeOn','csBoarding','csDestination','csNSANotes','csDriverReason'].forEach(id=>$(id).value='');$('csNSA').value='Yes';$('csNSAFault').value='Fully Working';$('csDriverReport').value='No Driver Report';}
 
 function parseRowDate(v){const d=new Date(v);if(!isNaN(d))return d;const p=String(v||'').split('/');if(p.length===3)return new Date(p[2].length===2?'20'+p[2]:p[2],p[1]-1,p[0]);return new Date();}
 function sameDay(a,b){return a.toDateString()===b.toDateString();}
@@ -72,12 +76,24 @@ function statusMark(r){if(r[13]==='Offence Report Submitted')return 'OFFENCE';if
 function renderChecks(){
  let rows=(cloud['Inspections']||[]).slice(1);
  const q=($('checkSearch').value||'').toLowerCase(), n=new Date();
- rows=rows.filter(r=>{const d=parseRowDate(r[0]);if(checkFilter==='today'&&!sameDay(d,n))return false;if(checkFilter==='week'&&!inThisWeek(d))return false;if(checkFilter==='month'&&!inThisMonth(d))return false;if(q&&!r.join(' ').toLowerCase().includes(q))return false;return true;});
+ rows=rows.filter(r=>{const d=parseRowDate(r[0]); if(checkFilter==='today'&&!sameDay(d,n))return false; if(checkFilter==='week'&&!inThisWeek(d))return false; if(checkFilter==='month'&&!inThisMonth(d))return false; if(q&&!r.join(' ').toLowerCase().includes(q))return false; return true;});
  $('checkList').innerHTML=rows.reverse().map((r,i)=>{
    const date=formatDateValue(r[0]);
    const savedTime=formatTimeValue(r[1]);
    const timeOn=formatTimeValue(r[7]);
-   const details=[`${date} ${savedTime}`,r[2]||'-',r[3]||'-',r[4]||'-',r[5]||'-',r[6]||'-',timeOn,`${r[8]||'-'} to ${r[9]||'-'}`,`NSA: ${r[10]||'-'}${r[10]==='No'?' - '+(r[11]||'-')+' - '+(r[12]||'-'):''}`,`Driver Report: ${r[13]||'-'}`,r[14]||'-'];
+   const details=[
+     `${date} ${savedTime}`,
+     r[2]||'-',
+     r[3]||'-',
+     r[4]||'-',
+     r[5]||'-',
+     r[6]||'-',
+     timeOn,
+     `${r[8]||'-'} to ${r[9]||'-'}`,
+     `NSA: ${r[10]||'-'}${r[10]==='No'?' - '+(r[11]||'-')+' - '+(r[12]||'-'):''}`,
+     `Driver Report: ${r[13]||'-'}`,
+     r[14]||'-'
+   ];
    return `<div class="compactCheck ${statusClass(r)}"><div class="compactTop" data-toggle="cd${i}"><div class="compactMain">${date} ${timeOn} | ${r[5]||'-'} | ${r[6]||'-'} | ${r[4]||'-'} | ${statusMark(r)}</div><div class="compactSub">${r[3]||'-'} • ${r[8]||'-'} → ${r[9]||'-'} • ${r[2]||'-'}</div></div><div class="compactDetails" id="cd${i}">${details.join('<br>')}</div></div>`;
  }).join('')||'No checks for this view.';
 }
@@ -86,16 +102,45 @@ const defaultTicketDefs=[['paper','Single','Single',''],['paper','Return','Retur
 let ticketDefs=JSON.parse(localStorage.getItem('ticketButtonSettings')||'null')||defaultTicketDefs;
 function saveTicketButtons(){localStorage.setItem('ticketButtonSettings',JSON.stringify(ticketDefs));}
 function renderTicketButtons(){$('ticketButtons').innerHTML=ticketDefs.map((d,i)=>`<button class="btn ${d[0]}" data-ticket="${d[1]}">${d[2]}${d[3]?'<br>'+d[3]:''}</button>`).join('')+`<button class="btn danger" id="undoTicketBtn">Undo</button>`;renderTicketSettings();}
-function renderTicketSettings(){const box=$('ticketSettingsList');if(!box)return;box.innerHTML=ticketDefs.map((d,i)=>`<div class="ticketSettingRow"><input value="${d[2]||''}" data-ti="${i}" data-field="2"><input value="${d[3]||''}" data-ti="${i}" data-field="3"><select data-ti="${i}" data-field="0"><option ${d[0]==='paper'?'selected':''}>paper</option><option ${d[0]==='mobile'?'selected':''}>mobile</option><option ${d[0]==='free'?'selected':''}>free</option></select><button class="btn danger" data-remove-ticket="${i}">Remove</button></div>`).join('');}
+function renderTicketSettings(){const box=$('ticketSettingsList'); if(!box)return; box.innerHTML=ticketDefs.map((d,i)=>`<div class="ticketSettingRow"><input value="${d[2]||''}" data-ti="${i}" data-field="2"><input value="${d[3]||''}" data-ti="${i}" data-field="3"><select data-ti="${i}" data-field="0"><option ${d[0]==='paper'?'selected':''}>paper</option><option ${d[0]==='mobile'?'selected':''}>mobile</option><option ${d[0]==='free'?'selected':''}>free</option></select><button class="btn danger" data-remove-ticket="${i}">Remove</button></div>`).join('');}
 function addTicket(type){const r={date:today(),time:now(),inspector:getInspector(),type};tickets.push(r);lastTicket=type;localStorage.setItem('cloudTickets',JSON.stringify(tickets));cloudAppend('Ticket Log',[r.date,r.time,r.inspector,r.type]);renderTickets();}
 function undoTicket(){tickets.pop();lastTicket=tickets.length?tickets.at(-1).type:'None';localStorage.setItem('cloudTickets',JSON.stringify(tickets));renderTickets();}
 function renderTickets(){const counts={};tickets.forEach(x=>counts[x.type]=(counts[x.type]||0)+1);let txt=`LAST: ${lastTicket}\nTOTAL: ${tickets.length}\n------------------------\n`;Object.keys(counts).sort().forEach(k=>txt+=k.padEnd(20,'.')+counts[k]+'\n');$('ticketLcd').textContent=txt;$('ticketLog').innerHTML=tickets.slice().reverse().map(x=>`<div><b>${x.type}</b><br><span class=small>${x.date} ${x.time} | ${x.inspector}</span></div><hr>`).join('')||'No tickets.';}
 
+function syncNsaCategory(workingId,typeId){
+ const working=$(workingId).value;
+ const type=$(typeId);
+ if(working==='Yes') type.value='Fully Working';
+ else if(working==='N/A') type.value='N/A';
+ else if(type.value==='Fully Working'||type.value==='N/A') type.value='No Audio';
+}
+function saveManualNsa(){
+ const row=[
+   normaliseDateForSave($('nsaDate').value),
+   normaliseTimeForSave(now()),
+   getInspector(),
+   $('nsaDepot').value,
+   $('nsaFleet').value,
+   $('nsaService').value,
+   $('nsaDriver').value,
+   $('nsaWorking').value,
+   $('nsaType').value,
+   $('nsaManualNotes').value,
+   $('nsaBoarding').value,
+   $('nsaDestination').value,
+   'Manual NSA Report'
+ ];
+ cloudAppend('NSA Faults',row);
+ ['nsaDepot','nsaFleet','nsaService','nsaDriver','nsaBoarding','nsaDestination','nsaManualNotes'].forEach(id=>$(id).value='');
+ $('nsaWorking').value='Yes';
+ $('nsaType').value='Fully Working';
+ setTimeout(loadCloud,1200);
+}
 function saveEarlyRunning(){cloudAppend('Early Running',[today(),now(),getInspector(),$('erDriver').value,$('erDepot').value,$('erService').value,$('erLocation').value,$('erScheduled').value,$('erActual').value,$('erNotes').value]);['erDriver','erDepot','erService','erLocation','erScheduled','erActual','erNotes'].forEach(id=>$(id).value='');setTimeout(loadCloud,1200);}
-function renderCloudTable(sheet,el){const rows=cloud[sheet]||[];el.innerHTML=rows.slice(1).reverse().map(r=>`<div class=row><div><b>${formatDateValue(r[0])}</b><br><span class=small>${formatTimeValue(r[1])}</span></div><div>${r[2]||''}</div><div>${r.slice(3,7).join(' | ')}</div></div>`).join('')||'No cloud data loaded.';}
+function renderCloudTable(sheet,el){const rows=cloud[sheet]||[];el.innerHTML=rows.slice(1).reverse().map(r=>`<div class=row><div><b>${r[0]||'-'}</b><br><span class=small>${r[1]||''}</span></div><div>${r[2]||''}</div><div>${r.slice(3,7).join(' | ')}</div></div>`).join('')||'No cloud data loaded.';}
 function buildDrivers(){const d={};(cloud['Inspections']||[]).slice(1).forEach(r=>{const name=r[4]||'-';if(!d[name])d[name]={name,inspections:0,nsa:0,reports:0,history:[]};d[name].inspections++;if(r[10]==='No')d[name].nsa++;if(r[13]&&r[13]!=='No Driver Report')d[name].reports++;d[name].history.push(r.join(' | '));});return Object.values(d);}
 function buildFleets(){const f={};(cloud['Inspections']||[]).slice(1).forEach(r=>{const fl=r[6]||'-';if(!f[fl])f[fl]={fleet:fl,inspections:0,nsa:0,reports:0,history:[]};f[fl].inspections++;if(r[10]==='No')f[fl].nsa++;if(r[13]&&r[13]!=='No Driver Report')f[fl].reports++;f[fl].history.push(r.join(' | '));});return Object.values(f);}
-function renderDatabase(){const dq=($('driverSearch').value||'').toLowerCase(),fq=($('fleetSearch').value||'').toLowerCase();$('driverDbList').innerHTML=buildDrivers().filter(x=>x.name.toLowerCase().includes(dq)).map(d=>`<div class="dbCard driver"><h3>${d.name}</h3><div class=dbStats><div class=dbStat><b>${d.inspections}</b>Inspections</div><div class=dbStat><b>${d.nsa}</b>NSA</div><div class=dbStat><b>${d.reports}</b>Reports</div></div><details><summary>History</summary>${d.history.map(h=>`<div class=small>${h}</div>`).join('')}</details></div>`).join('')||'No drivers.';$('fleetDbList').innerHTML=buildFleets().filter(x=>x.fleet.toLowerCase().includes(fq)).map(f=>`<div class="dbCard fleet"><h3>Fleet ${f.fleet}</h3><div class=dbStats><div class=dbStat><b>${f.inspections}</b>Inspections</div><div class=dbStat><b>${f.nsa}</b>NSA</div><div class=dbStat><b>${f.reports}</b>Reports</div></div><details><summary>History</summary>${f.history.map(h=>`<div class=small>${h}</div>`).join('')}</details></div>`).join('')||'No fleet.';}
+function renderDatabase(){const dq=($('driverSearch').value||'').toLowerCase(), fq=($('fleetSearch').value||'').toLowerCase();$('driverDbList').innerHTML=buildDrivers().filter(x=>x.name.toLowerCase().includes(dq)).map(d=>`<div class="dbCard driver"><h3>${d.name}</h3><div class=dbStats><div class=dbStat><b>${d.inspections}</b>Inspections</div><div class=dbStat><b>${d.nsa}</b>NSA</div><div class=dbStat><b>${d.reports}</b>Reports</div></div><details><summary>History</summary>${d.history.map(h=>`<div class=small>${h}</div>`).join('')}</details></div>`).join('')||'No drivers.';$('fleetDbList').innerHTML=buildFleets().filter(x=>x.fleet.toLowerCase().includes(fq)).map(f=>`<div class="dbCard fleet"><h3>Fleet ${f.fleet}</h3><div class=dbStats><div class=dbStat><b>${f.inspections}</b>Inspections</div><div class=dbStat><b>${f.nsa}</b>NSA</div><div class=dbStat><b>${f.reports}</b>Reports</div></div><details><summary>History</summary>${f.history.map(h=>`<div class=small>${h}</div>`).join('')}</details></div>`).join('')||'No fleet.';}
 const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];let ts=JSON.parse(localStorage.getItem('tsCloud')||'{}');
 function diff(s,f){if(!s||!f)return 0;let [sh,sm]=s.split(':').map(Number),[fh,fm]=f.split(':').map(Number),a=sh*60+sm,b=fh*60+fm;if(b<a)b+=1440;return (b-a)/60;}
 function buildTimesheet(){$('timesheetRows').innerHTML=days.map(day=>`<div class=row><b>${day}</b><input class=field type=time id="s${day}" value="${ts[day]?.s||''}"><input class=field type=time id="f${day}" value="${ts[day]?.f||''}"><span id="t${day}">0</span></div>`).join('');calcTs();}
@@ -105,8 +150,11 @@ function calcTs(){let total=0;days.forEach(day=>{const h=diff(ts[day]?.s,ts[day]
 function renderAll(){$('homeClock').textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()}`;renderTickets();renderChecks();renderCloudTable('NSA Faults',$('nsaList'));renderCloudTable('Driver Reports',$('driverReportsList'));renderCloudTable('Early Running',$('earlyRunningList'));renderDatabase();$('cloudLog').innerHTML=sheets.map(s=>`<div>${s}: ${(cloud[s]||[]).length} rows</div>`).join('');}
 
 document.addEventListener('click',e=>{const open=e.target.dataset.open;if(open)openSection(open);const filter=e.target.dataset.checkFilter;if(filter){checkFilter=filter;localStorage.setItem('checkFilter',filter);renderChecks();}const toggle=e.target.closest('[data-toggle]');if(toggle)$(toggle.dataset.toggle)?.classList.toggle('show');const ticket=e.target.closest('[data-ticket]');if(ticket)addTicket(ticket.dataset.ticket);if(e.target.id==='undoTicketBtn')undoTicket();if(e.target.classList.contains('refreshCloud'))loadCloud();});
-document.addEventListener('change',e=>{if(e.target.id==='inspectorSelect'||e.target.id==='otherInspector')saveInspector();if(e.target.id?.startsWith('s')||e.target.id?.startsWith('f'))saveTs();if(e.target.dataset.ti){ticketDefs[e.target.dataset.ti][e.target.dataset.field]=e.target.value;saveTicketButtons();renderTicketButtons();}});
+document.addEventListener('change',e=>{if(e.target.id==='inspectorSelect'||e.target.id==='otherInspector')saveInspector();if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');if(e.target.id==='nsaWorking')syncNsaCategory('nsaWorking','nsaType');if(e.target.id?.startsWith('s')||e.target.id?.startsWith('f'))saveTs();if(e.target.dataset.ti){ticketDefs[e.target.dataset.ti][e.target.dataset.field]=e.target.value;saveTicketButtons();renderTicketButtons();}});
 document.addEventListener('input',e=>{if(e.target.id==='checkSearch')renderChecks();if(e.target.id==='driverSearch'||e.target.id==='fleetSearch')renderDatabase();});
-function updateLiveClock(){const clock=$('homeClock');if(clock)clock.textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()}`;}
-window.addEventListener('load',()=>{initInspector();$('csDate').valueAsDate=new Date();buildTimesheet();renderTicketButtons();renderAll();loadCloud();setInterval(updateLiveClock,1000);
-$('saveCheckSheetBtn').onclick=saveCheckSheet;$('clearCheckFormBtn').onclick=clearCheckForm;$('refreshChecksBtn').onclick=loadCloud;$('saveEarlyBtn').onclick=saveEarlyRunning;$('clearTicketsBtn').onclick=()=>{tickets=[];lastTicket='Cleared';localStorage.setItem('cloudTickets','[]');renderTickets();};$('exportTicketsBtn').onclick=()=>download('Ticket-Log-Local.csv','Date,Time,Inspector,Ticket\n'+tickets.map(x=>[esc(x.date),esc(x.time),esc(x.inspector),esc(x.type)].join(',')).join('\n'));$('toggleTicketSettingsBtn').onclick=()=>{const p=$('ticketSettingsPanel');p.style.display=p.style.display==='none'?'block':'none';};$('addTicketButtonBtn').onclick=()=>{const name=$('newTicketName').value.trim();if(!name)return;ticketDefs.push([$('newTicketCategory').value,name,name,$('newTicketPrice').value.trim()]);saveTicketButtons();$('newTicketName').value='';$('newTicketPrice').value='';renderTicketButtons();};$('resetTicketButtonsBtn').onclick=()=>{ticketDefs=JSON.parse(JSON.stringify(defaultTicketDefs));saveTicketButtons();renderTicketButtons();};$('exportTimesheetBtn').onclick=()=>{const rows=['Day,Start,Finish,Hours'];days.forEach(day=>rows.push([esc(day),esc(ts[day]?.s||''),esc(ts[day]?.f||''),esc(diff(ts[day]?.s,ts[day]?.f).toFixed(2))].join(',')));download('Timesheet.csv',rows.join('\n'));};});
+function updateLiveClock(){
+  const clock=$('homeClock');
+  if(clock) clock.textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()}`;
+}
+window.addEventListener('load',()=>{initInspector();$('csDate').valueAsDate=new Date();$('nsaDate').valueAsDate=new Date();$('csNSAFault').value='Fully Working';$('nsaType').value='Fully Working';buildTimesheet();renderTicketButtons();renderAll();loadCloud();setInterval(updateLiveClock,1000);
+$('saveCheckSheetBtn').onclick=saveCheckSheet;$('saveManualNsaBtn').onclick=saveManualNsa;$('clearCheckFormBtn').onclick=clearCheckForm;$('refreshChecksBtn').onclick=loadCloud;$('saveEarlyBtn').onclick=saveEarlyRunning;$('clearTicketsBtn').onclick=()=>{tickets=[];lastTicket='Cleared';localStorage.setItem('cloudTickets','[]');renderTickets();};$('exportTicketsBtn').onclick=()=>download('Ticket-Log-Local.csv','Date,Time,Inspector,Ticket\n'+tickets.map(x=>[esc(x.date),esc(x.time),esc(x.inspector),esc(x.type)].join(',')).join('\n'));$('toggleTicketSettingsBtn').onclick=()=>{const p=$('ticketSettingsPanel');p.style.display=p.style.display==='none'?'block':'none';};$('addTicketButtonBtn').onclick=()=>{const name=$('newTicketName').value.trim();if(!name)return;ticketDefs.push([$('newTicketCategory').value,name,name,$('newTicketPrice').value.trim()]);saveTicketButtons();$('newTicketName').value='';$('newTicketPrice').value='';renderTicketButtons();};$('resetTicketButtonsBtn').onclick=()=>{ticketDefs=JSON.parse(JSON.stringify(defaultTicketDefs));saveTicketButtons();renderTicketButtons();};$('exportTimesheetBtn').onclick=()=>{const rows=['Day,Start,Finish,Hours'];days.forEach(day=>rows.push([esc(day),esc(ts[day]?.s||''),esc(ts[day]?.f||''),esc(diff(ts[day]?.s,ts[day]?.f).toFixed(2))].join(',')));download('Timesheet.csv',rows.join('\n'));};});
