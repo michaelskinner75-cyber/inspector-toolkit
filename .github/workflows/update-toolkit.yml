@@ -1,4 +1,4 @@
-name: Deploy Complete NSA Update
+name: Add Depot Dropdowns
 
 on:
   push:
@@ -10,29 +10,84 @@ permissions:
   contents: write
 
 jobs:
-  deploy:
+  update-depots:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Write updated toolkit files
+      - name: Update depot fields
         run: |
           python <<'PY'
           from pathlib import Path
-          import base64,gzip,re
-          files={
-          'app.html':'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',
-          'app.js':'H4sIAMo/UGoC/8077VLbypL/eQqFSmWkRRgD+TjXjqAIISfZQyCLOTeVdbwH2RphBVlyJBnwMa7aX/sA+wh73+Q+yn2S7e4ZSTOSDOTcs1WbSmGpp6enp6env2Y0iqM0Mz4fvfnt4NOn3349OzYcg42zbJp2trbSURJMs9ZlHF+GvDWKJ1sTd5TE6Va6dfCLPx8Nf989/pT826sv28NXvdn3V6fXX3rz+Hv8+XnwJTn4/eTbm+8vj4NX2fPeMEv8JHjz7f32S/4i+PnnnX8/O/9l/u33q/bBFr/lI9ZdGxEn6ZjzLAUm+uxDlE75KAsAzmx20jsw3rmzMMOXt0lwzRPjjE/jhABHbhLOjbNZFAXRJbyfB6MrnhnH8SUbdNdCeByF8cwDuqfDb0C05Sfx5CjKkoCnphizNXGnJoy8Z/RT2+gPBpYlemZEC3n6197pSWvqJik3w3jkhr0sTtxL3rrk2YeMT0xGg4ixU2YZd3cG6w+YpBO6aSb5cnKirZBHl9nY2C8AbmZublutbD7lRsdgJ3HEmZzBmI+u3gVhBjN3jBUMlDhy/Cz23DlQkPJ9Cl0DD2fpxaPZhEcZdj4KOT6+mX/wzMADfv1ZRJI3qLtpLRKezZLIiPiN8dbNuAkcxsfIAsfXHggyujSt7rLsGcU39/Y7DyaN/Xg6Mq+LjhfrTxcS69rY3zcYs1oJn4buiJtb61uXNltfZ9Zy/UIl4cfJxM1wvL+64YwjuTXDCHzz2nGcWeRxP4i4h+JBQDQLw/wZyBtyZLYJUjMMqZZOzoRVAj2nmFZKYBjhSZCeuCemZ9GQRk7MaxIX49Hmz28YdV2uFbhpd602FxTW/7+5KEso52IvxvEs6bCdTS+4DDJmT4JolnEFgO3bOx3fDVO+LKYOo239x1dvsW3vLDvwu7PcamU8zYCZYhJpKw0DWPa2/YL6NYorQnGFQUpyfhcnPfdakdmT64La/ZqsLk1NQNcb7Lzd7tB/prKSywu28zVs3gcWvYlrlOgPcv3nLIKkX2iGJmuF05RnvczNZqmZWYunJkvn0UgAYGNm/DY7jKMMTAmaOHVLevFNFMauZ0buhNuIaC2EYIck2DdhPDT7CB/YCzR+HYYvW6P0mgGHAtV1CqM1SjiIQdotk7kgULc1TrjvgA+TrcLUw7s5xNacBQdZgPcRzPCKbE/JZjzlUU84HTSEi2K87zOezHs8hLY4OQhDk7VSgQfzhj165I7GZurspUDWTdPjIM3ATk1iWEfmAt41Z+BPniJRBcP1vLK5exNEwGMLvG4chucxCL+tWUa08sInxomZi+/agVUIcrDgEFi6RmPRlatK1uA0G4NT2DcBPcbHglSOfXcncazOtTpsCsqojqt5njT3PAULJyBdZq9myuo2E9CZKqg084qirDel2RziFC9IwT/M75GLIg42BG6uWIdF5GiVaQdRoIn7HnLNvliXiAXi/Wj0roIognG7K2e2gliDdJAi61ZWB7XZxU1pFBOhoORgCprtiVDHTuIbtC3lXmZgcGDfg7cX2K1WiwxblswX7o0bZIbPM1BwJU60FxOejWOvwz6d9s7BxsQeRylujuIEIrIxdz2epJ0FkwZh8xw2NZO7GtYniNjSHsbevENRVUqGJ/Dn5qLgcWnBzteZBE9X8MhwssbIRca4tVAQDynWQ8kYvhuE3GsZoi8GNOMgNTx+DdYtp0D76IrPHUay/41tEAu50UkS56HADzrjalCsB/it6SwdmyjlZl0HdLsya+hlkaWtLB4aLJqOWVmxY2jAJRNxredmbr5oYI1MJZg2Yl9G1dYC11M0JTx1VqzsBtsnfIdt8GgEy/rr2YfDeDKFDQKmlpqs3CJ/S+NI0gGKLXwFHSSe+oQ5cBDWQv7u7vqD7rJYLyQQw3YN40t47S6X2vQOi2mRCDgtdwIqzMn6kqh0E3WIoW8PxyRRyWnGN06/MSaADThKEVCYFLvRC1MYa9m67bVFb0g/CiMgQZSY6LAeT1DbdOC7EBgtQI0jEx4CTqOSRwK+id0EF78yNsRLQeRKn6Q0QOpUA1AqVYOexBB0Nc1IZFrNLW5aDgjJlmZv9CSOdkQFQc3r+oDQbw8Qr789eKzMdVGuFnnT2vxTonn8MrBiHgapqUF6ygYoDQjwVgr6CTiqk9jQ0l2I6jUBVnPhfk2z7+5kFmeTMjfLtUE4K/X7sdrwWP0fCK3gbkLSgQ0wMcnyo/bHs8wsrKC9vdNu6xFptd+iX7BulxOzFUbsYny73GG2uqB2ZR1tVQfs6mwHRQAYeM6eiPGEL4cUrFvVM4d9ASLdRm1z2DtI4ObG5zi5Qj66K4XeoBdaIEvO6iy+EQlLHiyqSYzV1VK8PLmThn1aJIkYZUBoNQ0DiLO3GHWbyroFBFK7VjU1mfZ3BmX7zj7babMNBHbwjz2Frb25DT/tgdWtpTV64DkBkw2+0R4W9QAX8h614gAjDCsgjUTmJtmp/5nzK5iklMJtKQUvd2SwP5xb9Oc4oNW9RV9NGBKIvG0C0oaJmI7T3t982dm2JOZ7yKdSjNdtitklr7d6OHkOkYfOSOqo/JVCsGyupeO84CYtudl4VQzk7Tnps2fea14f8CNEX+NyxMhRRF3k80AT9e4LbCSSaKRDgDQCBKmiXb5WpA3O+xDTGzOxFqAoSX97d0Dhtu9DMMGlrhq92XASZBn3WK4+LBYYrKt2O/CuwSsqWK4ESKw2YZ3EJUKUuiyfGWN17j66ydWPM3f67t3RyeHRA8wdvP3rh97R29XMoRkomDv9RWNPBDdkyFKKYLDmB54wdUwRT2m+dIDRVJ6lb5P9pAX+7pA3oVgIFm80VrI7JooGNzCKC5GsZevqsCZGwz8tn0qIZuLsFZZDsygJ7V70XUrFEWcryo3Pnj3JN69nR4VxoXpDU68b0H/spG2SB3tNUAPLbrmq1/t9B5yk9S0OIpMZVSm0gmgUzjyemt+rXeVblkAqTWWSXLSYvDPsCbnc+/OPx0JoCQdrTCSxlGwmdmCB/LB0ltuYjDvV2qSQZImEoayHPsmpVv5AozTMjBxXA9orDc3jGeRAqdOnGp5x8XSBfCyNp4tiqOWFLRoTMNCgKJuseN+tvD+vvL+ovL/U3gWLdjFy0v9JtC8xjcP3v8j3nIML2CIdaoHtI5rki9xL+8zYNNgGSmNbIFgbJUiyb3WYQlJzk5L4bmVcAMmp4fuA5JeXoF97wbVBRRtnfQSJkDvKRBQHItQs3nJ9rwH3PJ6uUyazmcWXlyGHBu/pImhG/giJ8fpeuUZCgkvjjth+kUtPvL7UX5+rr5q1W77egqGaxgNbh8MVC700/vGf/2NoK/WP//pvbakKDCnsnPiqId4KBVw3IDoqpg4zFGC5LV8Pkz1maaQuYBGWlmynageEPLT9UsxxRSZ/HfCbFqNsMFd3HyMqcdDylvug+H02dacUA/YgQAi5+sAGdtl8RguuPmjNn/DXoKor2My5DoG3v//teetVu6HLGb8Eo13plQOp419az5s6Hrkwo94ozkI38jQo9dreaf3U1A2C29ug9kaIk3gY0MQ/0oNRCKL63ohdyKX63oitSkoFFaIytoy//+3Fq1xo9dE0sVWghdyIyjbIYreZTFWICriUoiDy/KdGCrkEK6+a5E+Cy3F2Fnj1F0LzE44Ef93ZKf5qcPT9xva2/ljHeKE9qe2naOJetrUntf0whggnTUU2o72oWL3M9X3llw0G6iEo7acHT0EF7ptZlsVRj2eQRV2mtH/xdAofanu0q5dyzhUC6cqKc+Mw1bpaybdl1aOt6kBPdaqp5uNLUsK/e+TfL14PCTc3esMsAuPogVdf5laf+jnrCN0eCNsHtnOJP7uDfWH6NvAZvdbrLUFv76I0fRtNg3hudMkTYVVnkRfLuWTgPkBD4pJOV51rLihzpTRKjPyAJr51CsHkrSICoujqCSDIwKmLyI8QmeIkNLIQXoJXDKLpLDNEmrsuhIXRaylPhAb5qx/wEESw09Rx9xEdd6FjSvX8+7DagBVPSVhidTEcEXt/n4nukAngAu4R9PWWwG7oJa1LtZsA39OPtmi1FwLLPluice8edaFJiZMpRTPRJZ8RsNAb6YRLLVQVxvXkNQcTz+pyTUkcils6ebkJg5eOqDkVhyGdSvUJ+y+7+e0HUTi3uuVdCQcRVhwZadctmnc+bnutXKbcDLH7CRamuZ20kFP4KbhEEIw7sLTNU9k15a6DvVLMIJ6aOv/aTY/9hnseHXnL45+a5D18VprkYo3iWZSlzqIUfl7FunX2RGP/VkgBMlDt/e6ubW1A0kmO4TZzLo4PeucYWJfTXn6Nzk/PD447FMOqEoCWzRX/vkYXXXk/54rPUzkqZLkQt5vlMeuVswejbjhX4IW8I1jUnbbNWmAmJZdXgw32NRKlNzH28cjTj6cdIKA0x5cNlj6/b2BVErtbacFgl4EpFyJBs72Hhvx1OnXzfZdO3DAklDyavyVFEwH6balt0Bu75SH0OFG3nYh7c5b0Kh+eFZ2k7iGQv4yTuXkj6oYfPNpWH7zyIES2gCEvcPJD4hwFu0C77Ckq03k3R1QtLUJaUatcMzhkzZVeJ1sHlV4IUXCVJqdK8u5Ob20gFhsHMy+ImX5JAWKIj240c0MQTvU0CDO7VSdCUerqR0IacsOxELZXDBqCJCmtfl7C9QOLEl4tlCuU9Op82ZBLqt5Cx611sBSLdphRttZONNTJ1I81sJUJigae48hC9JoxuO+UR54C9UsR2aVUbFUQtjJ3W+PPrrJkVyd3f1F+rVl+sja/1iDDBnV/5AEFaiPdT5TXE9ECq7Kp3F3sP3RYw5P6YQ3Aqoc1PGk4eOEJZmDVI0JAhbzam4VYzFTBB6MMBKrDNN0BB9kvGbILPmxleFsd1dYGs8sx7IL0/St3j9DrxVRyne4w5PLiAw+LUAVLneo5NZ1O87Ba08sLrBUfkOhRLKDulS4BS3p5ZWS1V8ByHkWnuvHHP0VxhS11qGRn136V+wdwJdWySa1kUj9KV0U1nAWhJxawDA48jAseUXculqqsFOPtKqcoRtEhk9dH4MCSv86CLoEFJdlO24btBn8TcYoJT2NIMMCldfqDZVf2ayk9NjZqRfYcCygVrbuDZ8/op/kkNe8ih4VuOUQOLwNSVdgWloJlaVAGK6SdKR4mVeVKRq0Uq//HxeqHTlHwI6H6fT8cWPTXWfg4TscPf0Co1PMBkQqcHxCo6FCKU7z/EWH6DfsZfLM7pKJ9rqbiuMMjJh5x3uELfJLWg+jdgvLbYa3gr++a/LwEQsPbFirQqiMG77slDIhXSYO94SG4NkOMB7nmeBfLBEQLdje8KcjeEG/JpHWQMD+euqhkghRNq1Vp9Z6w1NQD/PUDmHKNCVvePdDrwKK8C6ZvNpm4yXzvvVACsHYSgFRyzUCRjHWR5HZyvKzZNYTk5JttnpAjhsv5cq9aw3yHaktIPVatoZ+vod+8htRZLCERh1jfFxR/dCX9P7yS/qNX0v9TVtL/P1tJsRTosYqD+tTps49x5FFV+ByMhXj6zL0ofz4fzxL5+C4JxEPPBTMjH2fUeyAy2MeUNFOKJYipxZKpX0h4ge+bqe3TkfKT9O7uiZ8fI7aJPgQYdjoZOGl+iaLDhP6czCZDnlh23x/bPiD4qxBcJx3/y8v2Rjqxh45Pj/4EDfLwtWsNN5zt58/buRU1h5uutfWyXXNFGDWl8nocZb7y9QzCHG1boISFjXLnDWEObX93LmIbUXETrVQpE1kkEqfCZCpw18uiHOTnABnst1JRmnuYhr+ahp/ToPgKkTOJvNfWwiq1jAXrOzpPq1dNrjnCFjT53PuSAORgziLt4H13tgFveUDsI8hXQctV15tzDapVcKhC1cBSDluQjsaZGzrtbp096QnHDulhKV27FJLVpe4bzlheduEhFXQF36hHEBdD6KvWR8Zg/d4Ft9wzd/B8dZxAWrQkl4hn9edIr1JRYZ+Pjn4xZNGHbdCQOpH3p7+e9fQChnKjE5VyHE/4IV3I1mlfvD04P8JKkkiNsLj04SMCKEeC1w8nvU9Hh+enZ1hv0lOm5UWtNqZftejWkgUtXRWpoHAeTbjV+3dF1CAhq3tWEj/MrpQ0Ue9Xhj50JwypVKtW6mdseYnq6SJdokhkzJnKOFNW4igLaqrzrhXfPbied3QND8gNh5FwbJAjs3mhevjNhAMRj5uA4OmmLyh9C6GoWvhrqZ9VEEAqovC59c7KRQ+kIdAg6FPufwjYqpqp8hmcLXtXV30pq17iTL5gAQSV4odHrK8c2Q/EtTfxYj2VDwW7Er6vfNkhQGAvxvENy6cr6+0rx6LmfCx6sZRCO/2UY4p22r05PTCAEJVrh0HMUqvUGnbJLHAHPjhKTZZwPwG3IJ2dpdw+pwsw96nFGA8YhF7Ueap+OXF3V0GofgxR/ayhTlJeqqyWQCXc1m5XNnRXiz81GkqjXRaCKlTAyOLtvfRzkI3RMVjapPRWH4SZ+xiNTLmc+RECnpb1G9oHdSB5y0GpT6Ke23CC2m087uwuH1hT8syrllS7Y1bZW3VsLUWrrb6WkNUM3lINt2ZTLKYfAzVyFFTdleXdEQIc3Y3ITxmpyRIYf6ZnWVuuya+26tLDzcNsE++AVb4l6tauaB/Qm3obr16NbsR53B3ih2qZ1QBxhb6o31+opgHtLogzAeJmZX3s7TbVQzF00j7SINvUiiNyJ47e1pXYRQ2/jlw0CXeoXgHXkfU2xM5tHCmrjlxMKueAXHR9dLWcWzAg4wsdm5ZfHt44/YF6MMgOsRfeZX3MwZ/4uKh2yoej81sMNFYOX3x6Kc8+NyFw2KSLOC38utJmqE02rr5d6KgtUL9GEMjJkyd59NXH77PFiZZli2eM1PPnwtAXjXg+PJDBhQ1mUD7iAZ04oSNPqd89aJBhfi29dhPhkxtxiEW708rnf9V3tPl4zFr75A+ZKNysUPaV41NxEzcUvxH44ks8sa1aENRPhPV7goj5pQjlFgRVwPoqgdzplN8CYW2U/qhonxKlki8HGliNtn4Vew5j3ZUksXGFkxB7huruSstKNa/eEarkO7W7P5b1Ix5L1XdprlYuFtX4+6Dec7uHvth+B3YYknG6rQ/Jfz2ZopK/WCPUXkyPSI31pLUC80vYPTmYkgpp28HqqvtTTklsTOJG3S1LcoX/C4DH04azQwAA'}
-          for name,data in files.items():
-              Path(name).write_bytes(gzip.decompress(base64.b64decode(data)))
-          index=Path('index.html')
-          text=index.read_text(encoding='utf-8')
-          text=re.sub(r'src="app\.html(?:\?v=[^"]*)?"','src="app.html?v=20260710-5"',text)
-          index.write_text(text,encoding='utf-8')
+          import re
+
+          depot_options = '''<option value="">Select depot...</option>
+          <option>Aberhill</option><option>Arbroath</option><option>Dunfermline</option>
+          <option>Glenrothes</option><option>St Andrews</option><option>Perth</option>
+          <option>Forfar</option><option>Blairgowrie</option><option>Other</option>'''
+
+          app = Path('app.html')
+          html = app.read_text(encoding='utf-8')
+          html = re.sub(r'href="style\.css(?:\?v=[^"]*)?"','href="style.css?v=20260710-9"',html)
+          html = re.sub(r'src="app\.js(?:\?v=[^"]*)?"','src="app.js?v=20260710-9"',html)
+
+          replacements = {
+            '<input class="field" id="csDepot" placeholder="Depot">': f'''<select class="field" id="csDepot">{depot_options}</select>
+        <input class="field" id="csDepotOther" placeholder="Enter custom depot" style="display:none">''',
+            '<input class="field" id="nsaDepot" placeholder="Depot">': f'''<select class="field" id="nsaDepot">{depot_options}</select>
+          <input class="field" id="nsaDepotOther" placeholder="Enter custom depot" style="display:none">''',
+            '<input class="field" id="erDepot" placeholder="Depot">': f'''<select class="field" id="erDepot">{depot_options}</select>
+        <input class="field" id="erDepotOther" placeholder="Enter custom depot" style="display:none">'''
+          }
+          for old,new in replacements.items():
+              if old not in html:
+                  raise SystemExit(f'Missing field: {old}')
+              html = html.replace(old,new,1)
+          app.write_text(html,encoding='utf-8')
+
+          js_path = Path('app.js')
+          js = js_path.read_text(encoding='utf-8')
+          helper = '''function depotValue(selectId,otherId){
+ const selected=$(selectId).value;
+ return selected==='Other'?$(otherId).value.trim():selected;
+}
+function toggleOtherDepot(selectId,otherId){
+ const other=$(otherId);
+ if(!other)return;
+ other.style.display=$(selectId).value==='Other'?'block':'none';
+ if($(selectId).value!=='Other')other.value='';
+}
+'''
+          if 'function depotValue(' not in js:
+              js = js.replace('async function cloudAppend(sheet,row){',helper+'async function cloudAppend(sheet,row){',1)
+
+          js = js.replace("$('csDepot').value,$('csDriver').value", "depotValue('csDepot','csDepotOther'),$('csDriver').value")
+          js = js.replace("$('nsaDepot').value,", "depotValue('nsaDepot','nsaDepotOther'),")
+          js = js.replace("$('erDepot').value,", "depotValue('erDepot','erDepotOther'),")
+          js = js.replace("$('csDepot').value,$('csFleet').value", "depotValue('csDepot','csDepotOther'),$('csFleet').value")
+          js = js.replace("$('csDriver').value,$('csDepot').value,$('csDriverReport').value", "$('csDriver').value,depotValue('csDepot','csDepotOther'),$('csDriverReport').value")
+
+          js = js.replace("['csDepot','csDriver'", "['csDepotOther','csDriver'")
+          js = js.replace("['nsaDepot','nsaFleet'", "['nsaDepotOther','nsaFleet'")
+          js = js.replace("['erDriver','erDepot','erService'", "['erDriver','erDepotOther','erService'")
+          js = js.replace("$('csNSA').value='Yes';", "$('csDepot').value='';$('csDepotOther').style.display='none';$('csNSA').value='Yes';")
+          js = js.replace("$('nsaWorking').value='Yes';", "$('nsaDepot').value='';$('nsaDepotOther').style.display='none';$('nsaWorking').value='Yes';")
+
+          old_change = "document.addEventListener('change',e=>{if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');"
+          new_change = "document.addEventListener('change',e=>{if(e.target.id==='csDepot')toggleOtherDepot('csDepot','csDepotOther');if(e.target.id==='nsaDepot')toggleOtherDepot('nsaDepot','nsaDepotOther');if(e.target.id==='erDepot')toggleOtherDepot('erDepot','erDepotOther');if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');"
+          if old_change not in js:
+              raise SystemExit('Change listener not found')
+          js = js.replace(old_change,new_change,1)
+          js_path.write_text(js,encoding='utf-8')
+
+          index = Path('index.html')
+          launcher = index.read_text(encoding='utf-8')
+          launcher = re.sub(r'src="app\.html(?:\?v=[^"]*)?"','src="app.html?v=20260710-9"',launcher)
+          index.write_text(launcher,encoding='utf-8')
           PY
-      - name: Commit deployment
+      - name: Commit depot update
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add app.html app.js index.html
-          git commit -m "Complete NSA reporting update" || echo "No changes to commit"
+          git commit -m "Add depot dropdowns and custom depot entry" || echo "No changes to commit"
           git push
