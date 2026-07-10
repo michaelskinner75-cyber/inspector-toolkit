@@ -4,42 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Inspector Toolkit Cloud</title>
-<link rel="stylesheet" href="style.css?v=20260710-6">
+<link rel="stylesheet" href="style.css?v=20260710-7">
 </head>
 <body>
-<div id="inspectorModal" class="inspectorModal">
-  <div class="inspectorModalCard">
-    <h2>Who is using the toolkit?</h2>
-    <p>Select the inspector before continuing.</p>
-    <select class="field" id="startupInspectorSelect">
+<section id="loginPage" class="loginPage">
+  <div class="loginCard">
+    <div class="loginTitle">INSPECTOR TOOLKIT</div>
+    <div class="credit">Designed &amp; Developed by Michael Skinner</div>
+    <h2>Inspector Login</h2>
+    <p>Select who is using this device.</p>
+    <select class="field" id="loginInspectorSelect">
+      <option value="">Select inspector...</option>
       <option>M Skinner</option>
       <option>A Duncan</option>
       <option>A Fairbairn</option>
       <option>Other</option>
     </select>
-    <input class="field" id="startupOtherInspector" placeholder="Enter inspector name" style="display:none">
-    <button class="btn" id="confirmInspectorBtn">CONTINUE</button>
+    <input class="field" id="loginOtherInspector" placeholder="Enter inspector name" style="display:none">
+    <button class="btn loginBtn" id="loginBtn">LOG IN</button>
   </div>
-</div>
+</section>
 <div class="wrap">
   <div class="machine">
     <div class="title">INSPECTOR TOOLKIT CLOUD</div>
     <div class="credit">Designed &amp; Developed by Michael Skinner</div>
-    <button id="currentInspectorBanner" class="currentInspectorBanner" type="button">
-      CURRENT INSPECTOR: <span id="currentInspectorName">Not selected</span>
-      <small>Tap to change</small>
-    </button>
 
     <section id="home" class="section active">
       <div class="panel">
-        <label>Inspector</label>
-        <select class="field" id="inspectorSelect">
-          <option>M Skinner</option>
-          <option>A Duncan</option>
-          <option>A Fairbairn</option>
-          <option>Other</option>
-        </select>
-        <input class="field" id="otherInspector" placeholder="Other inspector name" style="display:none">
+        <div class="loggedInBox">
+          Logged in as <strong id="loggedInInspector">Not logged in</strong>
+          <button class="btn changeInspectorBtn" id="changeInspectorBtn">CHANGE INSPECTOR</button>
+        </div>
         <div id="homeClock" class="lcd"></div>
         <div class="status" id="syncStatus">Cloud ready.</div>
       </div>
@@ -206,6 +201,6 @@
     <section id="cloud" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Cloud Data</h2><button class="btn refreshCloud">REFRESH CLOUD DATA</button><div class="log" id="cloudLog"></div></section>
   </div>
 </div>
-<script src="app.js?v=20260710-6"></script>
+<script src="app.js?v=20260710-7"></script>
 </body>
 </html>
