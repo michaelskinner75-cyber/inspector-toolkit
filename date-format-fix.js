@@ -6,7 +6,7 @@ function parseInspectorDate(value){
   if(value===undefined||value===null||value==='')return new Date(NaN);
   const s=String(value).trim();
 
-  // ISO dates used by HTML date inputs and all new records: YYYY-MM-DD.
+  // ISO dates and Google timestamp values: YYYY-MM-DD or YYYY-MM-DDTHH:mm...
   let m=s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
   if(m)return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
 
@@ -18,7 +18,6 @@ function parseInspectorDate(value){
     return new Date(year,Number(m[2])-1,Number(m[1]));
   }
 
-  // Only use the browser parser for unambiguous long-form values.
   const d=new Date(s);
   return isNaN(d.getTime())?new Date(NaN):d;
 }
@@ -42,6 +41,16 @@ window.formatDateValue=function(value){
 };
 window.today=function(){return new Date().toLocaleDateString('en-GB');};
 
+function localIsoToday(){
+  const now=new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+}
+
+function initialiseDateInput(id){
+  const input=document.getElementById(id);
+  if(input&&!input.value)input.value=localIsoToday();
+}
+
 function rerender(){
   if(typeof window.renderChecks==='function')window.renderChecks();
   if(typeof window.renderTiming==='function')window.renderTiming();
@@ -50,13 +59,18 @@ function rerender(){
   if(typeof window.renderNSA==='function')window.renderNSA();
 }
 
-// Make sure the date field itself starts on the user's actual local date.
-const dateInput=document.getElementById('csDate');
-if(dateInput){
-  const now=new Date();
-  const localIso=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  if(!dateInput.value)dateInput.value=localIso;
-}
+initialiseDateInput('csDate');
+initialiseDateInput('nsaDate');
+
+// Ensure NSA filters always re-render using the corrected UK/ISO parser.
+window.setNsaFilter=function(filter){
+  nsaFilter=filter;
+  if(typeof window.renderNSA==='function')window.renderNSA();
+};
+
+document.querySelectorAll('[data-nsa-filter]').forEach(button=>{
+  button.addEventListener('click',()=>window.setNsaFilter(button.dataset.nsaFilter));
+});
 
 setTimeout(rerender,50);
 })();
