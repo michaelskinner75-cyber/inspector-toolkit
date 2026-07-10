@@ -1,0 +1,10 @@
+/* Inspector Hub V2 additions */
+.nav button{display:flex;align-items:center;justify-content:center;gap:9px}.navIcon{font-size:22px}
+.brandLogoPanel{background:#fff;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center}
+.field.timeField,input[type=time].field{height:48px!important;min-height:48px!important;line-height:24px!important;padding:10px 12px!important;-webkit-appearance:none;appearance:none}
+.keepRow{display:flex;align-items:center;gap:8px;font-weight:bold}.keepRow input{width:20px;height:20px}
+.timingResult{margin-top:10px;padding:13px;border-radius:9px;text-align:center;font-weight:900;background:#26394a}
+.timingCard,.coverageCard{background:#0a1b2a;border-left:7px solid var(--blue,#3674ba);border-radius:8px;padding:10px;margin:8px 0}
+.timingResult.red,.timingCard.red{background:#5a1d22;border-left-color:#c83f49}.timingResult.yellow,.timingCard.yellow{background:#564712;border-left-color:#d6a92f}.timingResult.green,.timingCard.green{background:#123d33;border-left-color:#459679}
+.coverageSummary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.coverageStat{background:#0d2233;border:1px solid #36586f;border-radius:10px;padding:10px;text-align:center}.coverageStat b{display:block;font-size:22px;color:#eea83e}.coverageCard.never{border-left-color:#c83f49}.coverageCard.recent{border-left-color:#459679}.coverageCard.old{border-left-color:#d6a92f}.coverageTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.coverageCode{font-size:20px;font-weight:900}.coverageRoute{color:#b8c5ce;margin-top:4px}.coverageMeta{margin-top:8px;font-size:13px}.serviceDelete{padding:7px 9px;font-size:12px}
+@media(max-width:650px){.coverageSummary{grid-template-columns:repeat(2,1fr)}.field.timeField,input[type=time].field{height:46px!important;min-height:46px!important}}
