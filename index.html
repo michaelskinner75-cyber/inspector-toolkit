@@ -16,7 +16,7 @@ const frame=document.getElementById('hubFrame');
 frame.addEventListener('load',()=>{
   const d=frame.contentDocument;
   if(!d||d.getElementById('v2Css'))return;
-  const css=d.createElement('link');css.id='v2Css';css.rel='stylesheet';css.href='v2.css?v=20260710-42';d.head.appendChild(css);
+  const css=d.createElement('link');css.id='v2Css';css.rel='stylesheet';css.href='v2.css?v=20260711-45';d.head.appendChild(css);
   const services=d.createElement('script');services.src='services.js?v=20260710-42';
   services.onload=()=>{
     const v2=d.createElement('script');v2.src='v2.js?v=20260710-42';
