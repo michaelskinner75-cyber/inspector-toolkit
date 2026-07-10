@@ -10,21 +10,19 @@ iframe{border:0;width:100%;height:100vh;display:block;background:#0b1b2b}
 </style>
 </head>
 <body>
-<iframe id="hubFrame" src="app.html?v=20260710-22" title="Inspector Hub"></iframe>
+<iframe id="hubFrame" src="app.html?v=20260710-23" title="Inspector Hub"></iframe>
 <script>
 const frame=document.getElementById('hubFrame');
 frame.addEventListener('load',()=>{
   const d=frame.contentDocument;
   if(!d||d.getElementById('v2Css'))return;
-  const css=d.createElement('link');css.id='v2Css';css.rel='stylesheet';css.href='v2.css?v=20260710-22';d.head.appendChild(css);
-  const services=d.createElement('script');services.src='services.js?v=20260710-22';
+  const css=d.createElement('link');css.id='v2Css';css.rel='stylesheet';css.href='v2.css?v=20260710-23';d.head.appendChild(css);
+  const services=d.createElement('script');services.src='services.js?v=20260710-23';
   services.onload=()=>{
-    const v2=d.createElement('script');v2.src='v2.js?v=20260710-22';
+    const v2=d.createElement('script');v2.src='v2.js?v=20260710-23';
     v2.onload=()=>{
-      const init=d.createElement('script');init.src='v2-init.js?v=20260710-22';
-      init.onload=()=>{
-        const autocomplete=d.createElement('script');autocomplete.src='service-autocomplete.js?v=20260710-22';d.body.appendChild(autocomplete);
-      };
+      const init=d.createElement('script');init.src='v2-init.js?v=20260710-23';
+      init.onload=()=>{const fix=d.createElement('script');fix.src='core-fix.js?v=20260710-23';d.body.appendChild(fix);};
       d.body.appendChild(init);
     };
     d.body.appendChild(v2);
