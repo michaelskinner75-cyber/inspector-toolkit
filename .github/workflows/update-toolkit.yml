@@ -1,4 +1,4 @@
-name: Add Depot Dropdowns
+name: Update Inspector Hub Display
 
 on:
   push:
@@ -10,84 +10,52 @@ permissions:
   contents: write
 
 jobs:
-  update-depots:
+  update-display:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Update depot fields
+      - name: Replace home display
         run: |
           python <<'PY'
           from pathlib import Path
           import re
 
-          depot_options = '''<option value="">Select depot...</option>
-          <option>Aberhill</option><option>Arbroath</option><option>Dunfermline</option>
-          <option>Glenrothes</option><option>St Andrews</option><option>Perth</option>
-          <option>Forfar</option><option>Blairgowrie</option><option>Other</option>'''
+          html_path=Path('app.html')
+          html=html_path.read_text(encoding='utf-8')
 
-          app = Path('app.html')
-          html = app.read_text(encoding='utf-8')
-          html = re.sub(r'href="style\.css(?:\?v=[^"]*)?"','href="style.css?v=20260710-9"',html)
-          html = re.sub(r'src="app\.js(?:\?v=[^"]*)?"','src="app.js?v=20260710-9"',html)
+          html=html.replace('<div id="homeClock" class="lcd"></div>\n        <div class="status" id="syncStatus">Cloud ready.</div>', '''<div class="ledTicker" aria-label="Inspector status">
+          <div class="ledTickerTrack" id="homeTicker">INSPECTOR HUB • READY</div>
+        </div>
+        <div class="status" id="syncStatus" style="display:none">Cloud ready.</div>''')
 
-          replacements = {
-            '<input class="field" id="csDepot" placeholder="Depot">': f'''<select class="field" id="csDepot">{depot_options}</select>
-        <input class="field" id="csDepotOther" placeholder="Enter custom depot" style="display:none">''',
-            '<input class="field" id="nsaDepot" placeholder="Depot">': f'''<select class="field" id="nsaDepot">{depot_options}</select>
-          <input class="field" id="nsaDepotOther" placeholder="Enter custom depot" style="display:none">''',
-            '<input class="field" id="erDepot" placeholder="Depot">': f'''<select class="field" id="erDepot">{depot_options}</select>
-        <input class="field" id="erDepotOther" placeholder="Enter custom depot" style="display:none">'''
-          }
-          for old,new in replacements.items():
-              if old not in html:
-                  raise SystemExit(f'Missing field: {old}')
-              html = html.replace(old,new,1)
-          app.write_text(html,encoding='utf-8')
+          if '.ledTicker{' not in html:
+              html=html.replace('.titleSub{display:block;font-size:13px;font-weight:600;margin-top:4px;letter-spacing:.4px}', '''.titleSub{display:block;font-size:13px;font-weight:600;margin-top:4px;letter-spacing:.4px}
+.ledTicker{overflow:hidden;background:#070707;border:3px solid #3f3f3f;border-radius:10px;margin-top:12px;padding:11px 0;white-space:nowrap}
+.ledTickerTrack{display:inline-block;min-width:100%;padding-left:100%;font-family:monospace;font-size:18px;font-weight:800;letter-spacing:1.5px;color:#ff8a00;text-shadow:0 0 6px #ff8a00;animation:ledScroll 16s linear infinite}
+@keyframes ledScroll{from{transform:translateX(0)}to{transform:translateX(-200%)}}
+@media (prefers-reduced-motion:reduce){.ledTickerTrack{animation:none;padding-left:12px}}''')
 
-          js_path = Path('app.js')
-          js = js_path.read_text(encoding='utf-8')
-          helper = '''function depotValue(selectId,otherId){
- const selected=$(selectId).value;
- return selected==='Other'?$(otherId).value.trim():selected;
-}
-function toggleOtherDepot(selectId,otherId){
- const other=$(otherId);
- if(!other)return;
- other.style.display=$(selectId).value==='Other'?'block':'none';
- if($(selectId).value!=='Other')other.value='';
-}
-'''
-          if 'function depotValue(' not in js:
-              js = js.replace('async function cloudAppend(sheet,row){',helper+'async function cloudAppend(sheet,row){',1)
+          html=re.sub(r'src="app\.js\?v=[^"]+"','src="app.js?v=20260710-17"',html)
+          html_path.write_text(html,encoding='utf-8')
 
-          js = js.replace("$('csDepot').value,$('csDriver').value", "depotValue('csDepot','csDepotOther'),$('csDriver').value")
-          js = js.replace("$('nsaDepot').value,", "depotValue('nsaDepot','nsaDepotOther'),")
-          js = js.replace("$('erDepot').value,", "depotValue('erDepot','erDepotOther'),")
-          js = js.replace("$('csDepot').value,$('csFleet').value", "depotValue('csDepot','csDepotOther'),$('csFleet').value")
-          js = js.replace("$('csDriver').value,$('csDepot').value,$('csDriverReport').value", "$('csDriver').value,depotValue('csDepot','csDepotOther'),$('csDriverReport').value")
+          js_path=Path('app.js')
+          js=js_path.read_text(encoding='utf-8')
 
-          js = js.replace("['csDepot','csDriver'", "['csDepotOther','csDriver'")
-          js = js.replace("['nsaDepot','nsaFleet'", "['nsaDepotOther','nsaFleet'")
-          js = js.replace("['erDriver','erDepot','erService'", "['erDriver','erDepotOther','erService'")
-          js = js.replace("$('csNSA').value='Yes';", "$('csDepot').value='';$('csDepotOther').style.display='none';$('csNSA').value='Yes';")
-          js = js.replace("$('nsaWorking').value='Yes';", "$('nsaDepot').value='';$('nsaDepotOther').style.display='none';$('nsaWorking').value='Yes';")
+          js=js.replace("function setStatus(t){$('syncStatus').textContent=t;}","""function setStatus(t){const status=$('syncStatus');if(status)status.textContent=t;updateHomeTicker(t);}function updateHomeTicker(statusText=''){const ticker=$('homeTicker');if(!ticker)return;const d=new Date();const date=d.toLocaleDateString('en-GB');const time=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});const inspector=getInspector()||'Not logged in';ticker.textContent=`INSPECTOR HUB • STAGECOACH SOUTH SCOTLAND • ${inspector} • ${date} • ${time}${statusText?' • '+statusText.toUpperCase():''}`;}""")
 
-          old_change = "document.addEventListener('change',e=>{if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');"
-          new_change = "document.addEventListener('change',e=>{if(e.target.id==='csDepot')toggleOtherDepot('csDepot','csDepotOther');if(e.target.id==='nsaDepot')toggleOtherDepot('nsaDepot','nsaDepotOther');if(e.target.id==='erDepot')toggleOtherDepot('erDepot','erDepotOther');if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');"
-          if old_change not in js:
-              raise SystemExit('Change listener not found')
-          js = js.replace(old_change,new_change,1)
+          js=re.sub(r"\$\('homeClock'\)\.textContent=`DATE \$\{today\(\)\}\\nTIME \$\{now\(\)\}\\nINSPECTOR: \$\{getInspector\(\)\|\|'Not logged in'\}`;","updateHomeTicker();",js)
+          js=re.sub(r"function updateLiveClock\(\)\{.*?\}","function updateLiveClock(){updateHomeTicker();}",js)
           js_path.write_text(js,encoding='utf-8')
 
-          index = Path('index.html')
-          launcher = index.read_text(encoding='utf-8')
-          launcher = re.sub(r'src="app\.html(?:\?v=[^"]*)?"','src="app.html?v=20260710-9"',launcher)
-          index.write_text(launcher,encoding='utf-8')
+          index_path=Path('index.html')
+          index=index_path.read_text(encoding='utf-8')
+          index=re.sub(r'src="app\.html\?v=[^"]+"','src="app.html?v=20260710-17"',index)
+          index_path.write_text(index,encoding='utf-8')
           PY
-      - name: Commit depot update
+      - name: Commit display update
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add app.html app.js index.html
-          git commit -m "Add depot dropdowns and custom depot entry" || echo "No changes to commit"
+          git commit -m "Replace green display with scrolling LED bar" || echo "No changes to commit"
           git push
