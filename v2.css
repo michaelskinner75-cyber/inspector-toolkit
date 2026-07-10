@@ -1,5 +1,6 @@
 /* Inspector Hub V2 additions */
 .nav button{display:flex;align-items:center;justify-content:center;gap:9px}.navIcon{font-size:22px}
+.nav button .navIcon{display:none!important}
 .brandLogoPanel{background:#fff;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center}
 .field.timeField,input[type=time].field{height:48px!important;min-height:48px!important;line-height:24px!important;padding:10px 12px!important;-webkit-appearance:none;appearance:none}
 .keepRow{display:flex;align-items:center;gap:8px;font-weight:bold}.keepRow input{width:20px;height:20px}
