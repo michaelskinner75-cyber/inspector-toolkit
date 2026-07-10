@@ -150,7 +150,16 @@
           <button class="btn refreshCloud">REFRESH CLOUD</button>
         </div>
       </div>
-      <div class="log" id="nsaList"></div>
+<div class="panel" id="nsaFilters">
+<div class="filterBar">
+<button onclick="setNsaFilter('today')">Today</button>
+<button onclick="setNsaFilter('week')">Week</button>
+<button onclick="setNsaFilter('month')">Month</button>
+<button onclick="setNsaFilter('all')">All</button>
+</div>
+<input class="searchBar" id="nsaSearch" placeholder="Search fleet, service, depot, inspector or notes">
+</div>
+<div class="log" id="nsaList"></div>
     </section>
     <section id="driverReports" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Driver Reports</h2><button class="btn refreshCloud">REFRESH CLOUD</button><div class="log" id="driverReportsList"></div></section>
     <section id="earlyRunning" class="section">
@@ -167,6 +176,6 @@
     <section id="cloud" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Cloud Data</h2><button class="btn refreshCloud">REFRESH CLOUD DATA</button><div class="log" id="cloudLog"></div></section>
   </div>
 </div>
-<script src="app.js?v=20260710-14"></script>
+<script src="app.js?v=20260710-15"></script>
 </body>
 </html>
