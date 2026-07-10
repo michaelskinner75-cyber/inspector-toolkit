@@ -42,8 +42,40 @@ function download(name,text){const b=new Blob([text],{type:'text/csv'});const a=
 
 function openSection(id){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');window.scrollTo(0,0);}
 function getInspector(){const v=$('inspectorSelect').value;return v==='Other'?($('otherInspector').value||'Other'):v;}
-function saveInspector(){localStorage.setItem('inspectorName',$('inspectorSelect').value);localStorage.setItem('otherInspectorName',$('otherInspector').value);$('otherInspector').style.display=$('inspectorSelect').value==='Other'?'block':'none';}
-function initInspector(){$('inspectorSelect').value=localStorage.getItem('inspectorName')||'M Skinner';$('otherInspector').value=localStorage.getItem('otherInspectorName')||'';saveInspector();}
+function updateInspectorBanner(){
+ const el=$('currentInspectorName');
+ if(el)el.textContent=getInspector();
+}
+function saveInspector(){
+ localStorage.setItem('inspectorName',$('inspectorSelect').value);
+ localStorage.setItem('otherInspectorName',$('otherInspector').value);
+ $('otherInspector').style.display=$('inspectorSelect').value==='Other'?'block':'none';
+ updateInspectorBanner();
+}
+function initInspector(){
+ $('inspectorSelect').value=localStorage.getItem('inspectorName')||'M Skinner';
+ $('otherInspector').value=localStorage.getItem('otherInspectorName')||'';
+ saveInspector();
+}
+function openInspectorModal(){
+ $('startupInspectorSelect').value=$('inspectorSelect').value;
+ $('startupOtherInspector').value=$('otherInspector').value;
+ $('startupOtherInspector').style.display=$('startupInspectorSelect').value==='Other'?'block':'none';
+ $('inspectorModal').classList.remove('hidden');
+}
+function confirmStartupInspector(){
+ const selected=$('startupInspectorSelect').value;
+ const other=$('startupOtherInspector').value.trim();
+ if(selected==='Other'&&!other){alert('Please enter the inspector name.');return;}
+ $('inspectorSelect').value=selected;
+ $('otherInspector').value=other;
+ saveInspector();
+ sessionStorage.setItem('inspectorConfirmed','yes');
+ $('inspectorModal').classList.add('hidden');
+}
+function confirmInspectorBeforeSave(actionLabel){
+ return confirm(`${actionLabel}\n\nInspector: ${getInspector()}\n\nIs this the correct inspector?`);
+}
 
 async function cloudAppend(sheet,row){
  setStatus('Saving to cloud...');
@@ -58,6 +90,7 @@ async function loadCloud(){
 }
 
 function saveCheckSheet(){
+ if(!confirmInspectorBeforeSave('Save this inspector check?'))return;
  const row=[normaliseDateForSave($('csDate').value),normaliseTimeForSave(now()),getInspector(),$('csDepot').value,$('csDriver').value,$('csService').value,$('csFleet').value,normaliseTimeForSave($('csTimeOn').value),$('csBoarding').value,$('csDestination').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csDriverReport').value,$('csDriverReason').value];
  cloudAppend('Inspections',row);
  cloudAppend('NSA Faults',[row[0],row[1],getInspector(),$('csDepot').value,$('csFleet').value,$('csService').value,$('csDriver').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csBoarding').value,$('csDestination').value,'Inspector Check Sheet']);
@@ -115,6 +148,7 @@ function syncNsaCategory(workingId,typeId){
  else if(type.value==='Fully Working'||type.value==='N/A') type.value='No Audio';
 }
 function saveManualNsa(){
+ if(!confirmInspectorBeforeSave('Save this manual NSA report?'))return;
  const row=[
    normaliseDateForSave($('nsaDate').value),
    normaliseTimeForSave(now()),
@@ -136,7 +170,7 @@ function saveManualNsa(){
  $('nsaType').value='Fully Working';
  setTimeout(loadCloud,1200);
 }
-function saveEarlyRunning(){cloudAppend('Early Running',[today(),now(),getInspector(),$('erDriver').value,$('erDepot').value,$('erService').value,$('erLocation').value,$('erScheduled').value,$('erActual').value,$('erNotes').value]);['erDriver','erDepot','erService','erLocation','erScheduled','erActual','erNotes'].forEach(id=>$(id).value='');setTimeout(loadCloud,1200);}
+function saveEarlyRunning(){if(!confirmInspectorBeforeSave('Save this early-running report?'))return;cloudAppend('Early Running',[today(),now(),getInspector(),$('erDriver').value,$('erDepot').value,$('erService').value,$('erLocation').value,$('erScheduled').value,$('erActual').value,$('erNotes').value]);['erDriver','erDepot','erService','erLocation','erScheduled','erActual','erNotes'].forEach(id=>$(id).value='');setTimeout(loadCloud,1200);}
 function renderCloudTable(sheet,el){const rows=cloud[sheet]||[];el.innerHTML=rows.slice(1).reverse().map(r=>`<div class=row><div><b>${r[0]||'-'}</b><br><span class=small>${r[1]||''}</span></div><div>${r[2]||''}</div><div>${r.slice(3,7).join(' | ')}</div></div>`).join('')||'No cloud data loaded.';}
 function buildDrivers(){const d={};(cloud['Inspections']||[]).slice(1).forEach(r=>{const name=r[4]||'-';if(!d[name])d[name]={name,inspections:0,nsa:0,reports:0,history:[]};d[name].inspections++;if(r[10]==='No')d[name].nsa++;if(r[13]&&r[13]!=='No Driver Report')d[name].reports++;d[name].history.push(r.join(' | '));});return Object.values(d);}
 function buildFleets(){const f={};(cloud['Inspections']||[]).slice(1).forEach(r=>{const fl=r[6]||'-';if(!f[fl])f[fl]={fleet:fl,inspections:0,nsa:0,reports:0,history:[]};f[fl].inspections++;if(r[10]==='No')f[fl].nsa++;if(r[13]&&r[13]!=='No Driver Report')f[fl].reports++;f[fl].history.push(r.join(' | '));});return Object.values(f);}
@@ -150,11 +184,11 @@ function calcTs(){let total=0;days.forEach(day=>{const h=diff(ts[day]?.s,ts[day]
 function renderAll(){$('homeClock').textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()}`;renderTickets();renderChecks();renderCloudTable('NSA Faults',$('nsaList'));renderCloudTable('Driver Reports',$('driverReportsList'));renderCloudTable('Early Running',$('earlyRunningList'));renderDatabase();$('cloudLog').innerHTML=sheets.map(s=>`<div>${s}: ${(cloud[s]||[]).length} rows</div>`).join('');}
 
 document.addEventListener('click',e=>{const open=e.target.dataset.open;if(open)openSection(open);const filter=e.target.dataset.checkFilter;if(filter){checkFilter=filter;localStorage.setItem('checkFilter',filter);renderChecks();}const toggle=e.target.closest('[data-toggle]');if(toggle)$(toggle.dataset.toggle)?.classList.toggle('show');const ticket=e.target.closest('[data-ticket]');if(ticket)addTicket(ticket.dataset.ticket);if(e.target.id==='undoTicketBtn')undoTicket();if(e.target.classList.contains('refreshCloud'))loadCloud();});
-document.addEventListener('change',e=>{if(e.target.id==='inspectorSelect'||e.target.id==='otherInspector')saveInspector();if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');if(e.target.id==='nsaWorking')syncNsaCategory('nsaWorking','nsaType');if(e.target.id?.startsWith('s')||e.target.id?.startsWith('f'))saveTs();if(e.target.dataset.ti){ticketDefs[e.target.dataset.ti][e.target.dataset.field]=e.target.value;saveTicketButtons();renderTicketButtons();}});
+document.addEventListener('change',e=>{if(e.target.id==='inspectorSelect'||e.target.id==='otherInspector')saveInspector();if(e.target.id==='startupInspectorSelect')$('startupOtherInspector').style.display=e.target.value==='Other'?'block':'none';if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');if(e.target.id==='nsaWorking')syncNsaCategory('nsaWorking','nsaType');if(e.target.id?.startsWith('s')||e.target.id?.startsWith('f'))saveTs();if(e.target.dataset.ti){ticketDefs[e.target.dataset.ti][e.target.dataset.field]=e.target.value;saveTicketButtons();renderTicketButtons();}});
 document.addEventListener('input',e=>{if(e.target.id==='checkSearch')renderChecks();if(e.target.id==='driverSearch'||e.target.id==='fleetSearch')renderDatabase();});
 function updateLiveClock(){
   const clock=$('homeClock');
   if(clock) clock.textContent=`DATE ${today()}\nTIME ${now()}\nINSPECTOR: ${getInspector()}`;
 }
-window.addEventListener('load',()=>{initInspector();$('csDate').valueAsDate=new Date();$('nsaDate').valueAsDate=new Date();$('csNSAFault').value='Fully Working';$('nsaType').value='Fully Working';buildTimesheet();renderTicketButtons();renderAll();loadCloud();setInterval(updateLiveClock,1000);
+window.addEventListener('load',()=>{initInspector();$('confirmInspectorBtn').onclick=confirmStartupInspector;$('currentInspectorBanner').onclick=openInspectorModal;if(sessionStorage.getItem('inspectorConfirmed')!=='yes')openInspectorModal();$('csDate').valueAsDate=new Date();$('nsaDate').valueAsDate=new Date();$('csNSAFault').value='Fully Working';$('nsaType').value='Fully Working';buildTimesheet();renderTicketButtons();renderAll();loadCloud();setInterval(updateLiveClock,1000);
 $('saveCheckSheetBtn').onclick=saveCheckSheet;$('saveManualNsaBtn').onclick=saveManualNsa;$('clearCheckFormBtn').onclick=clearCheckForm;$('refreshChecksBtn').onclick=loadCloud;$('saveEarlyBtn').onclick=saveEarlyRunning;$('clearTicketsBtn').onclick=()=>{tickets=[];lastTicket='Cleared';localStorage.setItem('cloudTickets','[]');renderTickets();};$('exportTicketsBtn').onclick=()=>download('Ticket-Log-Local.csv','Date,Time,Inspector,Ticket\n'+tickets.map(x=>[esc(x.date),esc(x.time),esc(x.inspector),esc(x.type)].join(',')).join('\n'));$('toggleTicketSettingsBtn').onclick=()=>{const p=$('ticketSettingsPanel');p.style.display=p.style.display==='none'?'block':'none';};$('addTicketButtonBtn').onclick=()=>{const name=$('newTicketName').value.trim();if(!name)return;ticketDefs.push([$('newTicketCategory').value,name,name,$('newTicketPrice').value.trim()]);saveTicketButtons();$('newTicketName').value='';$('newTicketPrice').value='';renderTicketButtons();};$('resetTicketButtonsBtn').onclick=()=>{ticketDefs=JSON.parse(JSON.stringify(defaultTicketDefs));saveTicketButtons();renderTicketButtons();};$('exportTimesheetBtn').onclick=()=>{const rows=['Day,Start,Finish,Hours'];days.forEach(day=>rows.push([esc(day),esc(ts[day]?.s||''),esc(ts[day]?.f||''),esc(diff(ts[day]?.s,ts[day]?.f).toFixed(2))].join(',')));download('Timesheet.csv',rows.join('\n'));};});
