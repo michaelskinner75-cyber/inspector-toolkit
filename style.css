@@ -32,13 +32,14 @@ button:hover,.btn:hover,.backBtn:hover{filter:brightness(1.08)}
 .nav button[data-open="checksheet"]::before{content:'📋'}
 .nav button[data-open="ticket"]::before{content:'🎟️'}
 .nav button[data-open="nsa"]::before{content:'⚠️'}
-.nav button[data-open="driverReports"]::before{content:'👤'}
-.nav button[data-open="earlyRunning"]::before{content:'🕒'}
+.nav button[data-open="driverReports"]::before,.nav button[data-open="reportSearch"]::before{content:'🔎'}
+.nav button[data-open="earlyRunning"]::before,.nav button[data-open="timing"]::before{content:'⏱️'}
 .nav button[data-open="database"]::before{content:'🚌'}
+.nav button[data-open="coverage"]::before{content:'🗺️'}
 .nav button[data-open="busTimes"]::before{content:'🚍'}
 .nav button[data-open="utrack"]::before{content:'📍'}
-.nav button[data-open="ticketFinder"]::before{content:'🔎'}
-.nav button[data-open="journeyPlanner"]::before{content:'🗺️'}
+.nav button[data-open="ticketFinder"]::before{content:'🎫'}
+.nav button[data-open="journeyPlanner"]::before{content:'🧭'}
 .nav button:nth-child(3n+1){background:var(--orange);color:var(--navy)}
 .nav button:nth-child(3n+2){background:var(--blue)}
 .nav button:nth-child(3n){background:var(--green)}
