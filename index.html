@@ -10,26 +10,30 @@ iframe{border:0;width:100%;height:100vh;display:block;background:#0b1b2b}
 </style>
 </head>
 <body>
-<iframe id="hubFrame" src="app.html?v=20260710-27" title="Inspector Hub"></iframe>
+<iframe id="hubFrame" src="app.html?v=20260710-28" title="Inspector Hub"></iframe>
 <script>
 const frame=document.getElementById('hubFrame');
 frame.addEventListener('load',()=>{
   const d=frame.contentDocument;
   if(!d||d.getElementById('v2Css'))return;
-  const css=d.createElement('link');css.id='v2Css';css.rel='stylesheet';css.href='v2.css?v=20260710-27';d.head.appendChild(css);
-  const services=d.createElement('script');services.src='services.js?v=20260710-27';
+  const css=d.createElement('link');css.id='v2Css';css.rel='stylesheet';css.href='v2.css?v=20260710-28';d.head.appendChild(css);
+  const services=d.createElement('script');services.src='services.js?v=20260710-28';
   services.onload=()=>{
-    const v2=d.createElement('script');v2.src='v2.js?v=20260710-27';
+    const v2=d.createElement('script');v2.src='v2.js?v=20260710-28';
     v2.onload=()=>{
-      const init=d.createElement('script');init.src='v2-init.js?v=20260710-27';
+      const init=d.createElement('script');init.src='v2-init.js?v=20260710-28';
       init.onload=()=>{
-        const fix=d.createElement('script');fix.src='core-fix.js?v=20260710-27';
+        const fix=d.createElement('script');fix.src='core-fix.js?v=20260710-28';
         fix.onload=()=>{
-          const serviceFix=d.createElement('script');serviceFix.src='service-autocomplete-fix.js?v=20260710-27';
+          const serviceFix=d.createElement('script');serviceFix.src='service-autocomplete-fix.js?v=20260710-28';
           serviceFix.onload=()=>{
-            const reports=d.createElement('script');reports.src='report-search.js?v=20260710-27';
+            const reports=d.createElement('script');reports.src='report-search.js?v=20260710-28';
             reports.onload=()=>{
-              const coverage=d.createElement('script');coverage.src='coverage-direct.js?v=20260710-27';d.body.appendChild(coverage);
+              const coverage=d.createElement('script');coverage.src='coverage-direct.js?v=20260710-28';
+              coverage.onload=()=>{
+                const ux=d.createElement('script');ux.src='ux-save-fix.js?v=20260710-28';d.body.appendChild(ux);
+              };
+              d.body.appendChild(coverage);
             };
             d.body.appendChild(reports);
           };
