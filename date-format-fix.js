@@ -6,9 +6,16 @@ function parseInspectorDate(value){
   if(value===undefined||value===null||value==='')return new Date(NaN);
   const s=String(value).trim();
 
-  // ISO dates and Google timestamp values: YYYY-MM-DD or YYYY-MM-DDTHH:mm...
-  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+  // Plain ISO calendar date from HTML inputs: keep as local date.
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if(m)return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+
+  // Google Sheets timestamps must be converted to local time first.
+  // Example: 2026-07-09T23:00:00.000Z is 10 July in the UK.
+  if(/^\d{4}-\d{2}-\d{2}[T\s]/.test(s)){
+    const timestamp=new Date(s);
+    if(!isNaN(timestamp.getTime()))return new Date(timestamp.getFullYear(),timestamp.getMonth(),timestamp.getDate());
+  }
 
   // Existing Inspector Hub records use UK dates: DD/MM/YYYY.
   m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})(?:\s.*)?$/);
@@ -19,7 +26,7 @@ function parseInspectorDate(value){
   }
 
   const d=new Date(s);
-  return isNaN(d.getTime())?new Date(NaN):d;
+  return isNaN(d.getTime())?new Date(NaN):new Date(d.getFullYear(),d.getMonth(),d.getDate());
 }
 
 window.parseRowDate=parseInspectorDate;
@@ -45,12 +52,10 @@ function localIsoToday(){
   const now=new Date();
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 }
-
 function initialiseDateInput(id){
   const input=document.getElementById(id);
   if(input&&!input.value)input.value=localIsoToday();
 }
-
 function rerender(){
   if(typeof window.renderChecks==='function')window.renderChecks();
   if(typeof window.renderTiming==='function')window.renderTiming();
@@ -62,15 +67,10 @@ function rerender(){
 initialiseDateInput('csDate');
 initialiseDateInput('nsaDate');
 
-// Ensure NSA filters always re-render using the corrected UK/ISO parser.
 window.setNsaFilter=function(filter){
   nsaFilter=filter;
   if(typeof window.renderNSA==='function')window.renderNSA();
 };
-
-document.querySelectorAll('[data-nsa-filter]').forEach(button=>{
-  button.addEventListener('click',()=>window.setNsaFilter(button.dataset.nsaFilter));
-});
 
 setTimeout(rerender,50);
 })();
