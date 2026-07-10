@@ -4,13 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Inspector Hub</title>
-<link rel="stylesheet" href="style.css?v=20260710-15">
+<link rel="stylesheet" href="style.css?v=20260710-18">
 <style>
-.nsaCard{padding:12px;margin:10px 0;border-radius:8px;color:#fff}
-.nsaCard.good{background:#145a32;border-left:6px solid #2ecc71}
-.nsaCard.bad{background:#641e16;border-left:6px solid #e74c3c}
-.nsaCard.na{background:#555;border-left:6px solid #aaa}
-.titleSub{display:block;font-size:13px;font-weight:600;margin-top:4px;letter-spacing:.4px}
+.nsaCard{padding:12px;margin:10px 0;border-radius:10px;color:#fff}
+.nsaCard.good{background:#123d33;border-left:7px solid #459679}
+.nsaCard.bad{background:#5a1d22;border-left:7px solid #d64545}
+.nsaCard.na{background:#33485a;border-left:7px solid #7f98aa}
 </style>
 </head>
 <body>
@@ -33,7 +32,13 @@
 </section>
 <div class="wrap">
   <div class="machine">
-    <div class="title">INSPECTOR HUB<span class="titleSub">Stagecoach South Scotland</span></div>
+    <div class="brandHeader">
+      <img class="brandLogo" src="https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/StagecoachGroup.svg/500px-StagecoachGroup.svg.png" alt="Stagecoach logo">
+      <div class="brandText">
+        <div class="brandTitle">INSPECTOR HUB</div>
+        <div class="brandSub">Stagecoach South Scotland</div>
+      </div>
+    </div>
     <div class="credit">Designed &amp; Developed by Michael Skinner</div>
 <section id="home" class="section active">
       <div class="panel">
@@ -149,16 +154,16 @@
           <button class="btn refreshCloud">REFRESH CLOUD</button>
         </div>
       </div>
-<div class="panel" id="nsaFilters">
-<div class="filterBar">
-<button onclick="setNsaFilter('today')">Today</button>
-<button onclick="setNsaFilter('week')">Week</button>
-<button onclick="setNsaFilter('month')">Month</button>
-<button onclick="setNsaFilter('all')">All</button>
-</div>
-<input class="searchBar" id="nsaSearch" placeholder="Search fleet, service, depot, inspector or notes">
-</div>
-<div class="log" id="nsaList"></div>
+      <div class="panel" id="nsaFilters">
+        <div class="filterBar">
+          <button onclick="setNsaFilter('today')">Today</button>
+          <button onclick="setNsaFilter('week')">Week</button>
+          <button onclick="setNsaFilter('month')">Month</button>
+          <button onclick="setNsaFilter('all')">All</button>
+        </div>
+        <input class="searchBar" id="nsaSearch" placeholder="Search fleet, service, depot, inspector or notes">
+      </div>
+      <div class="log" id="nsaList"></div>
     </section>
     <section id="driverReports" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Driver Reports</h2><button class="btn refreshCloud">REFRESH CLOUD</button><div class="log" id="driverReportsList"></div></section>
     <section id="earlyRunning" class="section">
