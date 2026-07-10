@@ -10,7 +10,7 @@ iframe{border:0;width:100%;height:100vh;display:block;background:#111}
 </style>
 </head>
 <body>
-<iframe id="toolkitFrame" src="app.html?v=20260710-12" title="Inspector Toolkit"></iframe>
+<iframe id="toolkitFrame" src="app.html?v=20260710-13" title="Inspector Toolkit"></iframe>
 <script>
 const DEPOTS=['Aberhill','Arbroath','Dunfermline','Glenrothes','St Andrews','Perth','Forfar','Blairgowrie','Other'];
 
@@ -179,14 +179,6 @@ function applyToolkitUpdates(){
       const btn=doc.getElementById('saveEarlyBtn');
       if(btn)btn.onclick=win.saveEarlyRunning;
     }
-
-    if(typeof win.renderAll==='function'){
-      const originalRenderAll=win.renderAll;
-      win.renderAll=function(){
-        originalRenderAll();
-        renderNsaSummary(win,doc);
-      };
-    }
   }
 
   renderNsaSummary(win,doc);
@@ -196,6 +188,7 @@ document.getElementById('toolkitFrame').addEventListener('load',()=>{
   setTimeout(applyToolkitUpdates,250);
   setTimeout(applyToolkitUpdates,1000);
   setTimeout(applyToolkitUpdates,2500);
+  setInterval(applyToolkitUpdates,1000);
 });
 </script>
 </body>
