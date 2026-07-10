@@ -1,4 +1,4 @@
-name: Refresh Toolkit Cache
+name: Add NSA Reporting Improvements
 
 on:
   push:
@@ -10,29 +10,91 @@ permissions:
   contents: write
 
 jobs:
-  refresh-cache:
+  update-nsa:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Update cache versions
+      - name: Update NSA forms and logic
         run: |
           python <<'PY'
           from pathlib import Path
           import re
-          app=Path('app.html')
-          text=app.read_text(encoding='utf-8')
-          text=re.sub(r'href="style\.css(?:\?v=[^"]*)?"','href="style.css?v=20260710-4"',text)
-          text=re.sub(r'src="app\.js(?:\?v=[^"]*)?"','src="app.js?v=20260710-4"',text)
-          app.write_text(text,encoding='utf-8')
+
+          html_path=Path('app.html')
+          html=html_path.read_text(encoding='utf-8')
+          html=re.sub(r'href="style\.css(?:\?v=[^"]*)?"','href="style.css?v=20260710-5"',html)
+          html=re.sub(r'src="app\.js(?:\?v=[^"]*)?"','src="app.js?v=20260710-5"',html)
+          html=re.sub(r'<select id="csNSA">.*?</select>','<select id="csNSA"><option>Yes</option><option>No</option><option>N/A</option></select>',html,count=1,flags=re.S)
+          html=re.sub(r'<select class="field" id="csNSAFault">.*?</select>','''<select class="field" id="csNSAFault">
+          <option>Fully Working</option><option>No Audio</option><option>No Visual</option><option>Wrong Announcement</option>
+          <option>Nothing Working</option><option>Intermittent</option><option>Other</option><option>N/A</option>
+        </select>''',html,count=1,flags=re.S)
+          manual='''<section id="nsa" class="section">
+      <button class="backBtn" data-open="home">← Back</button>
+      <h2>NSA Reports</h2>
+      <div class="panel">
+        <h3>Add Manual NSA Report</h3>
+        <div class="grid">
+          <input class="field" id="nsaDate" type="date">
+          <input class="field" id="nsaDepot" placeholder="Depot">
+          <input class="field" id="nsaFleet" placeholder="Fleet number">
+          <input class="field" id="nsaService" placeholder="Service">
+          <input class="field" id="nsaDriver" placeholder="Driver">
+          <input class="field" id="nsaBoarding" placeholder="Location / boarding point">
+          <input class="field" id="nsaDestination" placeholder="Destination">
+          <select class="field" id="nsaWorking"><option>Yes</option><option>No</option><option>N/A</option></select>
+          <select class="field" id="nsaType">
+            <option>Fully Working</option><option>No Audio</option><option>No Visual</option>
+            <option>Wrong Announcement</option><option>Nothing Working</option>
+            <option>Intermittent</option><option>Other</option><option>N/A</option>
+          </select>
+        </div>
+        <textarea class="field" id="nsaManualNotes" placeholder="NSA notes"></textarea>
+        <div class="grid">
+          <button class="btn" id="saveManualNsaBtn">SAVE MANUAL NSA REPORT</button>
+          <button class="btn refreshCloud">REFRESH CLOUD</button>
+        </div>
+      </div>
+      <div class="log" id="nsaList"></div>
+    </section>'''
+          html=re.sub(r'<section id="nsa" class="section">.*?</section>',manual,html,count=1,flags=re.S)
+          html_path.write_text(html,encoding='utf-8')
+
+          p=Path('app.js')
+          js=p.read_text(encoding='utf-8')
+          js=re.sub(r"\s*if\(\$\('csNSA'\)\.value==='No'\)\s*cloudAppend\('NSA Faults',\[[^\n]+\]\);","\n cloudAppend('NSA Faults',[row[0],row[1],getInspector(),$('csDepot').value,$('csFleet').value,$('csService').value,$('csDriver').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csBoarding').value,$('csDestination').value,'Inspector Check Sheet']);",js,count=1)
+          js=js.replace("$('csNSA').value='Yes';$('csDriverReport').value='No Driver Report';","$('csNSA').value='Yes';$('csNSAFault').value='Fully Working';$('csDriverReport').value='No Driver Report';")
+          helper='''function syncNsaCategory(workingId,typeId){
+ const working=$(workingId).value;
+ const type=$(typeId);
+ if(working==='Yes') type.value='Fully Working';
+ else if(working==='N/A') type.value='N/A';
+ else if(type.value==='Fully Working'||type.value==='N/A') type.value='No Audio';
+}
+function saveManualNsa(){
+ const row=[normaliseDateForSave($('nsaDate').value),normaliseTimeForSave(now()),getInspector(),$('nsaDepot').value,$('nsaFleet').value,$('nsaService').value,$('nsaDriver').value,$('nsaWorking').value,$('nsaType').value,$('nsaManualNotes').value,$('nsaBoarding').value,$('nsaDestination').value,'Manual NSA Report'];
+ cloudAppend('NSA Faults',row);
+ ['nsaDepot','nsaFleet','nsaService','nsaDriver','nsaBoarding','nsaDestination','nsaManualNotes'].forEach(id=>$(id).value='');
+ $('nsaWorking').value='Yes';$('nsaType').value='Fully Working';
+ setTimeout(loadCloud,1200);
+}
+'''
+          if 'function saveManualNsa()' not in js:
+              js=js.replace('function saveEarlyRunning(){',helper+'function saveEarlyRunning(){')
+          js=re.sub(r"document\.addEventListener\('change',e=>\{.*?\}\);","document.addEventListener('change',e=>{if(e.target.id==='inspectorSelect'||e.target.id==='otherInspector')saveInspector();if(e.target.id==='csNSA')syncNsaCategory('csNSA','csNSAFault');if(e.target.id==='nsaWorking')syncNsaCategory('nsaWorking','nsaType');if(e.target.id?.startsWith('s')||e.target.id?.startsWith('f'))saveTs();if(e.target.dataset.ti){ticketDefs[e.target.dataset.ti][e.target.dataset.field]=e.target.value;saveTicketButtons();renderTicketButtons();}});",js,count=1,flags=re.S)
+          js=js.replace("window.addEventListener('load',()=>{initInspector();$('csDate').valueAsDate=new Date();","window.addEventListener('load',()=>{initInspector();$('csDate').valueAsDate=new Date();$('nsaDate').valueAsDate=new Date();$('csNSAFault').value='Fully Working';$('nsaType').value='Fully Working';")
+          js=js.replace("$('saveCheckSheetBtn').onclick=saveCheckSheet;","$('saveCheckSheetBtn').onclick=saveCheckSheet;$('saveManualNsaBtn').onclick=saveManualNsa;")
+          p.write_text(js,encoding='utf-8')
+
           index=Path('index.html')
-          text=index.read_text(encoding='utf-8')
-          text=re.sub(r'src="app\.html(?:\?v=[^"]*)?"','src="app.html?v=20260710-4"',text)
-          index.write_text(text,encoding='utf-8')
+          launcher=index.read_text(encoding='utf-8')
+          launcher=re.sub(r'src="app\.html(?:\?v=[^"]*)?"','src="app.html?v=20260710-5"',launcher)
+          index.write_text(launcher,encoding='utf-8')
           PY
-      - name: Commit cache refresh
+      - name: Commit NSA update
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app.html index.html
-          git commit -m "Refresh toolkit cache" || echo "No changes to commit"
+          git add app.html app.js index.html
+          git commit -m "Add complete and manual NSA reporting" || echo "No changes to commit"
           git push
