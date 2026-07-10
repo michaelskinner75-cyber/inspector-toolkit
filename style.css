@@ -17,7 +17,7 @@ body{margin:0;background:var(--navy);font-family:Arial,sans-serif;color:var(--wh
 .wrap{max-width:980px;margin:auto;padding:10px}
 .machine{background:linear-gradient(180deg,var(--navy2),var(--navy));border:5px solid var(--blue);border-radius:20px;padding:12px;box-shadow:0 14px 35px rgba(0,0,0,.35)}
 .brandHeader{display:flex;align-items:center;gap:16px;background:var(--navy);border:3px solid var(--white);border-radius:16px;padding:12px 16px}
-.brandLogo{width:min(360px,55%);height:auto;display:block;border-radius:8px}
+.brandLogo{width:min(360px,55%);height:auto;display:block;border-radius:14px;background:#fff;padding:12px;object-fit:contain;box-shadow:0 5px 18px rgba(0,0,0,.28)}
 .brandText{flex:1;text-align:center;min-width:0}
 .brandTitle{font-size:28px;font-weight:900;letter-spacing:1px;color:var(--white)}
 .brandSub{font-size:14px;font-weight:700;color:var(--orange);margin-top:5px;letter-spacing:.5px}
@@ -26,6 +26,19 @@ body{margin:0;background:var(--navy);font-family:Arial,sans-serif;color:var(--wh
 .nav{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:12px 0}
 button,.backBtn,.btn{background:var(--blue);color:#fff;border:2px solid rgba(255,255,255,.18);border-radius:11px;padding:14px;font-weight:bold;font-size:15px;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,.18)}
 button:hover,.btn:hover,.backBtn:hover{filter:brightness(1.08)}
+.nav button{position:relative;display:flex;align-items:center;justify-content:flex-start;gap:10px;text-align:left;min-height:66px;padding-right:36px}
+.nav button::before{font-size:25px;line-height:1;min-width:30px;text-align:center}
+.nav button::after{content:'›';position:absolute;right:13px;font-size:29px;font-weight:400;line-height:1}
+.nav button[data-open="checksheet"]::before{content:'📋'}
+.nav button[data-open="ticket"]::before{content:'🎟️'}
+.nav button[data-open="nsa"]::before{content:'⚠️'}
+.nav button[data-open="driverReports"]::before{content:'👤'}
+.nav button[data-open="earlyRunning"]::before{content:'🕒'}
+.nav button[data-open="database"]::before{content:'🚌'}
+.nav button[data-open="busTimes"]::before{content:'🚍'}
+.nav button[data-open="utrack"]::before{content:'📍'}
+.nav button[data-open="ticketFinder"]::before{content:'🔎'}
+.nav button[data-open="journeyPlanner"]::before{content:'🗺️'}
 .nav button:nth-child(3n+1){background:var(--orange);color:var(--navy)}
 .nav button:nth-child(3n+2){background:var(--blue)}
 .nav button:nth-child(3n){background:var(--green)}
@@ -76,9 +89,10 @@ textarea.field{min-height:90px}
 h2,h3{color:var(--white)}
 @media(max-width:650px){
  .wrap{padding:6px}.machine{border-width:3px;border-radius:14px;padding:8px}
- .brandHeader{flex-direction:column;gap:8px;padding:10px}.brandLogo{width:min(100%,520px)}.brandTitle{font-size:23px}.brandSub{font-size:13px}
+ .brandHeader{flex-direction:column;gap:8px;padding:10px}.brandLogo{width:min(100%,520px);max-height:170px}.brandTitle{font-size:23px}.brandSub{font-size:13px}
  .nav,.grid,.grid2{grid-template-columns:repeat(2,1fr)}
  button,.btn,.backBtn{font-size:14px;padding:13px 8px}
+ .nav button{min-height:76px;padding-left:10px;padding-right:31px;gap:7px}.nav button::before{font-size:22px;min-width:26px}.nav button::after{right:9px;font-size:26px}
  .row{grid-template-columns:1fr 1fr}.row .btn{grid-column:1/-1}
  .dbStats{grid-template-columns:repeat(2,1fr)}
  .lcd{font-size:13px}
