@@ -36,13 +36,16 @@ textarea.field{min-height:90px}
 .compactDetails.show{display:block}
 .ticketSettingRow{display:grid;grid-template-columns:1.2fr .8fr .9fr auto;gap:7px;align-items:center;background:#101010;border-radius:8px;padding:8px;margin:6px 0}
 .ticketSettingRow input,.ticketSettingRow select{padding:9px;border:none;border-radius:7px;font-size:14px}
-.currentInspectorBanner{position:sticky;top:0;z-index:50;width:100%;margin:8px 0 12px;background:#ffe082;color:#111;border:3px solid #f58220;border-radius:12px;padding:12px;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,.35)}
-.currentInspectorBanner span{font-size:19px;font-weight:900}
-.currentInspectorBanner small{display:block;margin-top:3px;font-size:11px}
-.inspectorModal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:18px}
-.inspectorModal.hidden{display:none}
-.inspectorModalCard{width:min(420px,100%);background:#2f2f2f;border:4px solid #f58220;border-radius:16px;padding:20px;text-align:center;box-shadow:0 12px 35px rgba(0,0,0,.6)}
-.inspectorModalCard h2{margin-top:0}
+.loginPage{position:fixed;inset:0;z-index:9999;background:#111;display:flex;align-items:center;justify-content:center;padding:18px}
+.loginPage.hidden{display:none}
+.loginCard{width:min(430px,100%);background:#2f2f2f;border:5px solid #555;border-radius:20px;padding:18px;text-align:center;box-shadow:0 15px 45px rgba(0,0,0,.65)}
+.loginTitle{background:#f58220;color:#111;border-radius:12px;padding:14px;font-size:24px;font-weight:900}
+.loginCard h2{margin:22px 0 6px}
+.loginCard p{color:#ccc;margin:0 0 12px}
+.loginBtn{width:100%;margin-top:8px;font-size:18px}
+.loggedInBox{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:#101010;border-left:7px solid #f58220;border-radius:10px;padding:12px;font-size:16px}
+.loggedInBox strong{color:#ffe082;font-size:20px}
+.changeInspectorBtn{padding:10px 12px;font-size:12px}
 @media(max-width:650px){
  .wrap{padding:6px}.machine{border-width:3px;border-radius:14px;padding:8px}.title{font-size:20px}
  .nav,.grid,.grid2{grid-template-columns:repeat(2,1fr)}
@@ -52,4 +55,5 @@ textarea.field{min-height:90px}
  .lcd{font-size:13px}
  .filterBar{grid-template-columns:repeat(2,1fr)}
  .ticketSettingRow{grid-template-columns:1fr 1fr}.ticketSettingRow button{grid-column:1/-1}
+ .loggedInBox{grid-template-columns:1fr}.changeInspectorBtn{width:100%}
 }
