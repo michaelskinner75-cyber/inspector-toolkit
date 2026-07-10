@@ -17,16 +17,20 @@ function addStyles(){
     #checksheet .formSectionTitle.vehicle{border-left-color:#49a17f}
     #checksheet .formSectionTitle.driver{border-left-color:#d64a50}
     #checksheet .sectionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    #checksheet .sectionGrid.inspectionRows{grid-template-columns:1fr}
     #checksheet .sectionGrid .full{grid-column:1/-1}
+    #checksheet .fieldBlock{display:flex;flex-direction:column;gap:6px;min-width:0}
+    #checksheet .fieldBlock>label{font-size:13px;font-weight:800;color:#d8e5ef;padding-left:2px}
+    #checksheet .fieldBlock .field,#checksheet .fieldBlock select,#checksheet .fieldBlock input{width:100%;box-sizing:border-box}
     #checksheet #csDriver{height:56px!important;min-height:56px!important;max-height:56px!important;padding-top:0!important;padding-bottom:0!important}
     #checksheet .locationWrap{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
-    #checksheet .geoBtn{border:1px solid #4d83c4;background:#17324b;color:#fff;border-radius:10px;padding:0 12px;font-weight:800;font-size:13px}
+    #checksheet .geoBtn{border:1px solid #4d83c4;background:#17324b;color:#fff;border-radius:10px;padding:0 12px;font-weight:800;font-size:13px;min-height:56px}
     #checksheet .geoStatus{font-size:12px;color:#b8c5ce;margin-top:5px;grid-column:1/-1}
     #checksheet .historyToggle{width:100%;margin:14px 0 8px;background:#17324b;border:1px solid #416783;color:#fff;border-radius:10px;padding:12px;font-weight:800;font-size:15px}
     #checksheet .historyHidden{display:none!important}
     #checksheet .historyPanelTitle{font-size:18px;font-weight:800;margin:12px 0 4px;color:#fff}
     #checksheet .serviceRouteText{display:none!important}
-    @media(max-width:520px){#checksheet .checkStatusBar{grid-template-columns:1fr 1fr 1fr;font-size:10px}#checksheet .sectionGrid{grid-template-columns:1fr 1fr}#checksheet .locationWrap{grid-template-columns:1fr auto}}
+    @media(max-width:520px){#checksheet .checkStatusBar{grid-template-columns:1fr 1fr 1fr;font-size:10px}#checksheet .sectionGrid{grid-template-columns:1fr 1fr}#checksheet .sectionGrid.inspectionRows{grid-template-columns:1fr}#checksheet .locationWrap{grid-template-columns:1fr auto}}
   `;
   document.head.appendChild(style);
 }
@@ -60,14 +64,26 @@ function moveElement(el,container,full){
   container.appendChild(el);
 }
 
+function labelledField(el,labelText){
+  if(!el)return null;
+  const block=document.createElement('div');
+  block.className='fieldBlock full';
+  const label=document.createElement('label');
+  label.textContent=labelText;
+  label.htmlFor=el.id;
+  block.append(label,el);
+  return block;
+}
+
 function buildLayout(){
-  const section=$('checksheet');if(!section||section.dataset.layoutRebuilt==='1')return;
+  const section=$('checksheet');if(!section||section.dataset.layoutRebuilt==='2')return;
   const saveBtn=$('saveCheckSheetBtn');const saveGrid=saveBtn&&saveBtn.parentElement;if(!saveGrid)return;
 
-  section.querySelectorAll(':scope > .formSectionTitle').forEach(x=>x.remove());
+  section.querySelectorAll(':scope > .formSectionTitle,:scope > .formSection').forEach(x=>x.remove());
   const oldGrids=[...section.querySelectorAll(':scope > .grid')].filter(g=>g!==saveGrid);
 
   const inspection=makeSection('Inspection Details','inspection');
+  inspection.grid.classList.add('inspectionRows');
   const journey=makeSection('Journey Details','journey');
   const vehicle=makeSection('Vehicle','vehicle');
   const driver=makeSection('Driver','driver');
@@ -77,14 +93,15 @@ function buildLayout(){
   const depotOther=$('csDepotOther');
   const nsaLabel=$('csNSA')?.closest('label')||$('csNSA');
 
-  moveElement($('csDate'),inspection.grid);
-  moveElement($('csTimeOn'),inspection.grid);
-  moveElement(depot,inspection.grid);
-  if(depotOther)moveElement(depotOther,inspection.grid);
-  moveElement($('csDriver'),inspection.grid);
+  const dateBlock=labelledField($('csDate'),'Date');if(dateBlock)inspection.grid.appendChild(dateBlock);
+  const time=$('csTimeOn');if(time)time.setAttribute('aria-label','Time Checked');
+  const timeBlock=labelledField(time,'Time Checked');if(timeBlock)inspection.grid.appendChild(timeBlock);
+  const depotBlock=labelledField(depot,'Depot');if(depotBlock)inspection.grid.appendChild(depotBlock);
+  if(depotOther){const otherBlock=labelledField(depotOther,'Other Depot');if(otherBlock)inspection.grid.appendChild(otherBlock);}
+  const driverBlock=labelledField($('csDriver'),'Driver');if(driverBlock)inspection.grid.appendChild(driverBlock);
+  const fleetBlock=labelledField($('csFleet'),'Fleet Number');if(fleetBlock)inspection.grid.appendChild(fleetBlock);
 
   moveElement(serviceWrap||$('csService'),journey.grid,true);
-  moveElement($('csFleet'),journey.grid);
 
   const boarding=$('csBoarding');
   if(boarding){
@@ -93,27 +110,41 @@ function buildLayout(){
     const status=document.createElement('div');status.className='geoStatus';status.id='geoLocationStatus';status.textContent='';
     wrap.append(boarding,btn,status);journey.grid.appendChild(wrap);
   }
-  moveElement($('csDestination'),journey.grid);
+  moveElement($('csDestination'),journey.grid,true);
 
   moveElement(nsaLabel,vehicle.grid);
   moveElement($('csNSAFault'),vehicle.grid);
   moveElement($('csNSANotes'),vehicle.grid,true);
 
-  const issueSelect=document.createElement('select');issueSelect.id='csVehicleIssue';issueSelect.className='field';
+  const issueSelect=document.createElement('select');issueSelect.id='csVehicleIssue';issueSelect.className='field full';
   issueSelect.innerHTML='<option value="No Vehicle Issues">No Vehicle Issues</option><option>Defect Card Issue</option><option>Cleanliness</option><option>Interior Damage</option><option>Exterior Damage</option><option>Warning Light</option><option>Destination Display</option><option>Ramp / Accessibility</option><option>Other Vehicle Issue</option>';
-  const issueNotes=document.createElement('textarea');issueNotes.id='csVehicleIssueNotes';issueNotes.className='field full';issueNotes.placeholder='Vehicle defect / issue details';
+  const issueNotes=document.createElement('textarea');issueNotes.id='csVehicleIssueNotes';issueNotes.className='field full';issueNotes.placeholder='Vehicle issue comments';
   vehicle.grid.append(issueSelect,issueNotes);
 
   const report=$('csDriverReport');
-  if(report){
-    report.innerHTML='<option value="No Driver Report">No Driver Issues</option><option value="Advised">Driver Advised</option><option value="Offence Report Submitted">Offence Report to be Submitted</option>';
-  }
+  if(report){report.innerHTML='<option value="No Driver Report">No Driver Issues</option><option value="Advised">Driver Advised</option><option value="Offence Report Submitted">Offence Report to be Submitted</option>';}
   moveElement(report,driver.grid,true);
   const notes=$('csDriverReason');if(notes){notes.placeholder='Driver report reason / inspection notes';moveElement(notes,driver.grid,true);}
 
   oldGrids.forEach(g=>{if(g.isConnected&&g.children.length===0)g.remove();});
   saveGrid.before(inspection.section,journey.section,vehicle.section,driver.section);
-  section.dataset.layoutRebuilt='1';
+  section.dataset.layoutRebuilt='2';
+}
+
+function readableAddress(address){
+  if(!address)return'';
+  const road=address.road||address.pedestrian||address.footway||address.cycleway||address.path||'';
+  const locality=address.suburb||address.neighbourhood||address.village||address.town||address.city||'';
+  const area=address.county||'';
+  return [road,locality,area].filter((x,i,a)=>x&&a.indexOf(x)===i).join(', ');
+}
+
+async function reverseGeocode(lat,lon){
+  const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1&accept-language=en`;
+  const response=await fetch(url,{headers:{'Accept':'application/json'}});
+  if(!response.ok)throw new Error('Location lookup failed');
+  const data=await response.json();
+  return readableAddress(data.address)||(data.display_name||'').split(',').slice(0,3).join(', ');
 }
 
 function setupGeolocation(){
@@ -123,11 +154,19 @@ function setupGeolocation(){
     const status=$('geoLocationStatus');const boarding=$('csBoarding');
     if(!navigator.geolocation){if(status)status.textContent='Location is not supported on this device.';return;}
     btn.disabled=true;btn.textContent='Locating…';if(status)status.textContent='Waiting for location permission…';
-    navigator.geolocation.getCurrentPosition(pos=>{
-      const lat=pos.coords.latitude.toFixed(5),lon=pos.coords.longitude.toFixed(5);
-      if(boarding)boarding.value=`Current location: ${lat}, ${lon}`;
-      if(status)status.textContent='Location added. You can replace it with a stop name if needed.';
-      btn.disabled=false;btn.textContent='Use Location';
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      const lat=pos.coords.latitude,lon=pos.coords.longitude;
+      try{
+        if(status)status.textContent='Finding the nearest street or place…';
+        const place=await reverseGeocode(lat,lon);
+        if(boarding)boarding.value=place||`${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        if(status)status.textContent=place?'Street/place added. You can edit it if needed.':'Coordinates added because a street name was unavailable.';
+      }catch(err){
+        if(boarding)boarding.value=`${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        if(status)status.textContent='Coordinates added because the street-name lookup was unavailable.';
+      }finally{
+        btn.disabled=false;btn.textContent='Use Location';
+      }
     },err=>{
       if(status)status.textContent=err.code===1?'Location permission was not allowed.':'Unable to get current location.';
       btn.disabled=false;btn.textContent='Use Location';
@@ -143,7 +182,7 @@ function wrapSave(){
     const issue=$('csVehicleIssue')?.value||'No Vehicle Issues';
     const issueNotes=$('csVehicleIssueNotes')?.value.trim()||'';
     const originalText=notes?.value||'';
-    const vehicleText=issue!=='No Vehicle Issues'?`Vehicle issue: ${issue}${issueNotes?' — '+issueNotes:''}`:'';
+    const vehicleText=issue!=='No Vehicle Issues'?`Vehicle issue: ${issue}${issueNotes?' — '+issueNotes:''}`:(issueNotes?`Vehicle comments: ${issueNotes}`:'');
     if(notes&&vehicleText)notes.value=[vehicleText,originalText].filter(Boolean).join('\n');
     const result=original.apply(this,arguments);
     if(notes&&notes.value&&vehicleText&&notes.value.startsWith(vehicleText))notes.value=originalText;
