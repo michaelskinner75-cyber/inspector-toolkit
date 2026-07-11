@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const PIN_HASH='3fda9e49';
+const PIN_HASH='5d79ec69';
 const SESSION_KEY='employeeDirectoryUnlocked';
 const byId=id=>document.getElementById(id);
 
