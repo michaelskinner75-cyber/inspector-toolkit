@@ -95,8 +95,8 @@ function setupNsa(){
 function setupTiming(){
   const section=$('timing');if(!section)return;
   const historyPanel=$('timingSearch')?.closest('.panel');
-  const panels=Array.from(section.querySelectorAll('.panel'));
-  const entryPanel=panels.find(p=>p!==historyPanel);
+  const saveButton=$('saveTimingBtn');
+  const entryPanel=saveButton?.closest('.panel')||$('tcLocation')?.closest('.panel');
   if(!entryPanel)return;
 
   const matching=Array.from(section.querySelectorAll('button')).filter(btn=>/^(show|hide) timing check details$/i.test((btn.textContent||'').trim()));
@@ -113,10 +113,16 @@ function setupTiming(){
 
   const applyEntry=hidden=>{
     entryPanel.classList.toggle('hubForcedHidden',hidden);
+    entryPanel.classList.toggle('timingHidden',hidden);
+    entryPanel.hidden=false;
+    entryPanel.style.display='';
     entryBtn.textContent=hidden?'Show Timing Check Details':'Hide Timing Check Details';
     entryBtn.setAttribute('aria-expanded',String(!hidden));
   };
-  entryBtn.onclick=()=>applyEntry(!entryPanel.classList.contains('hubForcedHidden'));
+  entryBtn.onclick=()=>{
+    const hidden=entryPanel.classList.contains('hubForcedHidden')||entryPanel.classList.contains('timingHidden');
+    applyEntry(!hidden);
+  };
   if(entryBtn.dataset.hubReady!=='1'){
     entryBtn.dataset.hubReady='1';
     applyEntry(true);
@@ -139,7 +145,6 @@ function setupTiming(){
 function init(){
   addStyles();
   setupChecksheet();setupNsa();setupTiming();
-  setTimeout(()=>{setupChecksheet();setupNsa();setupTiming();},1200);
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,3200));
