@@ -42,7 +42,7 @@ function styles(){
   const s=document.createElement('style');
   s.id='employeeDirectoryCss';
   s.textContent=`
-  .nav button[data-open="employeeDirectory"]::before{content:'👥'}
+  .nav button[data-open="employeeDirectory"]::before{content:'⚙️'}
   .employeeSearch{font-size:18px!important;padding:14px!important}
   .employeeForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
   .employeeTools,.employeeActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -62,7 +62,7 @@ function homeButton(){
   const nav=document.querySelector('#home .nav');
   if(!nav||nav.querySelector('[data-open="employeeDirectory"]'))return;
   const b=document.createElement('button');
-  b.type='button';b.dataset.open='employeeDirectory';b.textContent='Employee Directory';
+  b.type='button';b.dataset.open='employeeDirectory';b.textContent='Admin Panel';
   nav.appendChild(b);
 }
 function page(){
@@ -75,7 +75,7 @@ function page(){
     <div class="panel">
       <input id="employeeSearch" class="field employeeSearch" type="search" placeholder="Search name or employee number">
       <div id="employeeCount" class="employeeCount"></div>
-      <div class="employeeHint">The main employee list is built into the toolkit and is available on every device. Edits made here are saved on this device.</div>
+      <div class="employeeHint">The shared employee list is loaded from Google Sheets.</div>
       <div class="employeeTools">
         <button class="btn" id="importEmployeeBtn" type="button">IMPORT EXCEL</button>
         <input id="employeeFile" type="file" accept=".xlsx,.xls,.csv" hidden>
@@ -164,50 +164,13 @@ async function importFile(file){
     alert(`${imported.length} employees imported on this device.`);
   }catch(error){alert('The Excel file could not be imported.');}
 }
-function findByNumber(value){
-  const n=numberKey(value);
-  return n?employees.find(e=>numberKey(e.employeeNumber)===n):null;
-}
 function setupChecksheetLookup(){
   const driver=byId('csDriver');
-  if(!driver||byId('csEmployeeNumber'))return;
-  const number=document.createElement('input');
-  number.className='field';
-  number.id='csEmployeeNumber';
-  number.placeholder='Driver employee number';
-  number.inputMode='numeric';
-  number.autocomplete='off';
-  driver.parentNode.insertBefore(number,driver);
-  const status=document.createElement('div');
-  status.id='csEmployeeLookupStatus';
-  status.className='employeeLookupStatus';
-  driver.parentNode.insertBefore(status,driver.nextSibling);
-
-  const lookup=()=>{
-    const value=number.value;
-    if(!numberKey(value)){status.textContent='';status.className='employeeLookupStatus';return;}
-    const employee=findByNumber(value);
-    if(employee){
-      driver.value=employee.name;
-      if(byId('csDepot')&&!byId('csDepot').value.trim()&&employee.depot)byId('csDepot').value=employee.depot;
-      status.textContent=`Found: ${employee.name}${employee.jobTitle?' — '+employee.jobTitle:''}${employee.depot?' — '+employee.depot:''}`;
-      status.className='employeeLookupStatus found';
-      driver.dispatchEvent(new Event('input',{bubbles:true}));
-    }else{
-      status.textContent='Employee number not found';
-      status.className='employeeLookupStatus missing';
-    }
-  };
-  number.addEventListener('input',lookup);
-  number.addEventListener('change',lookup);
-  number.addEventListener('blur',lookup);
-  number.addEventListener('keyup',lookup);
-  driver.addEventListener('change',()=>{
-    const exact=employees.find(e=>norm(e.name)===norm(driver.value));
-    if(exact){number.value=exact.employeeNumber;lookup();}
-  });
-  const clear=byId('clearCheckFormBtn');
-  if(clear)clear.addEventListener('click',()=>setTimeout(()=>{number.value='';status.textContent='';status.className='employeeLookupStatus';},0));
+  if(!driver)return;
+  const oldNumber=byId('csEmployeeNumber');
+  if(oldNumber)oldNumber.remove();
+  driver.placeholder='Driver name or employee number';
+  driver.autocomplete='off';
 }
 function events(){
   byId('employeeSearch').oninput=render;
