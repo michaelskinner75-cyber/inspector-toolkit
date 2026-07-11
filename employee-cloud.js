@@ -5,6 +5,7 @@ const byId=id=>document.getElementById(id);
 const key=v=>{const s=String(v||'').replace(/[^0-9a-z]/gi,'').toLowerCase();return /^\d+$/.test(s)?(s.replace(/^0+(?=\d)/,'')||'0'):s;};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let shared=[];
+let editingOriginalNumber='';
 
 function parseRows(rows){
   if(!Array.isArray(rows)||!rows.length)return[];
@@ -47,13 +48,13 @@ function applyLookup(){
 
 function renderShared(){
   const search=byId('employeeSearch'),results=byId('employeeResults'),count=byId('employeeCount');
-  if(!search||!results||!count||!shared.length)return;
+  if(!search||!results||!count)return;
   const q=String(search.value||'').trim().toLowerCase();
   const qk=key(q);
   const rows=shared.filter(e=>!q||e.name.toLowerCase().includes(q)||String(e.employeeNumber).toLowerCase().includes(q)||key(e.employeeNumber).includes(qk)||e.depot.toLowerCase().includes(q)||e.jobTitle.toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
   const shown=q?rows:rows.slice(0,50);
-  count.textContent=q?`${rows.length} result${rows.length===1?'':'s'} from shared Google Sheet`:`Showing first ${shown.length} of ${shared.length} employees from shared Google Sheet`;
-  results.innerHTML=shown.map(e=>`<div class="employeeCard"><h3>${esc(e.name)}</h3><div class="employeeNo">${esc(e.employeeNumber)}</div><div class="employeeInfo"><div><b>Depot:</b> ${esc(e.depot||'Not added')}</div><div><b>Job title:</b> ${esc(e.jobTitle||'Not added')}</div></div></div>`).join('')||'<div class="panel">No matching employee found.</div>';
+  count.textContent=shared.length?(q?`${rows.length} result${rows.length===1?'':'s'} from shared Google Sheet`:`Showing first ${shown.length} of ${shared.length} employees from shared Google Sheet`):'No employees found in the shared Google Sheet.';
+  results.innerHTML=shown.map(e=>`<div class="employeeCard"><h3>${esc(e.name)}</h3><div class="employeeNo">${esc(e.employeeNumber)}</div><div class="employeeInfo"><div><b>Depot:</b> ${esc(e.depot||'Not added')}</div><div><b>Job title:</b> ${esc(e.jobTitle||'Not added')}</div></div><div class="employeeActions"><button class="btn" data-cloud-employee-edit="${esc(e.employeeNumber)}">EDIT</button><button class="btn danger" data-cloud-employee-remove="${esc(e.employeeNumber)}">REMOVE</button></div></div>`).join('')||'<div class="panel">No matching employee found.</div>';
 }
 
 async function loadEmployees(){
@@ -68,6 +69,55 @@ async function loadEmployees(){
   }catch(e){console.log('Employees sheet could not be loaded',e);}
 }
 
+function editorEntry(){
+  return {
+    name:String(byId('employeeName')?.value||'').trim(),
+    employeeNumber:String(byId('employeeNumber')?.value||'').trim(),
+    depot:String(byId('employeeDepot')?.value||'').trim(),
+    jobTitle:String(byId('employeeJobTitle')?.value||'').trim()
+  };
+}
+function resetEditor(){
+  editingOriginalNumber='';
+  ['employeeName','employeeNumber','employeeDepot','employeeJobTitle'].forEach(id=>{if(byId(id))byId(id).value='';});
+  if(byId('employeeEditorTitle'))byId('employeeEditorTitle').textContent='Add Employee';
+  if(byId('saveEmployeeBtn'))byId('saveEmployeeBtn').textContent='ADD EMPLOYEE';
+  if(byId('cancelEmployeeBtn'))byId('cancelEmployeeBtn').style.display='none';
+}
+async function sendEmployeeAction(action,employee,originalEmployeeNumber){
+  if(byId('employeeCount'))byId('employeeCount').textContent='Saving to shared Google Sheet...';
+  try{
+    await fetch(WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({sheet:SHEET,action,employee,originalEmployeeNumber:originalEmployeeNumber||''})});
+    setTimeout(loadEmployees,1200);
+  }catch(e){alert('The employee change could not be sent to Google Sheets.');}
+}
+function saveSharedEmployee(){
+  const entry=editorEntry();
+  if(!entry.name||!entry.employeeNumber){alert('Enter the employee name and employee number.');return;}
+  const duplicate=shared.find(e=>key(e.employeeNumber)===key(entry.employeeNumber)&&key(e.employeeNumber)!==key(editingOriginalNumber));
+  if(duplicate){alert('That employee number already exists.');return;}
+  const action=editingOriginalNumber?'update':'add';
+  sendEmployeeAction(action,entry,editingOriginalNumber);
+  resetEditor();
+}
+function editSharedEmployee(number){
+  const e=findNumber(number);if(!e)return;
+  editingOriginalNumber=e.employeeNumber;
+  byId('employeeName').value=e.name;
+  byId('employeeNumber').value=e.employeeNumber;
+  byId('employeeDepot').value=e.depot||'';
+  byId('employeeJobTitle').value=e.jobTitle||'';
+  byId('employeeEditorTitle').textContent='Edit Employee';
+  byId('saveEmployeeBtn').textContent='SAVE CHANGES';
+  byId('cancelEmployeeBtn').style.display='';
+  byId('employeeDirectory').scrollIntoView({behavior:'smooth'});
+}
+function removeSharedEmployee(number){
+  const e=findNumber(number);if(!e)return;
+  if(!confirm(`Remove ${e.name} (${e.employeeNumber}) from the shared directory?`))return;
+  sendEmployeeAction('delete',null,e.employeeNumber);
+}
+
 function bind(){
   document.addEventListener('input',e=>{
     if(e.target&&e.target.id==='csEmployeeNumber')applyLookup();
@@ -75,6 +125,18 @@ function bind(){
   });
   document.addEventListener('change',e=>{if(e.target&&e.target.id==='csEmployeeNumber')applyLookup();});
   document.addEventListener('focusout',e=>{if(e.target&&e.target.id==='csEmployeeNumber')applyLookup();});
+  document.addEventListener('click',e=>{
+    if(e.target&&e.target.id==='saveEmployeeBtn'){
+      e.preventDefault();e.stopImmediatePropagation();saveSharedEmployee();return;
+    }
+    if(e.target&&e.target.id==='cancelEmployeeBtn'){
+      e.preventDefault();e.stopImmediatePropagation();resetEditor();return;
+    }
+    const edit=e.target.closest('[data-cloud-employee-edit]');
+    if(edit){e.preventDefault();editSharedEmployee(edit.dataset.cloudEmployeeEdit);return;}
+    const remove=e.target.closest('[data-cloud-employee-remove]');
+    if(remove){e.preventDefault();removeSharedEmployee(remove.dataset.cloudEmployeeRemove);}
+  },true);
 }
 
 function init(){bind();loadEmployees();setTimeout(loadEmployees,2500);}
