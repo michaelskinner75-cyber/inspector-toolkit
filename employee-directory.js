@@ -5,7 +5,10 @@ const LEGACY_KEY='inspectorEmployeeDirectoryV2';
 const byId=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=v=>String(v||'').trim().toLowerCase();
-const numberKey=v=>{const s=String(v||'').replace(/\s+/g,'').trim().toLowerCase();return /^\d+$/.test(s)?(s.replace(/^0+(?=\d)/,'')||'0'):s;};
+const numberKey=v=>{
+  const s=String(v||'').normalize('NFKC').replace(/[^0-9a-z]/gi,'').toLowerCase();
+  return /^\d+$/.test(s)?(s.replace(/^0+(?=\d)/,'')||'0'):s;
+};
 const baseEmployees=Array.isArray(window.INSPECTOR_EMPLOYEE_DIRECTORY)?window.INSPECTOR_EMPLOYEE_DIRECTORY:[];
 let employees=[];
 let editing=-1;
@@ -173,6 +176,7 @@ function setupChecksheetLookup(){
   number.id='csEmployeeNumber';
   number.placeholder='Driver employee number';
   number.inputMode='numeric';
+  number.autocomplete='off';
   driver.parentNode.insertBefore(number,driver);
   const status=document.createElement('div');
   status.id='csEmployeeLookupStatus';
@@ -180,8 +184,8 @@ function setupChecksheetLookup(){
   driver.parentNode.insertBefore(status,driver.nextSibling);
 
   const lookup=()=>{
-    const value=number.value.trim();
-    if(!value){status.textContent='';status.className='employeeLookupStatus';return;}
+    const value=number.value;
+    if(!numberKey(value)){status.textContent='';status.className='employeeLookupStatus';return;}
     const employee=findByNumber(value);
     if(employee){
       driver.value=employee.name;
@@ -196,6 +200,8 @@ function setupChecksheetLookup(){
   };
   number.addEventListener('input',lookup);
   number.addEventListener('change',lookup);
+  number.addEventListener('blur',lookup);
+  number.addEventListener('keyup',lookup);
   driver.addEventListener('change',()=>{
     const exact=employees.find(e=>norm(e.name)===norm(driver.value));
     if(exact){number.value=exact.employeeNumber;lookup();}
