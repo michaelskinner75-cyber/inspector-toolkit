@@ -1,15 +1,35 @@
 (function(){
 'use strict';
-const KEY='inspectorEmployeeDirectoryV2';
+const KEY='inspectorEmployeeDirectoryV3';
+const LEGACY_KEY='inspectorEmployeeDirectoryV2';
 const byId=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=v=>String(v||'').trim().toLowerCase();
+const baseEmployees=Array.isArray(window.INSPECTOR_EMPLOYEE_DIRECTORY)?window.INSPECTOR_EMPLOYEE_DIRECTORY:[];
 let employees=[];
 let editing=-1;
 
+function cleanEntry(e){
+  if(Array.isArray(e))e={name:e[0],employeeNumber:e[1],depot:e[2]||'',jobTitle:e[3]||''};
+  return {
+    name:String(e?.name||'').replace(/\s*-\s*$/,'').trim(),
+    employeeNumber:String(e?.employeeNumber||e?.['Employee Number']||e?.['Employee ID']||'').trim(),
+    depot:String(e?.depot||e?.Depot||'').trim(),
+    jobTitle:String(e?.jobTitle||e?.['Job Title']||'').trim()
+  };
+}
+function mergeByNumber(base,local){
+  const map=new Map();
+  base.map(cleanEntry).filter(e=>e.name&&e.employeeNumber).forEach(e=>map.set(norm(e.employeeNumber),e));
+  local.map(cleanEntry).filter(e=>e.name&&e.employeeNumber).forEach(e=>map.set(norm(e.employeeNumber),e));
+  return [...map.values()];
+}
 function load(){
-  try{employees=JSON.parse(localStorage.getItem(KEY)||'[]');}
-  catch(e){employees=[];}
-  if(!Array.isArray(employees))employees=[];
+  let local=[];
+  try{local=JSON.parse(localStorage.getItem(KEY)||localStorage.getItem(LEGACY_KEY)||'[]');}
+  catch(e){local=[];}
+  if(!Array.isArray(local))local=[];
+  employees=mergeByNumber(baseEmployees,local);
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(employees));}
 
@@ -22,11 +42,14 @@ function styles(){
   .employeeSearch{font-size:18px!important;padding:14px!important}
   .employeeForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
   .employeeTools,.employeeActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .employeeCount{font-size:13px;color:var(--muted,#b8c5ce);margin-top:9px}
+  .employeeCount,.employeeHint{font-size:13px;color:var(--muted,#b8c5ce);margin-top:9px}
   .employeeCard{background:#0a1b2a;border-left:6px solid #4493c8;border-radius:10px;padding:12px;margin:9px 0}
   .employeeCard h3{margin:0 0 4px}.employeeNo{font-size:20px;font-weight:900;margin-bottom:7px}
   .employeeInfo{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:13px}
   .employeeActions .btn{padding:8px 11px;font-size:12px}
+  .employeeLookupStatus{grid-column:1/-1;font-size:12px;color:var(--muted,#b8c5ce);margin:-3px 0 3px}
+  .employeeLookupStatus.found{color:#6fd0a4;font-weight:800}
+  .employeeLookupStatus.missing{color:#ffbf66;font-weight:800}
   @media(max-width:650px){.employeeForm,.employeeInfo{grid-template-columns:1fr}}
   `;
   document.head.appendChild(s);
@@ -48,6 +71,7 @@ function page(){
     <div class="panel">
       <input id="employeeSearch" class="field employeeSearch" type="search" placeholder="Search name or employee number">
       <div id="employeeCount" class="employeeCount"></div>
+      <div class="employeeHint">This directory is currently stored on this device. Import the Excel file once on each device.</div>
       <div class="employeeTools">
         <button class="btn" id="importEmployeeBtn" type="button">IMPORT EXCEL</button>
         <input id="employeeFile" type="file" accept=".xlsx,.xls,.csv" hidden>
@@ -69,18 +93,17 @@ function page(){
     <div id="employeeResults"></div>
   </section>`);
 }
-function norm(v){return String(v||'').trim().toLowerCase();}
 function render(){
   const q=norm(byId('employeeSearch')?.value);
   const rows=employees.map((e,i)=>({e,i})).filter(x=>!q||norm(x.e.name).includes(q)||norm(x.e.employeeNumber).includes(q)||norm(x.e.depot).includes(q)||norm(x.e.jobTitle).includes(q)).sort((a,b)=>a.e.name.localeCompare(b.e.name));
   const shown=q?rows:rows.slice(0,50);
-  byId('employeeCount').textContent=employees.length? (q?`${rows.length} result${rows.length===1?'':'s'}`:`Showing first ${shown.length} of ${employees.length} employees — type to search`) : 'No employees loaded. Import the Excel directory.';
+  byId('employeeCount').textContent=employees.length?(q?`${rows.length} result${rows.length===1?'':'s'}`:`Showing first ${shown.length} of ${employees.length} employees — type to search`):'No employees loaded.';
   byId('employeeResults').innerHTML=shown.map(({e,i})=>`
     <div class="employeeCard">
       <h3>${esc(e.name)}</h3><div class="employeeNo">${esc(e.employeeNumber)}</div>
       <div class="employeeInfo"><div><b>Depot:</b> ${esc(e.depot||'Not added')}</div><div><b>Job title:</b> ${esc(e.jobTitle||'Not added')}</div></div>
       <div class="employeeActions"><button class="btn" data-employee-edit="${i}">EDIT</button><button class="btn danger" data-employee-remove="${i}">REMOVE</button></div>
-    </div>`).join('') || '<div class="panel">No matching employee found.</div>';
+    </div>`).join('')||'<div class="panel">No matching employee found.</div>';
 }
 function clearEditor(){
   editing=-1;
@@ -106,7 +129,7 @@ function editEntry(i){
   byId('employeeDirectory').scrollIntoView({behavior:'smooth'});
 }
 function removeEntry(i){
-  const e=employees[i];if(!e||!confirm(`Remove ${e.name} (${e.employeeNumber})?`))return;
+  const e=employees[i];if(!e||!confirm(`Remove ${e.name} (${e.employeeNumber}) from this device?`))return;
   employees.splice(i,1);save();clearEditor();render();
 }
 function loadXlsx(){
@@ -132,9 +155,51 @@ async function importFile(file){
       if(name&&number)imported.push({name,employeeNumber:number,depot:String(row.Depot||'').trim(),jobTitle:String(row['Job Title']||row.JobTitle||'').trim()});
     });
     if(!imported.length){alert('No Name and Employee Number columns were found.');return;}
-    employees=imported;save();clearEditor();render();
-    alert(`${imported.length} employees imported.`);
+    employees=mergeByNumber(baseEmployees,imported);save();clearEditor();render();
+    alert(`${imported.length} employees imported on this device.`);
   }catch(error){alert('The Excel file could not be imported.');}
+}
+function findByNumber(value){
+  const n=norm(value);
+  return n?employees.find(e=>norm(e.employeeNumber)===n):null;
+}
+function setupChecksheetLookup(){
+  const driver=byId('csDriver');
+  if(!driver||byId('csEmployeeNumber'))return;
+  const number=document.createElement('input');
+  number.className='field';
+  number.id='csEmployeeNumber';
+  number.placeholder='Driver employee number';
+  number.inputMode='numeric';
+  driver.parentNode.insertBefore(number,driver);
+  const status=document.createElement('div');
+  status.id='csEmployeeLookupStatus';
+  status.className='employeeLookupStatus';
+  driver.parentNode.insertBefore(status,driver.nextSibling);
+
+  const lookup=()=>{
+    const value=number.value.trim();
+    if(!value){status.textContent='';status.className='employeeLookupStatus';return;}
+    const employee=findByNumber(value);
+    if(employee){
+      driver.value=employee.name;
+      if(byId('csDepot')&&!byId('csDepot').value.trim()&&employee.depot)byId('csDepot').value=employee.depot;
+      status.textContent=`Found: ${employee.name}${employee.jobTitle?' — '+employee.jobTitle:''}${employee.depot?' — '+employee.depot:''}`;
+      status.className='employeeLookupStatus found';
+      driver.dispatchEvent(new Event('input',{bubbles:true}));
+    }else{
+      status.textContent='Employee number not found';
+      status.className='employeeLookupStatus missing';
+    }
+  };
+  number.addEventListener('input',lookup);
+  number.addEventListener('change',lookup);
+  driver.addEventListener('change',()=>{
+    const exact=employees.find(e=>norm(e.name)===norm(driver.value));
+    if(exact){number.value=exact.employeeNumber;lookup();}
+  });
+  const clear=byId('clearCheckFormBtn');
+  if(clear)clear.addEventListener('click',()=>setTimeout(()=>{number.value='';status.textContent='';status.className='employeeLookupStatus';},0));
 }
 function events(){
   byId('employeeSearch').oninput=render;
@@ -147,6 +212,6 @@ function events(){
     const remove=e.target.closest('[data-employee-remove]');if(remove)removeEntry(Number(remove.dataset.employeeRemove));
   });
 }
-function init(){load();styles();homeButton();page();events();render();}
+function init(){load();styles();homeButton();page();setupChecksheetLookup();events();render();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,2100));else setTimeout(init,2100);
 })();
