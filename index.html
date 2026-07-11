@@ -13,7 +13,7 @@ iframe{border:0;width:100%;height:100vh;display:block;background:#0b1b2b}
 </style>
 </head>
 <body>
-<iframe id="hubFrame" src="app.html?v=20260711-53" title="Inspector Hub"></iframe>
+<iframe id="hubFrame" src="app.html?v=20260711-54" title="Inspector Hub"></iframe>
 <script>
 const frame=document.getElementById('hubFrame');
 frame.addEventListener('load',()=>{
@@ -48,9 +48,13 @@ frame.addEventListener('load',()=>{
                           timingPolish.onload=()=>{
                             const finalFix=d.createElement('script');finalFix.src='final-evening-fix.js?v=20260710-42';
                             finalFix.onload=()=>{
-                              const employeeDirectory=d.createElement('script');employeeDirectory.src='employee-directory.js?v=20260711-53';
+                              const employeeDirectory=d.createElement('script');employeeDirectory.src='employee-directory.js?v=20260711-54';
                               employeeDirectory.onload=()=>{
-                                const employeeCloud=d.createElement('script');employeeCloud.src='employee-cloud.js?v=20260711-53';d.body.appendChild(employeeCloud);
+                                const employeeCloud=d.createElement('script');employeeCloud.src='employee-cloud.js?v=20260711-54';
+                                employeeCloud.onload=()=>{
+                                  const employeePin=d.createElement('script');employeePin.src='employee-directory-pin.js?v=20260711-54';d.body.appendChild(employeePin);
+                                };
+                                d.body.appendChild(employeeCloud);
                               };
                               d.body.appendChild(employeeDirectory);
                             };
