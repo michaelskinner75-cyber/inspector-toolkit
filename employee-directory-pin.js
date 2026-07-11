@@ -23,9 +23,37 @@ function currentInspector(){
 function isMichael(){return currentInspector()===ADMIN_INSPECTOR;}
 function unlocked(){return isMichael()&&sessionStorage.getItem(SESSION_KEY)==='1';}
 
+function addAdminButtonStyle(){
+  if(byId('employeeAdminButtonStyle'))return;
+  const style=document.createElement('style');
+  style.id='employeeAdminButtonStyle';
+  style.textContent=`
+    #home .nav button[data-open="employeeDirectory"]{
+      width:25%!important;
+      min-width:110px!important;
+      min-height:44px!important;
+      padding:7px 10px!important;
+      font-size:12px!important;
+      line-height:1.1!important;
+      justify-self:start!important;
+      border-radius:9px!important;
+    }
+    #home .nav button[data-open="employeeDirectory"]::before{
+      content:'⚙️'!important;
+      font-size:18px!important;
+      margin-bottom:2px!important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function updateVisibility(){
   const button=document.querySelector('[data-open="employeeDirectory"]');
-  if(button)button.style.display=isMichael()?'':'none';
+  if(button){
+    button.textContent='Admin Panel';
+    button.title='Employee Directory Admin Panel';
+    button.style.display=isMichael()?'':'none';
+  }
 
   if(!isMichael()){
     sessionStorage.removeItem(SESSION_KEY);
@@ -40,7 +68,7 @@ function updateVisibility(){
 function requestPin(){
   if(!isMichael())return false;
   if(unlocked())return true;
-  const entered=prompt('Enter Employee Directory PIN');
+  const entered=prompt('Enter Admin Panel PIN');
   if(entered===null)return false;
   if(hashPin(entered)!==PIN_HASH){
     alert('Incorrect PIN.');
@@ -77,6 +105,7 @@ function clearOnLogout(){
 }
 
 function init(){
+  addAdminButtonStyle();
   document.addEventListener('click',protectDirectoryClick,true);
   clearOnLogout();
   updateVisibility();
