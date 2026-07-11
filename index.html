@@ -13,93 +13,53 @@ iframe{border:0;width:100%;height:100vh;display:block;background:#0b1b2b}
 </style>
 </head>
 <body>
-<iframe id="hubFrame" src="app.html?v=20260711-77" title="Inspector Hub"></iframe>
+<iframe id="hubFrame" src="app.html?v=20260711-78" title="Inspector Hub"></iframe>
 <script>
 const frame=document.getElementById('hubFrame');
+const scripts=[
+ 'services.js?v=20260710-42',
+ 'v2.js?v=20260710-42',
+ 'v2-init.js?v=20260710-42',
+ 'core-fix.js?v=20260710-42',
+ 'service-autocomplete-fix.js?v=20260710-42',
+ 'report-search.js?v=20260711-77',
+ 'coverage-direct.js?v=20260711-44',
+ 'ux-save-fix.js?v=20260710-42',
+ 'date-format-fix.js?v=20260710-42',
+ 'checksheet-polish.js?v=20260710-42',
+ 'nsa-log-polish.js?v=20260710-42',
+ 'nsa-depot-dropdown.js?v=20260710-42',
+ 'timing-checks-polish.js?v=20260710-42',
+ 'final-evening-fix.js?v=20260710-42',
+ 'employee-directory.js?v=20260711-58',
+ 'employee-cloud.js?v=20260711-58',
+ 'driver-dropdown-fix.js?v=20260711-71',
+ 'remove-other-depot-label.js?v=20260711-61',
+ 'employee-directory-pin.js?v=20260711-56',
+ 'home-brand-only.js?v=20260711-62',
+ 'blank-check-guard.js?v=20260711-64',
+ 'ghost-check-filter.js?v=20260711-65',
+ 'small-screen-polish.js?v=20260711-67',
+ 'default-hidden-sections.js?v=20260711-76',
+ 'report-delete-fix.js?v=20260711-69',
+ 'checksheet-order-stability.js?v=20260711-72',
+ 'timing-driver-lookup.js?v=20260711-78'
+];
+function loadNext(d,index){
+ if(index>=scripts.length)return;
+ const s=d.createElement('script');
+ s.src=scripts[index];
+ s.onload=()=>loadNext(d,index+1);
+ s.onerror=()=>loadNext(d,index+1);
+ d.body.appendChild(s);
+}
 frame.addEventListener('load',()=>{
-  const d=frame.contentDocument;
-  if(!d||d.getElementById('v2Css'))return;
-  const css=d.createElement('link');css.id='v2Css';css.rel='stylesheet';css.href='v2.css?v=20260711-45';d.head.appendChild(css);
-  const services=d.createElement('script');services.src='services.js?v=20260710-42';
-  services.onload=()=>{
-    const v2=d.createElement('script');v2.src='v2.js?v=20260710-42';
-    v2.onload=()=>{
-      const init=d.createElement('script');init.src='v2-init.js?v=20260710-42';
-      init.onload=()=>{
-        const fix=d.createElement('script');fix.src='core-fix.js?v=20260710-42';
-        fix.onload=()=>{
-          const serviceFix=d.createElement('script');serviceFix.src='service-autocomplete-fix.js?v=20260710-42';
-          serviceFix.onload=()=>{
-            const reports=d.createElement('script');reports.src='report-search.js?v=20260711-77';
-            reports.onload=()=>{
-              const coverage=d.createElement('script');coverage.src='coverage-direct.js?v=20260711-44';
-              coverage.onload=()=>{
-                const ux=d.createElement('script');ux.src='ux-save-fix.js?v=20260710-42';
-                ux.onload=()=>{
-                  const dateFix=d.createElement('script');dateFix.src='date-format-fix.js?v=20260710-42';
-                  dateFix.onload=()=>{
-                    const polish=d.createElement('script');polish.src='checksheet-polish.js?v=20260710-42';
-                    polish.onload=()=>{
-                      const nsaPolish=d.createElement('script');nsaPolish.src='nsa-log-polish.js?v=20260710-42';
-                      nsaPolish.onload=()=>{
-                        const depotFix=d.createElement('script');depotFix.src='nsa-depot-dropdown.js?v=20260710-42';
-                        depotFix.onload=()=>{
-                          const timingPolish=d.createElement('script');timingPolish.src='timing-checks-polish.js?v=20260710-42';
-                          timingPolish.onload=()=>{
-                            const finalFix=d.createElement('script');finalFix.src='final-evening-fix.js?v=20260710-42';
-                            finalFix.onload=()=>{
-                              const employeeDirectory=d.createElement('script');employeeDirectory.src='employee-directory.js?v=20260711-58';
-                              employeeDirectory.onload=()=>{
-                                const employeeCloud=d.createElement('script');employeeCloud.src='employee-cloud.js?v=20260711-58';
-                                employeeCloud.onload=()=>{
-                                  const dropdownFix=d.createElement('script');dropdownFix.src='driver-dropdown-fix.js?v=20260711-71';
-                                  dropdownFix.onload=()=>{
-                                    const depotLabelFix=d.createElement('script');depotLabelFix.src='remove-other-depot-label.js?v=20260711-61';
-                                    depotLabelFix.onload=()=>{
-                                      const employeePin=d.createElement('script');employeePin.src='employee-directory-pin.js?v=20260711-56';d.body.appendChild(employeePin);
-                                      const homeBrand=d.createElement('script');homeBrand.src='home-brand-only.js?v=20260711-62';d.body.appendChild(homeBrand);
-                                      const blankGuard=d.createElement('script');blankGuard.src='blank-check-guard.js?v=20260711-64';d.body.appendChild(blankGuard);
-                                      const ghostFilter=d.createElement('script');ghostFilter.src='ghost-check-filter.js?v=20260711-65';d.body.appendChild(ghostFilter);
-                                      const smallScreen=d.createElement('script');smallScreen.src='small-screen-polish.js?v=20260711-67';d.body.appendChild(smallScreen);
-                                      const hiddenSections=d.createElement('script');hiddenSections.src='default-hidden-sections.js?v=20260711-76';d.body.appendChild(hiddenSections);
-                                      const reportDeleteFix=d.createElement('script');reportDeleteFix.src='report-delete-fix.js?v=20260711-69';d.body.appendChild(reportDeleteFix);
-                                      const checkOrder=d.createElement('script');checkOrder.src='checksheet-order-stability.js?v=20260711-72';d.body.appendChild(checkOrder);
-                                    };
-                                    d.body.appendChild(depotLabelFix);
-                                  };
-                                  d.body.appendChild(dropdownFix);
-                                };
-                                d.body.appendChild(employeeCloud);
-                              };
-                              d.body.appendChild(employeeDirectory);
-                            };
-                            d.body.appendChild(finalFix);
-                          };
-                          d.body.appendChild(timingPolish);
-                        };
-                        d.body.appendChild(depotFix);
-                      };
-                      d.body.appendChild(nsaPolish);
-                    };
-                    d.body.appendChild(polish);
-                  };
-                  d.body.appendChild(dateFix);
-                };
-                d.body.appendChild(ux);
-              };
-              d.body.appendChild(coverage);
-            };
-            d.body.appendChild(reports);
-          };
-          d.body.appendChild(serviceFix);
-        };
-        d.body.appendChild(fix);
-      };
-      d.body.appendChild(init);
-    };
-    d.body.appendChild(v2);
-  };
-  d.body.appendChild(services);
+ const d=frame.contentDocument;
+ if(!d||d.getElementById('v2Css'))return;
+ const css=d.createElement('link');
+ css.id='v2Css';css.rel='stylesheet';css.href='v2.css?v=20260711-45';
+ d.head.appendChild(css);
+ loadNext(d,0);
 });
 </script>
 </body>
