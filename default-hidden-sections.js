@@ -100,38 +100,40 @@ function setupTiming(){
   const entryPanel=location.closest('.panel');
   if(!entryPanel)return;
 
-  const matching=Array.from(section.querySelectorAll('button')).filter(btn=>/^(show|hide) timing check details$/i.test((btn.textContent||'').trim()));
-  let entryBtn=$('toggleTimingEntryBtn')||matching[0];
-  matching.forEach(btn=>{if(btn!==entryBtn)btn.remove();});
-
-  if(!entryBtn){
-    entryBtn=document.createElement('button');
-    entryPanel.before(entryBtn);
+  let entryBtn=$('toggleTimingEntryBtn');
+  if(!entryBtn||entryBtn.dataset.cleanTimingToggle!=='1'){
+    const oldButtons=Array.from(section.querySelectorAll('button')).filter(btn=>
+      btn.id==='toggleTimingEntryBtn'||/^(show|hide) timing check details$/i.test((btn.textContent||'').trim())
+    );
+    const fresh=document.createElement('button');
+    fresh.id='toggleTimingEntryBtn';
+    fresh.type='button';
+    fresh.className='hubSectionToggle';
+    fresh.dataset.cleanTimingToggle='1';
+    const anchor=oldButtons[0]||entryPanel;
+    anchor.before(fresh);
+    oldButtons.forEach(btn=>btn.remove());
+    entryBtn=fresh;
   }
-  entryBtn.id='toggleTimingEntryBtn';
-  entryBtn.type='button';
-  entryBtn.className='hubSectionToggle';
 
-  const applyEntry=hidden=>{
-    if(hidden){
-      entryPanel.classList.add('hubForcedHidden');
-    }else{
-      entryPanel.classList.remove('hubForcedHidden','timingHidden');
-      entryPanel.style.removeProperty('display');
-    }
-    entryBtn.textContent=hidden?'Show Timing Check Details':'Hide Timing Check Details';
-    entryBtn.setAttribute('aria-expanded',String(!hidden));
+  const setEntryOpen=open=>{
+    entryPanel.classList.remove('hubForcedHidden','timingHidden');
+    entryPanel.style.removeProperty('display');
+    if(!open)entryPanel.classList.add('hubForcedHidden');
+    entryBtn.textContent=open?'Hide Timing Check Details':'Show Timing Check Details';
+    entryBtn.setAttribute('aria-expanded',String(open));
+    entryBtn.dataset.open=open?'1':'0';
   };
 
-  entryBtn.onclick=()=>{
-    const hidden=entryPanel.classList.contains('hubForcedHidden')||entryPanel.classList.contains('timingHidden')||getComputedStyle(entryPanel).display==='none';
-    applyEntry(!hidden);
+  entryBtn.onclick=e=>{
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    setEntryOpen(entryBtn.dataset.open!=='1');
   };
 
-  if(entryBtn.dataset.hubReady!=='1'){
-    entryBtn.dataset.hubReady='1';
-    entryPanel.classList.remove('timingHidden');
-    applyEntry(true);
+  if(entryBtn.dataset.initialised!=='1'){
+    entryBtn.dataset.initialised='1';
+    setEntryOpen(false);
   }
 
   const historyPanel=$('timingSearch')?.closest('.panel');
