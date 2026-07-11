@@ -93,10 +93,11 @@ function setupNsa(){
 }
 
 function setupTiming(){
-  const section=$('timing');if(!section)return;
-  const historyPanel=$('timingSearch')?.closest('.panel');
-  const saveButton=$('saveTimingBtn');
-  const entryPanel=saveButton?.closest('.panel')||$('tcLocation')?.closest('.panel');
+  const section=$('timing');
+  const location=$('tcLocation');
+  if(!section||!location)return;
+
+  const entryPanel=location.closest('.panel');
   if(!entryPanel)return;
 
   const matching=Array.from(section.querySelectorAll('button')).filter(btn=>/^(show|hide) timing check details$/i.test((btn.textContent||'').trim()));
@@ -112,22 +113,28 @@ function setupTiming(){
   entryBtn.className='hubSectionToggle';
 
   const applyEntry=hidden=>{
-    entryPanel.classList.toggle('hubForcedHidden',hidden);
-    entryPanel.classList.toggle('timingHidden',hidden);
-    entryPanel.hidden=false;
-    entryPanel.style.display='';
+    if(hidden){
+      entryPanel.classList.add('hubForcedHidden');
+    }else{
+      entryPanel.classList.remove('hubForcedHidden','timingHidden');
+      entryPanel.style.removeProperty('display');
+    }
     entryBtn.textContent=hidden?'Show Timing Check Details':'Hide Timing Check Details';
     entryBtn.setAttribute('aria-expanded',String(!hidden));
   };
+
   entryBtn.onclick=()=>{
-    const hidden=entryPanel.classList.contains('hubForcedHidden')||entryPanel.classList.contains('timingHidden');
+    const hidden=entryPanel.classList.contains('hubForcedHidden')||entryPanel.classList.contains('timingHidden')||getComputedStyle(entryPanel).display==='none';
     applyEntry(!hidden);
   };
+
   if(entryBtn.dataset.hubReady!=='1'){
     entryBtn.dataset.hubReady='1';
+    entryPanel.classList.remove('timingHidden');
     applyEntry(true);
   }
 
+  const historyPanel=$('timingSearch')?.closest('.panel');
   const historyBtn=$('toggleTimingHistoryBtn'),list=$('timingList');
   const title=section.querySelector('.timingHistoryTitle');
   if(historyBtn&&historyBtn.dataset.hubReady!=='1'){
@@ -135,9 +142,13 @@ function setupTiming(){
     [historyPanel,list,title].filter(Boolean).forEach(el=>el.classList.add('timingHidden','hubForcedHidden'));
     historyBtn.textContent='Show Completed Timing Checks';historyBtn.setAttribute('aria-expanded','false');
     historyBtn.onclick=()=>{
-      const hidden=[historyPanel,list,title].filter(Boolean).some(el=>el.classList.contains('hubForcedHidden'));
-      [historyPanel,list,title].filter(Boolean).forEach(el=>{el.classList.toggle('hubForcedHidden',!hidden);el.classList.toggle('timingHidden',!hidden);});
-      historyBtn.textContent=hidden?'Hide Completed Timing Checks':'Show Completed Timing Checks';historyBtn.setAttribute('aria-expanded',String(hidden));
+      const hidden=[historyPanel,list,title].filter(Boolean).some(el=>el.classList.contains('hubForcedHidden')||el.classList.contains('timingHidden'));
+      [historyPanel,list,title].filter(Boolean).forEach(el=>{
+        el.classList.toggle('hubForcedHidden',!hidden);
+        el.classList.toggle('timingHidden',!hidden);
+      });
+      historyBtn.textContent=hidden?'Hide Completed Timing Checks':'Show Completed Timing Checks';
+      historyBtn.setAttribute('aria-expanded',String(hidden));
     };
   }
 }
@@ -145,6 +156,7 @@ function setupTiming(){
 function init(){
   addStyles();
   setupChecksheet();setupNsa();setupTiming();
+  setTimeout(()=>{setupChecksheet();setupNsa();setupTiming();},1200);
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,3200));
