@@ -29,8 +29,11 @@ function makeToggle(id,beforeEl,showText,hideText,targets){
     btn.textContent=hidden?showText:hideText;
     btn.setAttribute('aria-expanded',String(!hidden));
   };
-  btn.onclick=()=>apply(!targets().filter(Boolean).some(el=>el.classList.contains('hubForcedHidden')));
-  apply(true);
+  if(btn.dataset.hubReady!=='1'){
+    btn.dataset.hubReady='1';
+    btn.onclick=()=>apply(!targets().filter(Boolean).some(el=>el.classList.contains('hubForcedHidden')));
+    apply(true);
+  }
   return btn;
 }
 
@@ -47,11 +50,9 @@ function setupChecksheet(){
   const panel=search?.closest('.panel');
   const list=$('checkList');
   const title=section.querySelector('.historyPanelTitle');
-  if(historyBtn){
-    [panel,list,title].filter(Boolean).forEach(el=>{
-      el.classList.add('historyHidden');
-      el.classList.add('hubForcedHidden');
-    });
+  if(historyBtn&&historyBtn.dataset.hubReady!=='1'){
+    historyBtn.dataset.hubReady='1';
+    [panel,list,title].filter(Boolean).forEach(el=>el.classList.add('historyHidden','hubForcedHidden'));
     historyBtn.textContent='Show Previous Checks';
     historyBtn.setAttribute('aria-expanded','false');
     historyBtn.onclick=()=>{
@@ -67,7 +68,8 @@ function setupNsa(){
   const section=$('nsa');if(!section)return;
   const manualPanel=section.querySelector('.panel');
   const manualBtn=$('toggleNsaManualBtn');
-  if(manualBtn&&manualPanel){
+  if(manualBtn&&manualPanel&&manualBtn.dataset.hubReady!=='1'){
+    manualBtn.dataset.hubReady='1';
     manualPanel.classList.add('nsaSectionHidden','hubForcedHidden');
     manualBtn.textContent='Show Manual Input';manualBtn.setAttribute('aria-expanded','false');
     manualBtn.onclick=()=>{
@@ -78,7 +80,8 @@ function setupNsa(){
   }
   const reportsBtn=$('toggleNsaReportsBtn'),filters=$('nsaFilters'),list=$('nsaList');
   const heading=section.querySelector('.nsaSectionHeading');
-  if(reportsBtn){
+  if(reportsBtn&&reportsBtn.dataset.hubReady!=='1'){
+    reportsBtn.dataset.hubReady='1';
     [filters,list,heading].filter(Boolean).forEach(el=>el.classList.add('nsaSectionHidden','hubForcedHidden'));
     reportsBtn.textContent='Show Completed Reports';reportsBtn.setAttribute('aria-expanded','false');
     reportsBtn.onclick=()=>{
@@ -98,7 +101,8 @@ function setupTiming(){
 
   const historyBtn=$('toggleTimingHistoryBtn'),list=$('timingList');
   const title=section.querySelector('.timingHistoryTitle');
-  if(historyBtn){
+  if(historyBtn&&historyBtn.dataset.hubReady!=='1'){
+    historyBtn.dataset.hubReady='1';
     [historyPanel,list,title].filter(Boolean).forEach(el=>el.classList.add('timingHidden','hubForcedHidden'));
     historyBtn.textContent='Show Completed Timing Checks';historyBtn.setAttribute('aria-expanded','false');
     historyBtn.onclick=()=>{
