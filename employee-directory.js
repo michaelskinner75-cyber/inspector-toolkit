@@ -5,6 +5,7 @@ const LEGACY_KEY='inspectorEmployeeDirectoryV2';
 const byId=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=v=>String(v||'').trim().toLowerCase();
+const numberKey=v=>{const s=String(v||'').replace(/\s+/g,'').trim().toLowerCase();return /^\d+$/.test(s)?(s.replace(/^0+(?=\d)/,'')||'0'):s;};
 const baseEmployees=Array.isArray(window.INSPECTOR_EMPLOYEE_DIRECTORY)?window.INSPECTOR_EMPLOYEE_DIRECTORY:[];
 let employees=[];
 let editing=-1;
@@ -20,8 +21,8 @@ function cleanEntry(e){
 }
 function mergeByNumber(base,local){
   const map=new Map();
-  base.map(cleanEntry).filter(e=>e.name&&e.employeeNumber).forEach(e=>map.set(norm(e.employeeNumber),e));
-  local.map(cleanEntry).filter(e=>e.name&&e.employeeNumber).forEach(e=>map.set(norm(e.employeeNumber),e));
+  base.map(cleanEntry).filter(e=>e.name&&e.employeeNumber).forEach(e=>map.set(numberKey(e.employeeNumber),e));
+  local.map(cleanEntry).filter(e=>e.name&&e.employeeNumber).forEach(e=>map.set(numberKey(e.employeeNumber),e));
   return [...map.values()];
 }
 function load(){
@@ -71,7 +72,7 @@ function page(){
     <div class="panel">
       <input id="employeeSearch" class="field employeeSearch" type="search" placeholder="Search name or employee number">
       <div id="employeeCount" class="employeeCount"></div>
-      <div class="employeeHint">This directory is currently stored on this device. Import the Excel file once on each device.</div>
+      <div class="employeeHint">The main employee list is built into the toolkit and is available on every device. Edits made here are saved on this device.</div>
       <div class="employeeTools">
         <button class="btn" id="importEmployeeBtn" type="button">IMPORT EXCEL</button>
         <input id="employeeFile" type="file" accept=".xlsx,.xls,.csv" hidden>
@@ -95,7 +96,8 @@ function page(){
 }
 function render(){
   const q=norm(byId('employeeSearch')?.value);
-  const rows=employees.map((e,i)=>({e,i})).filter(x=>!q||norm(x.e.name).includes(q)||norm(x.e.employeeNumber).includes(q)||norm(x.e.depot).includes(q)||norm(x.e.jobTitle).includes(q)).sort((a,b)=>a.e.name.localeCompare(b.e.name));
+  const qNumber=numberKey(q);
+  const rows=employees.map((e,i)=>({e,i})).filter(x=>!q||norm(x.e.name).includes(q)||norm(x.e.employeeNumber).includes(q)||numberKey(x.e.employeeNumber).includes(qNumber)||norm(x.e.depot).includes(q)||norm(x.e.jobTitle).includes(q)).sort((a,b)=>a.e.name.localeCompare(b.e.name));
   const shown=q?rows:rows.slice(0,50);
   byId('employeeCount').textContent=employees.length?(q?`${rows.length} result${rows.length===1?'':'s'}`:`Showing first ${shown.length} of ${employees.length} employees — type to search`):'No employees loaded.';
   byId('employeeResults').innerHTML=shown.map(({e,i})=>`
@@ -115,7 +117,7 @@ function clearEditor(){
 function saveEntry(){
   const entry={name:byId('employeeName').value.trim(),employeeNumber:byId('employeeNumber').value.trim(),depot:byId('employeeDepot').value.trim(),jobTitle:byId('employeeJobTitle').value.trim()};
   if(!entry.name||!entry.employeeNumber){alert('Enter the employee name and employee number.');return;}
-  const duplicate=employees.findIndex((e,i)=>i!==editing&&norm(e.employeeNumber)===norm(entry.employeeNumber));
+  const duplicate=employees.findIndex((e,i)=>i!==editing&&numberKey(e.employeeNumber)===numberKey(entry.employeeNumber));
   if(duplicate>=0){alert('That employee number already exists.');return;}
   if(editing<0)employees.push(entry);else employees[editing]=entry;
   save();clearEditor();render();
@@ -160,8 +162,8 @@ async function importFile(file){
   }catch(error){alert('The Excel file could not be imported.');}
 }
 function findByNumber(value){
-  const n=norm(value);
-  return n?employees.find(e=>norm(e.employeeNumber)===n):null;
+  const n=numberKey(value);
+  return n?employees.find(e=>numberKey(e.employeeNumber)===n):null;
 }
 function setupChecksheetLookup(){
   const driver=byId('csDriver');
