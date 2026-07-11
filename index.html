@@ -13,7 +13,7 @@ iframe{border:0;width:100%;height:100vh;display:block;background:#0b1b2b}
 </style>
 </head>
 <body>
-<iframe id="hubFrame" src="app.html?v=20260711-60" title="Inspector Hub"></iframe>
+<iframe id="hubFrame" src="app.html?v=20260711-61" title="Inspector Hub"></iframe>
 <script>
 const frame=document.getElementById('hubFrame');
 frame.addEventListener('load',()=>{
@@ -54,7 +54,11 @@ frame.addEventListener('load',()=>{
                                 employeeCloud.onload=()=>{
                                   const dropdownFix=d.createElement('script');dropdownFix.src='driver-dropdown-fix.js?v=20260711-59';
                                   dropdownFix.onload=()=>{
-                                    const employeePin=d.createElement('script');employeePin.src='employee-directory-pin.js?v=20260711-56';d.body.appendChild(employeePin);
+                                    const depotLabelFix=d.createElement('script');depotLabelFix.src='remove-other-depot-label.js?v=20260711-61';
+                                    depotLabelFix.onload=()=>{
+                                      const employeePin=d.createElement('script');employeePin.src='employee-directory-pin.js?v=20260711-56';d.body.appendChild(employeePin);
+                                    };
+                                    d.body.appendChild(depotLabelFix);
                                   };
                                   d.body.appendChild(dropdownFix);
                                 };
