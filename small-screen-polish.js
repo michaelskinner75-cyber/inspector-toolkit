@@ -19,6 +19,20 @@ style.textContent=`
 input,select,textarea,button{max-width:100%}
 #checksheet #csDate{width:100%!important;max-width:100%!important;min-width:0!important}
 
+/* iOS date controls can keep a large intrinsic width unless fully reset */
+#csDate,#nsaDate,#reportFrom,#reportTo{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+}
+#csDate.closest,.fieldLabel{min-width:0!important;max-width:100%!important}
+#reportSearch .grid2,#nsa .grid,#checksheet .sectionGrid{min-width:0!important}
+#reportSearch .fieldLabel,#checksheet .fieldBlock{width:100%!important;min-width:0!important;max-width:100%!important;overflow:hidden!important}
+
 @media(max-width:430px){
   body{overflow-x:hidden!important}
   .wrap{width:100%!important;max-width:none!important;padding:8px!important;margin:0!important}
@@ -35,14 +49,16 @@ input,select,textarea,button{max-width:100%}
     min-height:50px!important;height:auto!important;
     padding:11px 12px!important;font-size:16px!important;border-radius:10px!important;
   }
-  #checksheet input[type='date'],#checksheet input[type='time']{
-    display:block!important;width:100%!important;max-width:100%!important;
+  #checksheet input[type='date'],#checksheet input[type='time'],
+  #nsa input[type='date'],#reportSearch input[type='date']{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
     min-height:50px!important;height:50px!important;padding:8px 10px!important;
-    font-size:16px!important;text-align:left!important;
+    font-size:16px!important;text-align:left!important;box-sizing:border-box!important;
+    -webkit-appearance:none!important;appearance:none!important;
   }
   #checksheet #csDriver{height:50px!important;min-height:50px!important;max-height:50px!important}
   #checksheet .sectionGrid,#checksheet .sectionGrid.inspectionRows,
-  .grid,.grid2{grid-template-columns:1fr!important;gap:8px!important}
+  .grid,.grid2{grid-template-columns:minmax(0,1fr)!important;gap:8px!important;width:100%!important;max-width:100%!important}
   #checksheet .fieldBlock{gap:4px!important}
   #checksheet .fieldBlock>label{font-size:13px!important}
   #checksheet .formSectionTitle{font-size:19px!important;padding:8px 10px!important;margin-bottom:9px!important}
