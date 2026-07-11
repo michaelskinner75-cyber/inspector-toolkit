@@ -94,10 +94,33 @@ function setupNsa(){
 
 function setupTiming(){
   const section=$('timing');if(!section)return;
-  const panels=Array.from(section.querySelectorAll('.panel'));
   const historyPanel=$('timingSearch')?.closest('.panel');
+  const panels=Array.from(section.querySelectorAll('.panel'));
   const entryPanel=panels.find(p=>p!==historyPanel);
-  makeToggle('toggleTimingEntryBtn',entryPanel,'Show Timing Check Details','Hide Timing Check Details',()=>[entryPanel]);
+  if(!entryPanel)return;
+
+  const matching=Array.from(section.querySelectorAll('button')).filter(btn=>/^(show|hide) timing check details$/i.test((btn.textContent||'').trim()));
+  let entryBtn=$('toggleTimingEntryBtn')||matching[0];
+  matching.forEach(btn=>{if(btn!==entryBtn)btn.remove();});
+
+  if(!entryBtn){
+    entryBtn=document.createElement('button');
+    entryPanel.before(entryBtn);
+  }
+  entryBtn.id='toggleTimingEntryBtn';
+  entryBtn.type='button';
+  entryBtn.className='hubSectionToggle';
+
+  const applyEntry=hidden=>{
+    entryPanel.classList.toggle('hubForcedHidden',hidden);
+    entryBtn.textContent=hidden?'Show Timing Check Details':'Hide Timing Check Details';
+    entryBtn.setAttribute('aria-expanded',String(!hidden));
+  };
+  entryBtn.onclick=()=>applyEntry(!entryPanel.classList.contains('hubForcedHidden'));
+  if(entryBtn.dataset.hubReady!=='1'){
+    entryBtn.dataset.hubReady='1';
+    applyEntry(true);
+  }
 
   const historyBtn=$('toggleTimingHistoryBtn'),list=$('timingList');
   const title=section.querySelector('.timingHistoryTitle');
