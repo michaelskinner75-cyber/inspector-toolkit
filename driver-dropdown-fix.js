@@ -1,72 +1,35 @@
 (function(){
 'use strict';
 
-function applyDriverDropdownFix(){
+function attachDropdown(){
   const driver=document.getElementById('csDriver');
-  const suggestionWrap=document.getElementById('driverSuggestionWrap');
+  const wrap=document.getElementById('driverSuggestionWrap');
   const status=document.getElementById('csEmployeeLookupStatus');
-  if(!driver||!suggestionWrap)return false;
+  if(!driver||!wrap)return false;
 
   document.getElementById('csEmployeeNumber')?.remove();
 
-  let host=document.getElementById('driverAutocompleteHost');
-  if(!host){
-    host=document.createElement('div');
-    host.id='driverAutocompleteHost';
-    host.className='driverAutocompleteHost';
-    driver.parentNode.insertBefore(host,driver);
+  const parent=driver.parentElement;
+  if(!parent)return false;
+
+  if(wrap.parentElement!==parent)driver.insertAdjacentElement('afterend',wrap);
+  else if(driver.nextElementSibling!==wrap)driver.insertAdjacentElement('afterend',wrap);
+
+  if(status){
+    if(status.parentElement!==parent)wrap.insertAdjacentElement('afterend',status);
+    else if(wrap.nextElementSibling!==status)wrap.insertAdjacentElement('afterend',status);
   }
 
-  if(driver.parentNode!==host)host.appendChild(driver);
-  if(status&&status.parentNode!==host)host.appendChild(status);
-  if(suggestionWrap.parentNode!==host)host.appendChild(suggestionWrap);
-
-  const fieldBlock=host.closest('.fieldBlock');
-  if(fieldBlock)fieldBlock.style.overflow='visible';
+  parent.style.position='relative';
+  parent.style.overflow='visible';
 
   if(!document.getElementById('driverDropdownPositionCss')){
     const style=document.createElement('style');
     style.id='driverDropdownPositionCss';
     style.textContent=`
-      #checksheet,#checksheet .formSection,#checksheet .sectionGrid,
-      #checksheet .fieldBlock{overflow:visible!important}
-
-      #driverAutocompleteHost{
-        position:relative!important;
+      #checksheet #driverSuggestionWrap{
         display:block!important;
-        width:100%!important;
-        min-width:0!important;
-        max-width:100%!important;
-        overflow:visible!important;
-        z-index:500!important;
-      }
-
-      #driverAutocompleteHost #csDriver{
-        display:block!important;
-        position:relative!important;
-        width:100%!important;
-        min-width:0!important;
-        max-width:100%!important;
-        box-sizing:border-box!important;
-        margin:0!important;
-        z-index:2!important;
-      }
-
-      #driverAutocompleteHost .employeeLookupStatus{
-        display:block!important;
-        position:relative!important;
-        width:100%!important;
-        margin:5px 0 0!important;
-        grid-column:auto!important;
-        z-index:2!important;
-      }
-
-      #driverAutocompleteHost .driverSuggestionWrap{
-        display:block!important;
-        position:absolute!important;
-        top:calc(100% + 3px)!important;
-        left:0!important;
-        right:0!important;
+        position:static!important;
         width:100%!important;
         min-width:0!important;
         max-width:100%!important;
@@ -74,17 +37,16 @@ function applyDriverDropdownFix(){
         padding:0!important;
         transform:none!important;
         grid-column:auto!important;
-        z-index:99999!important;
+        z-index:auto!important;
       }
-
-      #driverAutocompleteHost .driverSuggestions{
+      #checksheet #driverSuggestions{
         display:none;
         position:static!important;
         width:100%!important;
         min-width:0!important;
         max-width:100%!important;
         box-sizing:border-box!important;
-        margin:0!important;
+        margin:-1px 0 0!important;
         padding:0!important;
         transform:none!important;
         max-height:240px!important;
@@ -95,12 +57,10 @@ function applyDriverDropdownFix(){
         border:1px solid #3e6d8d!important;
         border-top:0!important;
         border-radius:0 0 10px 10px!important;
-        box-shadow:0 12px 25px rgba(0,0,0,.5)!important;
+        box-shadow:0 10px 22px rgba(0,0,0,.42)!important;
       }
-
-      #driverAutocompleteHost .driverSuggestions.show{display:block!important}
-
-      #driverAutocompleteHost .driverSuggestion{
+      #checksheet #driverSuggestions.show{display:block!important}
+      #checksheet #driverSuggestions .driverSuggestion{
         display:block!important;
         width:100%!important;
         min-width:0!important;
@@ -111,10 +71,16 @@ function applyDriverDropdownFix(){
         text-align:left!important;
         white-space:normal!important;
       }
-
+      #checksheet #csEmployeeLookupStatus{
+        display:block!important;
+        position:static!important;
+        width:100%!important;
+        margin:5px 0 0!important;
+        grid-column:auto!important;
+      }
       @media(max-width:430px){
-        #driverAutocompleteHost .driverSuggestions{max-height:210px!important}
-        #driverAutocompleteHost .driverSuggestion{padding:10px 11px!important}
+        #checksheet #driverSuggestions{max-height:200px!important}
+        #checksheet #driverSuggestions .driverSuggestion{padding:10px 11px!important}
       }
     `;
     document.head.appendChild(style);
@@ -123,21 +89,18 @@ function applyDriverDropdownFix(){
   return true;
 }
 
-function keepAttached(){
-  applyDriverDropdownFix();
-}
-
 function init(){
   let attempts=0;
   const timer=setInterval(()=>{
     attempts++;
-    keepAttached();
-    if(attempts>40)clearInterval(timer);
+    if(attachDropdown()||attempts>40)clearInterval(timer);
   },200);
 
-  const observer=new MutationObserver(()=>keepAttached());
   const sheet=document.getElementById('checksheet');
-  if(sheet)observer.observe(sheet,{childList:true,subtree:true});
+  if(sheet){
+    const observer=new MutationObserver(()=>attachDropdown());
+    observer.observe(sheet,{childList:true,subtree:true});
+  }
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
