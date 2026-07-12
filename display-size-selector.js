@@ -57,18 +57,23 @@ function addStyles(){
  body.display-plus .nav,body.display-plus .grid,body.display-plus .grid2{grid-template-columns:repeat(2,1fr)!important}
  body.display-plus .nav button{min-height:70px}
  body.display-plus .brandLogo{max-height:155px}
- body.display-ipad .wrap{max-width:820px;padding:10px}
- body.display-ipad .machine{padding:12px;border-width:4px}
- body.display-ipad .brandHeader{padding:12px 14px}
- body.display-ipad .brandLogo{width:min(300px,46%);max-height:150px}
- body.display-ipad .brandTitle{font-size:28px}
- body.display-ipad .nav{grid-template-columns:repeat(2,1fr)!important;gap:11px}
- body.display-ipad .grid{grid-template-columns:repeat(2,1fr)!important;gap:10px}
- body.display-ipad .grid2{grid-template-columns:repeat(2,1fr)!important;gap:10px}
- body.display-ipad .nav button{min-height:76px;font-size:16px}
- body.display-ipad .panel,body.display-ipad .log{padding:14px}
- body.display-ipad .field,body.display-ipad .searchBar{font-size:17px;padding:13px}
- body.display-ipad .serviceFrame{height:720px}
+ body.display-ipad .wrap{max-width:900px;min-height:100vh;padding:8px 10px 14px}
+ body.display-ipad .machine{min-height:calc(100vh - 22px);padding:14px;border-width:4px;display:flex;flex-direction:column}
+ body.display-ipad .brandHeader{padding:14px 16px}
+ body.display-ipad .brandLogo{width:min(320px,46%);max-height:165px}
+ body.display-ipad .brandTitle{font-size:30px}
+ body.display-ipad #home.active{display:flex;flex:1;flex-direction:column;min-height:calc(100vh - 285px)}
+ body.display-ipad #home>.panel{margin-top:10px}
+ body.display-ipad #home>.nav{flex:1;align-content:stretch;grid-auto-rows:minmax(88px,1fr)}
+ body.display-ipad .nav{grid-template-columns:repeat(2,1fr)!important;gap:13px;margin-top:14px}
+ body.display-ipad .grid{grid-template-columns:repeat(2,1fr)!important;gap:11px}
+ body.display-ipad .grid2{grid-template-columns:repeat(2,1fr)!important;gap:11px}
+ body.display-ipad .nav button{min-height:88px;font-size:17px;padding:16px 40px 16px 16px}
+ body.display-ipad .nav button::before{font-size:27px}
+ body.display-ipad .panel,body.display-ipad .log{padding:15px}
+ body.display-ipad .field,body.display-ipad .searchBar{font-size:17px;padding:14px}
+ body.display-ipad button,body.display-ipad .btn,body.display-ipad .backBtn{font-size:16px}
+ body.display-ipad .serviceFrame{height:760px}
  body.display-laptop .wrap{max-width:1380px;padding:16px}
  body.display-laptop .machine{padding:18px}
  body.display-laptop .nav{grid-template-columns:repeat(4,1fr)!important;gap:12px}
