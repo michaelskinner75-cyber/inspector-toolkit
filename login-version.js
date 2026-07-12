@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VERSION='106';
+const VERSION='107';
 function addVersion(){
  const card=document.querySelector('#loginPage .loginCard');
  if(!card||document.getElementById('loginVersion'))return;
