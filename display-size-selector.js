@@ -74,16 +74,24 @@ function addStyles(){
  body.display-ipad .field,body.display-ipad .searchBar{font-size:17px;padding:14px}
  body.display-ipad button,body.display-ipad .btn,body.display-ipad .backBtn{font-size:16px}
  body.display-ipad .serviceFrame{height:760px}
- body.display-laptop .wrap{max-width:1380px;padding:16px}
- body.display-laptop .machine{padding:18px}
- body.display-laptop .nav{grid-template-columns:repeat(4,1fr)!important;gap:12px}
- body.display-laptop .grid{grid-template-columns:repeat(3,1fr)!important;gap:12px}
- body.display-laptop .grid2{grid-template-columns:repeat(2,1fr)!important;gap:12px}
- body.display-laptop .nav button{min-height:80px;font-size:16px}
- body.display-laptop .panel,body.display-laptop .log{padding:18px}
- body.display-laptop .field,body.display-laptop .searchBar{font-size:17px;padding:14px}
- body.display-laptop .brandTitle{font-size:34px}
- body.display-laptop .serviceFrame{height:780px}
+ body.display-laptop .wrap{width:calc(100% - 32px);max-width:none;min-height:100vh;padding:12px 16px}
+ body.display-laptop .machine{min-height:calc(100vh - 24px);padding:20px 22px;border-width:4px;display:flex;flex-direction:column}
+ body.display-laptop .brandHeader{padding:16px 22px}
+ body.display-laptop .brandLogo{width:min(390px,32%);max-height:170px}
+ body.display-laptop .brandTitle{font-size:38px}
+ body.display-laptop #home.active{display:flex;flex:1;flex-direction:column;min-height:calc(100vh - 300px)}
+ body.display-laptop #home>.panel{margin-top:14px}
+ body.display-laptop #home>.nav{flex:1;align-content:stretch;grid-auto-rows:minmax(96px,1fr)}
+ body.display-laptop .nav{grid-template-columns:repeat(4,1fr)!important;gap:16px;margin-top:16px}
+ body.display-laptop .grid{grid-template-columns:repeat(4,1fr)!important;gap:14px}
+ body.display-laptop .grid2{grid-template-columns:repeat(2,1fr)!important;gap:14px}
+ body.display-laptop .nav button{min-height:96px;font-size:18px;padding:18px 46px 18px 18px}
+ body.display-laptop .nav button::before{font-size:30px}
+ body.display-laptop .panel,body.display-laptop .log{padding:20px}
+ body.display-laptop .field,body.display-laptop .searchBar{font-size:18px;padding:15px}
+ body.display-laptop button,body.display-laptop .btn,body.display-laptop .backBtn{font-size:17px}
+ body.display-laptop .serviceFrame{height:calc(100vh - 250px);min-height:720px}
+ @media(max-width:1200px){body.display-laptop .nav{grid-template-columns:repeat(3,1fr)!important}}
  @media(max-width:760px){body.display-ipad .nav,body.display-ipad .grid,body.display-ipad .grid2,body.display-laptop .nav,body.display-laptop .grid,body.display-laptop .grid2{grid-template-columns:1fr!important}}
  `;
  document.head.appendChild(s);
