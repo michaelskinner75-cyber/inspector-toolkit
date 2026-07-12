@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const KEY='inspectorDisplaySize';
-const MODES={phone:'Standard Phone',plus:'Plus Phone',ipad:'iPad Pro 11-inch',laptop:'Laptop'};
+const MODES={phone:'Standard Phone',plus:'Large Phone',ipad:'iPad',laptop:'Laptop / PC'};
 function chooseDefault(){
  const w=Math.max(document.documentElement.clientWidth||0,window.innerWidth||0);
  const h=Math.max(document.documentElement.clientHeight||0,window.innerHeight||0);
@@ -89,7 +89,7 @@ function build(){
  const version=document.getElementById('loginVersion');
  const box=document.createElement('div');
  box.id='displaySizeBox';box.className='displaySizeBox';
- box.innerHTML='<div class="displaySizeTitle">Choose screen layout</div><div class="displaySizeChoices"><button type="button" class="displaySizeChoice" data-display-size="phone"><span class="sizeIcon">📱</span>Standard Phone</button><button type="button" class="displaySizeChoice" data-display-size="plus"><span class="sizeIcon">📲</span>Plus Phone</button><button type="button" class="displaySizeChoice" data-display-size="ipad"><span class="sizeIcon">▯</span>iPad Pro 11-inch<br>Portrait</button><button type="button" class="displaySizeChoice" data-display-size="laptop"><span class="sizeIcon">💻</span>Laptop<br>Landscape</button></div><div class="displaySizeHint">Your choice is remembered for next time.</div>';
+ box.innerHTML='<div class="displaySizeTitle">Choose screen layout</div><div class="displaySizeChoices"><button type="button" class="displaySizeChoice" data-display-size="phone"><span class="sizeIcon">📱</span>Standard Phone</button><button type="button" class="displaySizeChoice" data-display-size="plus"><span class="sizeIcon">📲</span>Large Phone</button><button type="button" class="displaySizeChoice" data-display-size="ipad"><span class="sizeIcon">▯</span>iPad</button><button type="button" class="displaySizeChoice" data-display-size="laptop"><span class="sizeIcon">💻</span>Laptop / PC</button></div><div class="displaySizeHint">Your choice is remembered for next time.</div>';
  if(version)card.insertBefore(box,version);else{const loginBtn=document.getElementById('loginBtn');if(loginBtn)card.insertBefore(box,loginBtn);else card.appendChild(box);}
  box.addEventListener('click',e=>{const b=e.target.closest('[data-display-size]');if(b)apply(b.dataset.displaySize);});
  apply(localStorage.getItem(KEY)||chooseDefault());
