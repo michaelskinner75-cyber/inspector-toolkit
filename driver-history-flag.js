@@ -13,6 +13,7 @@ function outcomeType(value){
  return'';
 }
 function outcomeLabel(type){return type==='reported'?'Reported':'Advised';}
+function line(label,value){return value!==undefined&&value!==null&&String(value).trim()!==''?`<div><b>${label}:</b> ${esc(value)}</div>`:'';}
 
 function addStyles(){
  if(byId('driverHistoryFlagCss'))return;
@@ -27,8 +28,10 @@ function addStyles(){
  #driverHistoryFlag .historySummary{font-weight:800;margin-bottom:7px}
  #driverHistoryFlag details{margin-top:7px}
  #driverHistoryFlag summary{cursor:pointer;font-weight:800}
- #driverHistoryFlag .historyItem{padding:8px 0;border-top:1px solid rgba(255,255,255,.18);font-size:13px}
+ #driverHistoryFlag .historyItem{padding:12px 0;border-top:1px solid rgba(255,255,255,.22);font-size:13px}
  #driverHistoryFlag .historyItem:first-child{margin-top:7px}
+ #driverHistoryFlag .historyItemTitle{font-size:15px;font-weight:900;margin-bottom:7px}
+ #driverHistoryFlag .historyReason{margin-top:8px;padding:8px;background:rgba(0,0,0,.16);border-radius:7px;white-space:pre-wrap}
  `;
  document.head.appendChild(s);
 }
@@ -48,12 +51,12 @@ function ensureFlag(){
 function pushInspection(rows,r){
  if(!Array.isArray(r))return;
  const type=outcomeType(r[13]);
- if(type)rows.push({driver:r[4],date:r[0],type,reason:r[14],service:r[5],fleet:r[6],depot:r[3]});
+ if(type)rows.push({source:'Inspector Check Sheet',date:r[0],savedTime:r[1],inspector:r[2],depot:r[3],driver:r[4],service:r[5],fleet:r[6],timeOn:r[7],boarding:r[8],destination:r[9],nsa:r[10],nsaFault:r[11],nsaNotes:r[12],type,reason:r[14]});
 }
 function pushDriverReport(rows,r){
  if(!Array.isArray(r))return;
  const type=outcomeType(r[5]);
- if(type)rows.push({driver:r[3],date:r[0],type,reason:r[6],service:r[7],fleet:r[8],depot:r[4]});
+ if(type)rows.push({source:'Driver Report',date:r[0],savedTime:r[1],inspector:r[2],driver:r[3],depot:r[4],type,reason:r[6],service:r[7],fleet:r[8]});
 }
 function allIssueRows(){
  const rows=[];
@@ -85,6 +88,25 @@ function matchesDriver(saved,current){
  return an.length>=5&&bn.length>=5&&(an.startsWith(bn+' ')||bn.startsWith(an+' '));
 }
 
+function historyCard(r){
+ return `<div class="historyItem">
+  <div class="historyItemTitle">${outcomeLabel(r.type)} — ${esc(r.date||'Date not recorded')}${r.savedTime?` at ${esc(r.savedTime)}`:''}</div>
+  ${line('Source',r.source)}
+  ${line('Inspector',r.inspector)}
+  ${line('Driver',r.driver)}
+  ${line('Depot',r.depot)}
+  ${line('Service',r.service)}
+  ${line('Fleet number',r.fleet)}
+  ${line('Time boarded',r.timeOn)}
+  ${line('Boarding point',r.boarding)}
+  ${line('Destination',r.destination)}
+  ${line('NSA working',r.nsa)}
+  ${line('NSA fault',r.nsaFault)}
+  ${line('NSA notes',r.nsaNotes)}
+  <div class="historyReason"><b>Driver report reason / inspection notes:</b><br>${esc(r.reason||'No reason or notes entered')}</div>
+ </div>`;
+}
+
 function render(force=false){
  const driver=byId('csDriver');
  const flag=ensureFlag();
@@ -92,7 +114,7 @@ function render(force=false){
  const name=driver.value.trim();
  if(!name){flag.className='';flag.innerHTML='';lastSignature='';return;}
  const issues=allIssueRows().filter(r=>matchesDriver(r.driver,name));
- const signature=clean(name)+'|'+issues.map(r=>[r.date,r.type,clean(r.reason),r.service,r.fleet,r.depot].join('~')).join('||');
+ const signature=clean(name)+'|'+issues.map(r=>Object.values(r).join('~')).join('||');
  if(!force&&signature===lastSignature)return;
  const wasOpen=!!flag.querySelector('details[open]');
  if(!issues.length){flag.className='';flag.innerHTML='';lastSignature=signature;return;}
@@ -103,7 +125,7 @@ function render(force=false){
  const title=reported?'⚠️ PREVIOUS REPORTED ISSUE':'⚠️ PREVIOUS ADVICE RECORDED';
  const summary=[reported?`${reported} reported`:null,advised?`${advised} advised`:null].filter(Boolean).join(' • ');
  flag.className=`show ${cls}`;
- flag.innerHTML=`<div class="historyTitle">${title}</div><div class="historySummary">${esc(name)} has previous history: ${summary}.</div><details${wasOpen?' open':''}><summary>View previous issues</summary>${issues.slice(0,8).map(r=>`<div class="historyItem"><b>${outcomeLabel(r.type)}</b> — ${esc(r.date||'Date not recorded')}<br>${esc(r.reason||'No reason entered')}${r.service?`<br>Service ${esc(r.service)}`:''}${r.fleet?` • Fleet ${esc(r.fleet)}`:''}${r.depot?` • ${esc(r.depot)}`:''}</div>`).join('')}</details>`;
+ flag.innerHTML=`<div class="historyTitle">${title}</div><div class="historySummary">${esc(name)} has previous history: ${summary}.</div><details${wasOpen?' open':''}><summary>View all previous information</summary>${issues.map(historyCard).join('')}</details>`;
  lastSignature=signature;
 }
 
