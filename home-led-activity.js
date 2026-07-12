@@ -1,0 +1,19 @@
+(function(){
+'use strict';
+const byId=id=>document.getElementById(id);
+function getRows(sheet){try{return typeof cloud!=='undefined'&&cloud&&Array.isArray(cloud[sheet])?cloud[sheet].slice():[];}catch(e){return[];}}
+function stripHeader(data){if(!data.length)return data;const first=(data[0]||[]).map(v=>String(v||'').toLowerCase());return first.some(v=>['date','time','inspector','driver','fleet','service','depot','location'].includes(v))?data.slice(1):data;}
+function toStamp(date,time){const d=new Date(String(date||'')+(time?' '+String(time):''));return Number.isNaN(d.getTime())?0:d.getTime();}
+function messages(){const out=[];
+ stripHeader(getRows('Inspections')).forEach(r=>{const action=String(r[13]||'');let label='CHECKED';if(/advis/i.test(action))label='ADVISED';else if(/report|offence/i.test(action)&&!/no driver report/i.test(action))label='REPORTED';out.push({t:toStamp(r[0],r[1]),s:[label,r[4],r[5]&&'SERVICE '+r[5],r[6]&&'FLEET '+r[6],r[14]].filter(Boolean).join('  •  ')});});
+ stripHeader(getRows('Early Running')).forEach(r=>{const mins=Number(r[10]);out.push({t:toStamp(r[0],r[1]),s:[mins<0?'EARLY RUNNING':'TIMING CHECK',r[7],r[4]&&'SERVICE '+r[4],r[6]&&'FLEET '+r[6],r[3]].filter(Boolean).join('  •  ')});});
+ stripHeader(getRows('NSA Faults')).forEach(r=>{if(!(r[7]==='No'||(r[8]&&r[8]!=='Fully Working'&&r[8]!=='N/A')))return;out.push({t:toStamp(r[0],r[1]),s:['NSA FAULT',r[6],r[5]&&'SERVICE '+r[5],r[4]&&'FLEET '+r[4],r[8]||r[9]].filter(Boolean).join('  •  ')});});
+ return out.sort((a,b)=>b.t-a.t).slice(0,8).map(x=>x.s);
+}
+function addStyles(){if(byId('homeLedActivityCss'))return;const s=document.createElement('style');s.id='homeLedActivityCss';s.textContent='#recentActivityBox,#compactHomeClock{display:none!important}#home .loggedInBox{grid-template-columns:1fr auto!important;padding:8px 10px!important;font-size:13px!important}#home .loggedInBox strong{font-size:17px!important}#home #changeInspectorBtn{padding:7px 12px!important;font-size:11px!important;min-height:34px!important;width:auto!important;margin:0!important}#home .ledShell{display:block!important;height:54px!important;margin-top:8px!important}#home .ledBar{font-size:18px!important;animation-duration:22s!important}#home .status{font-size:12px;padding:6px 8px;margin-top:6px}body.display-phone #home .loggedInBox{grid-template-columns:1fr!important}body.display-phone #home #changeInspectorBtn{width:100%!important}';document.head.appendChild(s);}
+function logout(){try{localStorage.removeItem('activeInspector');}catch(e){}const login=byId('loginPage');if(login)login.classList.remove('hidden');if(typeof openSection==='function')openSection('home');}
+function prepareHome(){const old=byId('recentActivityBox');if(old)old.remove();const compact=byId('compactHomeClock');if(compact)compact.remove();const box=document.querySelector('#home .loggedInBox');if(box){const name=(typeof getInspector==='function'?getInspector():'')||'Not logged in';box.classList.remove('compactHomeTop');box.innerHTML='Logged in as <strong id="loggedInInspector"></strong><button class="btn changeInspectorBtn" id="changeInspectorBtn">LOG OUT</button>';const label=byId('loggedInInspector');if(label)label.textContent=name;const button=byId('changeInspectorBtn');if(button)button.onclick=logout;}}
+function render(){const bar=byId('homeClock');if(!bar)return;const now=new Date();const date=now.toLocaleDateString('en-GB');const time=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});const inspector=(typeof getInspector==='function'?getInspector():'');bar.textContent=['DATE '+date+'  TIME '+time+(inspector?'  INSPECTOR: '+inspector:''),...messages()].join('     ◆     ');}
+function init(){addStyles();prepareHome();render();setInterval(render,2000);[1200,3000,6000].forEach(ms=>setTimeout(render,ms));}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
