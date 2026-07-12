@@ -3,7 +3,7 @@
 const byId=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clean=v=>String(v||'').normalize('NFKD').replace(/[’']/g,'').toLowerCase().replace(/\b(employee|emp|driver|number|no)\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
-let lastValue='';
+let lastSignature='';
 
 function outcomeType(value){
  const s=clean(value);
@@ -85,14 +85,17 @@ function matchesDriver(saved,current){
  return an.length>=5&&bn.length>=5&&(an.startsWith(bn+' ')||bn.startsWith(an+' '));
 }
 
-function render(){
+function render(force=false){
  const driver=byId('csDriver');
  const flag=ensureFlag();
  if(!driver||!flag)return;
  const name=driver.value.trim();
- if(!name){flag.className='';flag.innerHTML='';lastValue='';return;}
+ if(!name){flag.className='';flag.innerHTML='';lastSignature='';return;}
  const issues=allIssueRows().filter(r=>matchesDriver(r.driver,name));
- if(!issues.length){flag.className='';flag.innerHTML='';lastValue=name;return;}
+ const signature=clean(name)+'|'+issues.map(r=>[r.date,r.type,clean(r.reason),r.service,r.fleet,r.depot].join('~')).join('||');
+ if(!force&&signature===lastSignature)return;
+ const wasOpen=!!flag.querySelector('details[open]');
+ if(!issues.length){flag.className='';flag.innerHTML='';lastSignature=signature;return;}
  const reported=issues.filter(r=>r.type==='reported').length;
  const advised=issues.filter(r=>r.type==='advised').length;
  issues.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
@@ -100,19 +103,19 @@ function render(){
  const title=reported?'⚠️ PREVIOUS REPORTED ISSUE':'⚠️ PREVIOUS ADVICE RECORDED';
  const summary=[reported?`${reported} reported`:null,advised?`${advised} advised`:null].filter(Boolean).join(' • ');
  flag.className=`show ${cls}`;
- flag.innerHTML=`<div class="historyTitle">${title}</div><div class="historySummary">${esc(name)} has previous history: ${summary}.</div><details><summary>View previous issues</summary>${issues.slice(0,8).map(r=>`<div class="historyItem"><b>${outcomeLabel(r.type)}</b> — ${esc(r.date||'Date not recorded')}<br>${esc(r.reason||'No reason entered')}${r.service?`<br>Service ${esc(r.service)}`:''}${r.fleet?` • Fleet ${esc(r.fleet)}`:''}${r.depot?` • ${esc(r.depot)}`:''}</div>`).join('')}</details>`;
- lastValue=name;
+ flag.innerHTML=`<div class="historyTitle">${title}</div><div class="historySummary">${esc(name)} has previous history: ${summary}.</div><details${wasOpen?' open':''}><summary>View previous issues</summary>${issues.slice(0,8).map(r=>`<div class="historyItem"><b>${outcomeLabel(r.type)}</b> — ${esc(r.date||'Date not recorded')}<br>${esc(r.reason||'No reason entered')}${r.service?`<br>Service ${esc(r.service)}`:''}${r.fleet?` • Fleet ${esc(r.fleet)}`:''}${r.depot?` • ${esc(r.depot)}`:''}</div>`).join('')}</details>`;
+ lastSignature=signature;
 }
 
 function init(){
  addStyles();ensureFlag();
  const driver=byId('csDriver');
  if(!driver)return;
- ['input','change','blur'].forEach(ev=>driver.addEventListener(ev,()=>setTimeout(render,50)));
- document.addEventListener('click',e=>{if(e.target.closest('[data-driver-suggestion]'))setTimeout(render,150);});
- const clear=byId('clearCheckFormBtn');if(clear)clear.addEventListener('click',()=>setTimeout(render,50));
- setInterval(render,1000);
- setTimeout(render,1800);
+ ['input','change','blur'].forEach(ev=>driver.addEventListener(ev,()=>setTimeout(()=>render(true),50)));
+ document.addEventListener('click',e=>{if(e.target.closest('[data-driver-suggestion]'))setTimeout(()=>render(true),150);});
+ const clear=byId('clearCheckFormBtn');if(clear)clear.addEventListener('click',()=>setTimeout(()=>render(true),50));
+ setInterval(()=>render(false),1500);
+ setTimeout(()=>render(true),1800);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
