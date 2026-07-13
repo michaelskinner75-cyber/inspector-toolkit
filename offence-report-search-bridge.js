@@ -12,18 +12,23 @@ function extract(card,label){
  return m?m[1].trim():'';
 }
 
+function driverReportRows(){
+ const all=(window.cloud&&cloud['Driver Reports'])||[];
+ if(!all.length)return[];
+ const first=(all[0]||[]).map(v=>normal(v));
+ const hasHeader=first.some(v=>['date','time','inspector','driver','fleet','service','depot'].includes(v));
+ return hasHeader?all.slice(1):all.slice();
+}
+
 function findDriverReport(card){
  const driver=extract(card,'Driver');
  const fleet=extract(card,'Fleet');
  const service=extract(card,'Service');
  const dateLine=extract(card,'Date');
  const dateOnly=(dateLine.split(/\s+/)[0]||'').trim();
- const all=(window.cloud&&cloud['Driver Reports'])||[];
- if(!all.length)return null;
- const first=(all[0]||[]).map(v=>normal(v));
- const hasHeader=first.some(v=>['date','time','inspector','driver','fleet','service','depot'].includes(v));
- const rows=hasHeader?all.slice(1):all.slice();
- let row=rows.find(r=>{
+ const rows=driverReportRows();
+ if(!rows.length)return null;
+ let index=rows.findIndex(r=>{
   const offence=/offence/i.test(String(r[5]||''))||String(r[9]||'').trim();
   if(!offence)return false;
   const sameDriver=!driver||normal(r[3])===normal(driver);
@@ -32,15 +37,24 @@ function findDriverReport(card){
   const sameDate=!dateOnly||normal(dateText(r[0]))===normal(dateOnly);
   return sameDriver&&sameFleet&&sameService&&sameDate;
  });
- if(!row)row=rows.find(r=>(/offence/i.test(String(r[5]||''))||String(r[9]||'').trim())&&normal(r[3])===normal(driver)&&normal(r[8])===normal(fleet));
- return row||null;
+ if(index<0)index=rows.findIndex(r=>(/offence/i.test(String(r[5]||''))||String(r[9]||'').trim())&&normal(r[3])===normal(driver)&&normal(r[8])===normal(fleet));
+ return index<0?null:{rows,row:rows[index],index};
 }
 
-function openGenerator(card){
- const r=findDriverReport(card);
- if(!r){alert('The matching offence report data could not be found. Refresh cloud data and try again.');return;}
+function initialiseGenerator(found){
+ const trigger=document.createElement('button');
+ trigger.type='button';
+ trigger.className='createOffenceWord';
+ trigger.dataset.reportIndex=String(found.index);
+ trigger.style.display='none';
+ document.body.appendChild(trigger);
+ trigger.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+ trigger.remove();
+}
+
+function fillAndOpen(r){
  const modal=document.getElementById('offenceReportModal');
- if(!modal){alert('The offence report generator has not loaded. Refresh the page and try again.');return;}
+ if(!modal)return false;
  setValue('orReference',r[9]);
  setValue('orNature',r[12]||r[5]||'Driver Offence');
  setValue('orDate',dateText(r[0]));
@@ -56,6 +70,17 @@ function openGenerator(card){
  setValue('orDetails',r[6]);
  const status=document.getElementById('offenceBuildStatus');if(status)status.textContent='Ready.';
  modal.style.display='block';
+ return true;
+}
+
+function openGenerator(card){
+ const found=findDriverReport(card);
+ if(!found){alert('The matching offence report data could not be found. Refresh cloud data and try again.');return;}
+ if(fillAndOpen(found.row))return;
+ initialiseGenerator(found);
+ setTimeout(()=>{
+  if(!fillAndOpen(found.row))alert('The offence report generator could not be opened. Please refresh the page once and try again.');
+ },100);
 }
 
 function addButtons(){
