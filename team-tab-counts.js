@@ -1,8 +1,9 @@
 (function(){
 'use strict';
+const labels={notes:'Notes',tasks:'To Do',drivers:'Drivers To Check',events:'Events'};
 function updateTabCounts(){
  const hub=document.getElementById('teamHub');
- if(!hub)return false;
+ if(!hub)return;
  const stats=hub.querySelector('.teamStats');
  if(stats)stats.style.display='none';
  const values={
@@ -11,24 +12,18 @@ function updateTabCounts(){
   drivers:document.getElementById('stDrivers')?.textContent||'0',
   events:document.getElementById('stEvents')?.textContent||'0'
  };
- const labels={notes:'Notes',tasks:'To Do',drivers:'Drivers To Check',events:'Events'};
  Object.keys(labels).forEach(key=>{
   const button=hub.querySelector('[data-team-tab="'+key+'"]');
-  if(button)button.textContent=labels[key]+' ('+values[key]+')';
+  if(!button)return;
+  const wanted=labels[key]+' ('+values[key]+')';
+  if(button.textContent!==wanted)button.textContent=wanted;
  });
- return true;
 }
 function init(){
- let tries=0;
- const timer=setInterval(()=>{
-  tries++;
-  if(updateTabCounts()||tries>40){
-   if(tries>40)clearInterval(timer);
-  }
- },250);
- const observer=new MutationObserver(updateTabCounts);
- observer.observe(document.body,{childList:true,subtree:true,characterData:true});
- setInterval(updateTabCounts,1000);
+ updateTabCounts();
+ setTimeout(updateTabCounts,500);
+ setInterval(updateTabCounts,1500);
+ document.addEventListener('click',e=>{if(e.target.closest('[data-team-tab]'))setTimeout(updateTabCounts,0);});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
