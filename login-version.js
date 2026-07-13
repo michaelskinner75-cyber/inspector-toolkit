@@ -1,14 +1,15 @@
 (function(){
 'use strict';
-const VERSION='13.07.26.120';
+const VERSION='13.07.26.121';
+const UPLOADED='13/07/2026 18:05';
 function addVersion(){
  const card=document.querySelector('#loginPage .loginCard');
  if(!card)return;
  let label=document.getElementById('loginVersion');
  if(!label){label=document.createElement('div');label.id='loginVersion';card.appendChild(label);}
- label.textContent='Version '+VERSION;
- label.style.cssText='margin-top:10px;font-size:11px;letter-spacing:.08em;opacity:.75;text-align:center;';
+ label.innerHTML='Version '+VERSION+'<br>Uploaded '+UPLOADED;
+ label.style.cssText='margin-top:10px;font-size:11px;line-height:1.5;letter-spacing:.06em;opacity:.7;text-align:center;';
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addVersion);else addVersion();
-window.addEventListener('load',()=>setTimeout(addVersion,250));
+setTimeout(addVersion,500);
 })();
