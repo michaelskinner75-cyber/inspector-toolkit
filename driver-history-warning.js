@@ -9,6 +9,7 @@ function reportType(v){
  if(s==='advised')return'advised';
  return'clear';
 }
+function formatDate(v){const s=String(v||'').trim();if(!s)return'Date not recorded';if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}const p=s.split('/');if(p.length===3)return s;const d=new Date(s);return isNaN(d)?s:d.toLocaleDateString('en-GB');}
 function addStyle(){if($('driverHistoryWarningCss'))return;const s=document.createElement('style');s.id='driverHistoryWarningCss';s.textContent=`
 #driverHistoryWarning{display:none;width:100%;box-sizing:border-box;border-radius:12px;padding:13px 14px;margin:8px 0 10px;line-height:1.4}
 #driverHistoryWarning.show{display:block!important}
@@ -18,8 +19,9 @@ function addStyle(){if($('driverHistoryWarningCss'))return;const s=document.crea
 #driverHistoryWarning.reported{background:#551c22;border:2px solid #e24e5b;color:#ffe7e9}
 #driverHistoryWarning .t{font-size:17px;font-weight:900;margin-bottom:6px}
 #driverHistoryWarning .sub{font-size:13px;opacity:.92}
-#driverHistoryWarning .item{padding:10px 0;border-top:1px solid rgba(255,255,255,.22)}
-#driverHistoryWarning .item:first-of-type{border-top:0}
+#driverHistoryWarning .item{padding:11px;margin-top:10px;border-radius:10px;border:2px solid rgba(255,255,255,.25)}
+#driverHistoryWarning .item.reportedItem{background:#551c22;border-color:#e24e5b;color:#ffe7e9}
+#driverHistoryWarning .item.advisedItem{background:#4b3510;border-color:#e2a52b;color:#fff4d6}
 #driverHistoryWarning .reason{margin-top:4px;font-weight:800;white-space:pre-wrap}
 #driverHistoryWarning .viewFullReport{margin-top:8px;width:100%;padding:10px;border:1px solid rgba(255,255,255,.45);border-radius:9px;background:rgba(0,0,0,.2);color:#fff;font-weight:900}
 `;document.head.appendChild(s);}
@@ -48,17 +50,11 @@ function render(){
  if(!matches.length){w.className='show first';w.innerHTML='<div class="t">🔵 1ST TIME CHECK</div><div class="sub">No previous inspector checks were found for this driver.</div>';return;}
  const reported=matches.filter(x=>x.type==='reported');
  const advised=matches.filter(x=>x.type==='advised');
- let cls='clear',title='🟢 PREVIOUSLY CHECKED — NO ISSUES',relevant=matches;
- if(reported.length){cls='reported';title='🔴 PREVIOUS OFFENCE REPORT SUBMITTED';relevant=reported;}
- else if(advised.length){cls='advised';title='🟡 PREVIOUSLY ADVISED';relevant=advised;}
- w.className='show '+cls;
- if(cls==='clear'){
-  const latest=matches[matches.length-1];
-  w.innerHTML='<div class="t">'+title+'</div><div class="sub">Previously checked '+matches.length+' time'+(matches.length===1?'':'s')+(latest?.date?' — most recent '+esc(latest.date):'')+'.</div><button type="button" class="viewFullReport" data-history-driver="'+esc(name)+'">VIEW PREVIOUS CHECKS</button>';
-  return;
- }
- relevant.reverse();
- w.innerHTML='<div class="t">'+title+'</div>'+relevant.map(x=>'<div class="item"><b>'+(x.type==='reported'?'Offence Report Submitted':'Advised')+' — '+esc(x.date||'Date not recorded')+'</b><div class="reason">'+esc(x.reason||'No reason entered')+'</div><button type="button" class="viewFullReport" data-history-driver="'+esc(name)+'">VIEW FULL REPORT</button></div>').join('');
+ const actions=matches.filter(x=>x.type==='reported'||x.type==='advised').reverse();
+ if(!actions.length){const latest=matches[matches.length-1];w.className='show clear';w.innerHTML='<div class="t">🟢 PREVIOUSLY CHECKED — NO ISSUES</div><div class="sub">Previously checked '+matches.length+' time'+(matches.length===1?'':'s')+(latest?.date?' — most recent '+esc(formatDate(latest.date)):'')+'.</div><button type="button" class="viewFullReport" data-history-driver="'+esc(name)+'">VIEW PREVIOUS CHECKS</button>';return;}
+ const title=reported.length&&advised.length?'🔴 PREVIOUS OFFENCE REPORTS & 🟡 ADVICE':reported.length?'🔴 PREVIOUS OFFENCE REPORT SUBMITTED':'🟡 PREVIOUSLY ADVISED';
+ w.className='show '+(reported.length?'reported':'advised');
+ w.innerHTML='<div class="t">'+title+'</div><div class="sub">'+reported.length+' offence report'+(reported.length===1?'':'s')+' • '+advised.length+' advised record'+(advised.length===1?'':'s')+'</div>'+actions.map(x=>'<div class="item '+(x.type==='reported'?'reportedItem':'advisedItem')+'"><b>'+(x.type==='reported'?'🔴 Offence Report Submitted':'🟡 Advised')+' — '+esc(formatDate(x.date))+'</b><div class="reason">'+esc(x.reason||'No reason entered')+'</div><button type="button" class="viewFullReport" data-history-driver="'+esc(name)+'">VIEW FULL REPORT</button></div>').join('');
 }
 function init(){addStyle();ensure();const d=$('csDriver');if(!d)return;['input','change','blur'].forEach(ev=>d.addEventListener(ev,()=>setTimeout(render,100)));const clear=$('clearCheckFormBtn');if(clear)clear.addEventListener('click',()=>{hide();setTimeout(hide,50);});document.addEventListener('click',e=>{if(e.target.closest('[data-driver-suggestion]'))setTimeout(render,180);const b=e.target.closest('.viewFullReport');if(b){e.preventDefault();e.stopPropagation();openFullReport(b.dataset.historyDriver||d.value);}});const status=$('syncStatus');if(status)new MutationObserver(()=>{if(/loaded/i.test(status.textContent||''))setTimeout(render,50);}).observe(status,{childList:true,subtree:true,characterData:true});[1200,3000,6000].forEach(ms=>setTimeout(render,ms));}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
