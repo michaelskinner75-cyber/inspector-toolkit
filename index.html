@@ -13,15 +13,9 @@ iframe{border:0;width:100%;height:100vh;display:block;background:#0b1b2b}
 </style>
 </head>
 <body>
-<iframe id="hubFrame" src="app.html?v=20260713-119" title="Inspector Hub"></iframe>
+<iframe id="hubFrame" src="app.html?v=20260713-120" title="Inspector Hub"></iframe>
 <script>
-/*
-  LOGIN CONTROL
-  false = site opens directly with no password
-  true  = restore the existing login/password screen
-*/
 const LOGIN_REQUIRED=false;
-
 const frame=document.getElementById('hubFrame');
 const scripts=[
  'services.js?v=20260710-42',
@@ -57,22 +51,20 @@ const scripts=[
  'management-summary.js?v=20260712-106',
  'management-depot-summary.js?v=20260712-105',
  'home-led-smooth.js?v=20260712-102',
- 'offence-reference.js?v=20260713-119',
- 'offence-report-generator.js?v=20260713-119',
- 'previous-checks-filter-fix.js?v=20260713-119',
- 'offence-report-search-bridge.js?v=20260713-119'
+ 'offence-reference.js?v=20260713-120',
+ 'offence-report-generator.js?v=20260713-120',
+ 'previous-checks-filter-fix.js?v=20260713-120',
+ 'offence-report-search-bridge.js?v=20260713-120',
+ 'login-version.js?v=20260713-120'
 ];
-
 if(LOGIN_REQUIRED){
  scripts.push(
-  'login-version.js?v=20260712-113',
   'login-ui-v112.js?v=20260712-113',
   'cloud-access-v111.js?v=20260712-113',
   'login-success-fix.js?v=20260712-109',
   'remove-other-user.js?v=20260712-108'
  );
 }
-
 function loadNext(d,index){
  if(index>=scripts.length)return;
  const s=d.createElement('script');
