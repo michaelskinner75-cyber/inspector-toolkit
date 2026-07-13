@@ -10,15 +10,38 @@ function inspectionRows(){
  return source.slice(hasHeader?1:0).filter(r=>Array.isArray(r)&&r.some(v=>String(v||'').trim()));
 }
 function validDate(v){
- const d=typeof parseRowDate==='function'?parseRowDate(v):new Date(v);
- return d instanceof Date&&!isNaN(d)?d:null;
+ if(v instanceof Date&&!isNaN(v)){const d=new Date(v);d.setHours(0,0,0,0);return d;}
+ const s=String(v||'').trim();
+ let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2}|\d{4})$/);
+ if(m){
+  const day=Number(m[1]),month=Number(m[2])-1,year=Number(m[3].length===2?'20'+m[3]:m[3]);
+  const d=new Date(year,month,day);d.setHours(0,0,0,0);
+  if(d.getFullYear()===year&&d.getMonth()===month&&d.getDate()===day)return d;
+ }
+ m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+ if(m){
+  const year=Number(m[1]),month=Number(m[2])-1,day=Number(m[3]);
+  const d=new Date(year,month,day);d.setHours(0,0,0,0);
+  if(d.getFullYear()===year&&d.getMonth()===month&&d.getDate()===day)return d;
+ }
+ const d=new Date(s);
+ if(!isNaN(d)){d.setHours(0,0,0,0);return d;}
+ return null;
+}
+function mondayStart(date){
+ const d=new Date(date);d.setHours(0,0,0,0);
+ const day=d.getDay();d.setDate(d.getDate()-(day===0?6:day-1));
+ return d;
 }
 function dateMatches(d,filter){
  if(!d)return filter==='all';
- const now=new Date();
- if(filter==='today')return typeof sameDay==='function'?sameDay(d,now):d.toDateString()===now.toDateString();
- if(filter==='week')return typeof inThisWeek==='function'?inThisWeek(d):true;
- if(filter==='month')return typeof inThisMonth==='function'?inThisMonth(d):d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+ const now=new Date();now.setHours(0,0,0,0);
+ if(filter==='today')return d.getTime()===now.getTime();
+ if(filter==='week'){
+  const start=mondayStart(now),end=new Date(start);end.setDate(end.getDate()+7);
+  return d>=start&&d<end;
+ }
+ if(filter==='month')return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
  return true;
 }
 function selectedFilter(){
