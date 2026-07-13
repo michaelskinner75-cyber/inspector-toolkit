@@ -27,15 +27,20 @@ function ensure(){const d=$('csDriver');if(!d)return null;let w=$('driverHistory
 function hide(){const w=$('driverHistoryWarning');if(w){w.className='';w.innerHTML='';}}
 function same(a,b){const strip=s=>clean(s).replace(/\b\d{3,}\b/g,'').trim().replace(/\s+/g,' ');const x=strip(a),y=strip(b);return !!x&&!!y&&(x===y||(x.length>=5&&y.length>=5&&(x.startsWith(y+' ')||y.startsWith(x+' '))));}
 function stripHeader(rows){if(!rows.length)return rows;const first=(rows[0]||[]).map(v=>clean(v));return first.some(v=>['date','time','inspector','driver','fleet','service','depot','location'].includes(v))?rows.slice(1):rows;}
-function inspectionRows(){
- try{if(typeof cloud!=='undefined'&&cloud&&Array.isArray(cloud['Inspections'])&&cloud['Inspections'].length)return stripHeader(cloud['Inspections'].slice());}catch(e){}
- try{const local=JSON.parse(localStorage.getItem('local_Inspections')||'[]');return Array.isArray(local)?local:[];}catch(e){return[];}
+function getRows(sheet){
+ try{if(typeof cloud!=='undefined'&&cloud&&Array.isArray(cloud[sheet])&&cloud[sheet].length)return stripHeader(cloud[sheet].slice());}catch(e){}
+ try{const local=JSON.parse(localStorage.getItem('local_'+sheet)||'[]');return Array.isArray(local)?local:[];}catch(e){return[];}
+}
+function historyRows(){
+ const checks=getRows('Inspections').map(r=>({type:reportType(r[13]),date:r[0],driver:r[4],reason:r[14],source:'inspection'}));
+ const reports=getRows('Driver Reports').map(r=>({type:reportType(r[5]),date:r[0],driver:r[3],reason:r[6],source:'driver-report'}));
+ return [...checks,...reports];
 }
 function openFullReport(driver){if(typeof openSection==='function')openSection('reportSearch');const search=$('reportSearchText');if(search){search.value=driver;search.dispatchEvent(new Event('input',{bubbles:true}));}const type=$('reportType');if(type)type.value='all';if(typeof window.renderReportSearch==='function')window.renderReportSearch();setTimeout(()=>$('reportSearch')?.scrollIntoView({behavior:'smooth',block:'start'}),100);}
 function render(){
  const d=$('csDriver'),w=ensure();if(!d||!w)return;const name=d.value.trim();if(!name){hide();return;}
  const seen=new Set();
- const matches=inspectionRows().map(r=>({type:reportType(r[13]),date:r[0],driver:r[4],reason:r[14],raw:r})).filter(x=>{
+ const matches=historyRows().filter(x=>{
   if(!same(x.driver,name))return false;
   const key=[clean(x.driver),String(x.date||''),x.type,clean(x.reason)].join('|');
   if(seen.has(key))return false;seen.add(key);return true;
