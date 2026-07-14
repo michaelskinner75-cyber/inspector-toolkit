@@ -34,27 +34,29 @@ function getRows(sheet){
  try{const local=JSON.parse(localStorage.getItem('local_'+sheet)||'[]');return Array.isArray(local)?local:[];}catch(e){return[];}
 }
 function historyRows(){
- const checks=getRows('Inspections').map(r=>({type:reportType(r[13]),date:r[0],driver:r[4],reason:r[14],source:'inspection'}));
- const reports=getRows('Driver Reports').map(r=>({type:reportType(r[5]),date:r[0],driver:r[3],reason:r[6],source:'driver-report'}));
- return [...checks,...reports];
+ const checks=getRows('Inspections').map(r=>({type:'clear',date:r[0],driver:r[4],reason:'',source:'inspection'}));
+ const reports=getRows('Driver Reports').map(r=>({type:reportType(r[5]),date:r[0],driver:r[3],reason:r[6],source:'driver-report'})).filter(x=>x.type==='reported'||x.type==='advised');
+ return {checks,reports};
 }
 function openFullReport(driver){if(typeof openSection==='function')openSection('reportSearch');const search=$('reportSearchText');if(search){search.value=driver;search.dispatchEvent(new Event('input',{bubbles:true}));}const type=$('reportType');if(type)type.value='all';if(typeof window.renderReportSearch==='function')window.renderReportSearch();setTimeout(()=>$('reportSearch')?.scrollIntoView({behavior:'smooth',block:'start'}),100);}
 function render(){
  const d=$('csDriver'),w=ensure();if(!d||!w)return;const name=d.value.trim();if(!name){hide();return;}
+ const history=historyRows();
+ const checks=history.checks.filter(x=>same(x.driver,name));
  const seen=new Set();
- const matches=historyRows().filter(x=>{
+ const actions=history.reports.filter(x=>{
   if(!same(x.driver,name))return false;
   const key=[clean(x.driver),String(x.date||''),x.type,clean(x.reason)].join('|');
   if(seen.has(key))return false;seen.add(key);return true;
  });
- if(!matches.length){w.className='show first';w.innerHTML='<div class="t">🔵 1ST TIME CHECK</div><div class="sub">No previous inspector checks were found for this driver.</div>';return;}
- const reported=matches.filter(x=>x.type==='reported');
- const advised=matches.filter(x=>x.type==='advised');
- const actions=matches.filter(x=>x.type==='reported'||x.type==='advised').reverse();
- if(!actions.length){const latest=matches[matches.length-1];w.className='show clear';w.innerHTML='<div class="t">🟢 PREVIOUSLY CHECKED — NO ISSUES</div><div class="sub">Previously checked '+matches.length+' time'+(matches.length===1?'':'s')+(latest?.date?' — most recent '+esc(formatDate(latest.date)):'')+'.</div><button type="button" class="viewFullReport" data-history-driver="'+esc(name)+'">VIEW PREVIOUS CHECKS</button>';return;}
+ if(!checks.length&&!actions.length){w.className='show first';w.innerHTML='<div class="t">🔵 1ST TIME CHECK</div><div class="sub">No previous inspector checks were found for this driver.</div>';return;}
+ if(!actions.length){const latest=checks[checks.length-1];w.className='show clear';w.innerHTML='<div class="t">🟢 PREVIOUSLY CHECKED — NO ISSUES</div><div class="sub">Previously checked '+checks.length+' time'+(checks.length===1?'':'s')+(latest?.date?' — most recent '+esc(formatDate(latest.date)):'')+'.</div><button type="button" class="viewFullReport" data-history-driver="'+esc(name)+'">VIEW PREVIOUS CHECKS</button>';return;}
+ const reported=actions.filter(x=>x.type==='reported');
+ const advised=actions.filter(x=>x.type==='advised');
+ const ordered=actions.slice().reverse();
  const title=reported.length&&advised.length?'🔴 PREVIOUS OFFENCE REPORTS & 🟡 ADVICE':reported.length?'🔴 PREVIOUS OFFENCE REPORT SUBMITTED':'🟡 PREVIOUSLY ADVISED';
  w.className='show '+(reported.length?'reported':'advised');
- w.innerHTML='<div class="t">'+title+'</div><div class="sub">'+reported.length+' offence report'+(reported.length===1?'':'s')+' • '+advised.length+' advised record'+(advised.length===1?'':'s')+'</div>'+actions.map(x=>'<div class="item '+(x.type==='reported'?'reportedItem':'advisedItem')+'"><b>'+(x.type==='reported'?'🔴 Offence Report Submitted':'🟡 Advised')+' — '+esc(formatDate(x.date))+'</b><div class="reason">'+esc(x.reason||'No reason entered')+'</div><button type="button" class="viewFullReport" data-history-driver="'+esc(name)+'">VIEW FULL REPORT</button></div>').join('');
+ w.innerHTML='<div class="t">'+title+'</div><div class="sub">'+reported.length+' offence report'+(reported.length===1?'':'s')+' • '+advised.length+' advised record'+(advised.length===1?'':'s')+'</div>'+ordered.map(x=>'<div class="item '+(x.type==='reported'?'reportedItem':'advisedItem')+'"><b>'+(x.type==='reported'?'🔴 Offence Report Submitted':'🟡 Advised')+' — '+esc(formatDate(x.date))+'</b><div class="reason">'+esc(x.reason||'No reason entered')+'</div><button type="button" class="viewFullReport" data-history-driver="'+esc(name)+'">VIEW FULL REPORT</button></div>').join('');
 }
 function init(){addStyle();ensure();const d=$('csDriver');if(!d)return;['input','change','blur'].forEach(ev=>d.addEventListener(ev,()=>setTimeout(render,100)));const clear=$('clearCheckFormBtn');if(clear)clear.addEventListener('click',()=>{hide();setTimeout(hide,50);});document.addEventListener('click',e=>{if(e.target.closest('[data-driver-suggestion]'))setTimeout(render,180);const b=e.target.closest('.viewFullReport');if(b){e.preventDefault();e.stopPropagation();openFullReport(b.dataset.historyDriver||d.value);}});const status=$('syncStatus');if(status)new MutationObserver(()=>{if(/loaded/i.test(status.textContent||''))setTimeout(render,50);}).observe(status,{childList:true,subtree:true,characterData:true});[1200,3000,6000].forEach(ms=>setTimeout(render,ms));}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
