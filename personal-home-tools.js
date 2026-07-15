@@ -11,7 +11,8 @@ function allTools(){return [...document.querySelectorAll('.section[id]')].map(s=
 function ensureHomeBox(){
  const home=$('home'),nav=home?.querySelector('.nav');if(!home||!nav)return null;
  let box=$('myHomeTools');
- if(!box){box=document.createElement('div');box.id='myHomeTools';box.className='myHomeTools';box.innerHTML='<div class="myHomeToolsHead"><b>⭐ My Home Tools</b><small>Your personal shortcuts</small></div><div class="nav myHomeToolsNav" id="myHomeToolsNav"></div>';nav.parentNode.insertBefore(box,nav);}
+ if(!box){box=document.createElement('div');box.id='myHomeTools';box.className='myHomeTools';box.innerHTML='<div class="myHomeToolsHead"><b>⭐ My Home Tools</b><small>Your personal shortcuts</small></div><div class="nav myHomeToolsNav" id="myHomeToolsNav"></div>';}
+ if(nav.nextElementSibling!==box)nav.insertAdjacentElement('afterend',box);
  return $('myHomeToolsNav');
 }
 function renderHome(){
