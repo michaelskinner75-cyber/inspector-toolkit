@@ -6,6 +6,7 @@ const MATCHERS=[
  {label:'Report Search',test:(t,id)=>t.includes('report search')||id.includes('reportsearch')},
  {label:'Operations Map',test:(t,id)=>t.includes('operations map')||id.includes('operationsmap')},
  {label:'NSA Log',test:(t,id)=>t.includes('nsa log')||t.includes('nsa faults')||t==='nsa'||id==='nsa'||id.includes('nsalog')},
+ {label:'Timing Check Results',test:(t,id)=>t.includes('timing check results')||id==='timing'},
  {label:'Management Summary',test:(t,id)=>t.includes('management summary')||id.includes('managementsummary')}
 ];
 function details(button){return {text:(button.textContent||'').trim().toLowerCase(),id:(button.dataset.open||'').replace(/[^a-z0-9]/gi,'').toLowerCase()};}
