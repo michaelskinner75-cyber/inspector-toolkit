@@ -1,0 +1,27 @@
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const BANDS=[
+ {label:'Early Morning',time:'05:00–08:00',from:5,to:8},
+ {label:'Morning Peak',time:'08:00–10:00',from:8,to:10},
+ {label:'Late Morning',time:'10:00–13:00',from:10,to:13},
+ {label:'Afternoon',time:'13:00–16:00',from:13,to:16},
+ {label:'Evening Peak',time:'16:00–19:00',from:16,to:19},
+ {label:'Evening / Late',time:'19:00–00:00',from:19,to:24}
+];
+function clean(v){return String(v||'').trim();}
+function parseDate(v){if(typeof parseRowDate==='function')return parseRowDate(v);let d=new Date(v);if(!isNaN(d))return d;const p=clean(v).split('/');if(p.length===3)return new Date(Number(p[2].length===2?'20'+p[2]:p[2]),Number(p[1])-1,Number(p[0]));return new Date(0);}
+function selectedRange(){return document.querySelector('[data-mg-range].selected')?.dataset.mgRange||'month';}
+function rangeStart(){const n=new Date();n.setHours(0,0,0,0);const range=selectedRange();if(range==='today')return n;if(range==='week'){const d=n.getDay();n.setDate(n.getDate()-d+(d===0?-6:1));return n;}if(range==='month')return new Date(n.getFullYear(),n.getMonth(),1);return new Date(0);}
+function inspectionRows(){let a=[];try{if(typeof cloud!=='undefined'&&cloud&&Array.isArray(cloud.Inspections))a=cloud.Inspections.slice();}catch(e){}if(!a.length)return[];const h=(a[0]||[]).map(v=>clean(v).toLowerCase());if(h.some(v=>['date','time','inspector','driver','fleet','service','depot','location'].includes(v)))a=a.slice(1);const start=rangeStart();return a.filter(r=>parseDate(r[0])>=start);}
+function hourFrom(value){const s=clean(value);let m=s.match(/^(\d{1,2}):(\d{2})/);if(m)return Math.min(23,Number(m[1]))+Number(m[2])/60;const d=new Date(s);return isNaN(d)?null:d.getHours()+d.getMinutes()/60;}
+function counts(){const out=BANDS.map(b=>({...b,count:0}));let unknown=0;inspectionRows().forEach(r=>{const h=hourFrom(r[7])??hourFrom(r[1]);if(h===null){unknown++;return;}const band=out.find(b=>h>=b.from&&h<b.to);if(band)band.count++;else unknown++;});return{bands:out,unknown};}
+function build(){const summary=$('managementSummary');if(!summary||$('mgTimeCoverage'))return false;const perf=$('mgInspectorPerformance')?.closest('.panel');const panel=document.createElement('div');panel.className='panel';panel.id='mgTimeCoverage';panel.innerHTML='<div class="mgTimeHead"><div><h3>Checks by Time of Day</h3><div class="small">Quick glance at periods that may need more checks.</div></div><div class="mgTimeTotal" id="mgTimeTotal"></div></div><div class="mgTimeGrid" id="mgTimeGrid"></div><div class="small mgTimeNote" id="mgTimeNote"></div>';
+ if(perf)perf.parentNode.insertBefore(panel,perf);else summary.appendChild(panel);return true;}
+function render(){if(!build()){}const grid=$('mgTimeGrid');if(!grid)return;const data=counts(),max=Math.max(1,...data.bands.map(b=>b.count)),min=Math.min(...data.bands.map(b=>b.count));grid.innerHTML=data.bands.map(b=>{const low=b.count===min;const pct=Math.max(5,Math.round((b.count/max)*100));return '<div class="mgTimeCard '+(low?'needs':'')+'"><div class="mgTimeCardTop"><div><b>'+b.label+'</b><span>'+b.time+'</span></div><strong>'+b.count+'</strong></div><div class="mgTimeBar"><i style="width:'+pct+'%"></i></div><small>'+(low?'Needs more checks':'Checks completed')+'</small></div>';}).join('');
+ const total=data.bands.reduce((n,b)=>n+b.count,0);$('mgTimeTotal').textContent=total+' checks';$('mgTimeNote').textContent=data.unknown?data.unknown+' check'+(data.unknown===1?' has':'s have')+' no usable time and '+(data.unknown===1?'is':'are')+' not included above.':'';
+}
+function style(){if($('mgTimeCoverageCss'))return;const s=document.createElement('style');s.id='mgTimeCoverageCss';s.textContent='.mgTimeHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.mgTimeHead h3{margin-bottom:4px}.mgTimeTotal{font-weight:900;color:#eea83e;white-space:nowrap}.mgTimeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:13px}.mgTimeCard{padding:12px;border-radius:12px;background:#0d2233;border:1px solid #36586f}.mgTimeCard.needs{border-left:6px solid #c83f49;background:#2f1c24}.mgTimeCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.mgTimeCardTop b{display:block}.mgTimeCardTop span{display:block;margin-top:3px;font-size:11px;color:#b8c5ce}.mgTimeCardTop strong{font-size:25px;color:#eea83e}.mgTimeBar{height:7px;margin:10px 0 7px;border-radius:99px;overflow:hidden;background:#07131e}.mgTimeBar i{display:block;height:100%;border-radius:99px;background:#459679}.mgTimeCard.needs .mgTimeBar i{background:#c83f49}.mgTimeCard small{color:#b8c5ce}.mgTimeCard.needs small{color:#ffadb5;font-weight:800}.mgTimeNote{margin-top:9px}@media(max-width:800px){.mgTimeGrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:500px){.mgTimeGrid{grid-template-columns:1fr}}';document.head.appendChild(s);}
+function init(){style();let tries=0;const timer=setInterval(()=>{tries++;if(build()||tries>50){clearInterval(timer);render();}},200);document.addEventListener('click',e=>{if(e.target.closest('[data-mg-range]')||e.target.closest('#mgRefresh')||e.target.closest('[data-open="managementSummary"]'))setTimeout(render,250);});setInterval(()=>{if($('managementSummary')?.classList.contains('active'))render();},2500);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
