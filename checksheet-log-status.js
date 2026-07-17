@@ -7,7 +7,7 @@ function addCss(){
  if(byId('checkLogStatusCss'))return;
  const s=document.createElement('style');
  s.id='checkLogStatusCss';
- s.textContent='#checkList .compactCheck{position:relative;border-left:7px solid #35a86b;border-radius:12px;overflow:hidden;margin:9px 0}#checkList .compactCheck.logAdvised{border-left-color:#e6b53f}#checkList .compactCheck.logOffence{border-left-color:#d84a53}#checkList .compactCheck.logClear{border-left-color:#35a86b}#checkList .compactTop{position:relative;padding-right:100px}#checkList .nsaBadge{position:absolute;right:9px;top:50%;transform:translateY(-50%);min-width:70px;padding:7px;border-radius:9px;text-align:center;font-size:9px;font-weight:900;line-height:1.15;pointer-events:none}#checkList .nsaGood{background:#1f8a55;color:#fff}#checkList .nsaBad{background:#b93440;color:#fff}#checkList .nsaNA{background:#2878b8;color:#fff}@media(max-width:520px){#checkList .compactTop{padding-right:86px}#checkList .nsaBadge{min-width:60px;right:6px}}';
+ s.textContent='#checkList .compactCheck{position:relative;border-left:7px solid #35a86b;border-radius:12px;overflow:hidden;margin:9px 0}#checkList .compactCheck.logAdvised{border-left-color:#e6b53f}#checkList .compactCheck.logOffence{border-left-color:#d84a53}#checkList .compactCheck.logClear{border-left-color:#35a86b}#checkList .compactTop{position:relative;padding-right:130px;min-height:62px}#checkList .checkStatusStack{position:absolute;right:9px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;gap:5px;width:112px;pointer-events:none}#checkList .nsaBadge,#checkList .vehicleNotesBadge{display:block;padding:6px 7px;border-radius:9px;text-align:center;font-size:9px;font-weight:900;line-height:1.15}#checkList .nsaGood{background:#1f8a55;color:#fff}#checkList .nsaBad{background:#b93440;color:#fff}#checkList .nsaNA{background:#2878b8;color:#fff}#checkList .vehicleNotesBadge{background:#d97706;color:#fff}@media(max-width:520px){#checkList .compactTop{padding-right:112px}#checkList .checkStatusStack{width:96px;right:6px}#checkList .nsaBadge,#checkList .vehicleNotesBadge{font-size:8px;padding:5px}}';
  document.head.appendChild(s);
 }
 function decorate(){
@@ -23,11 +23,19 @@ function decorate(){
   else card.classList.add('logClear');
   const top=card.querySelector('.compactTop');
   if(!top)return;
-  let badge=top.querySelector('.nsaBadge');
-  if(!badge){badge=document.createElement('span');badge.className='nsaBadge';top.appendChild(badge);}
+  let stack=top.querySelector('.checkStatusStack');
+  if(!stack){stack=document.createElement('span');stack.className='checkStatusStack';top.appendChild(stack);}
+  let badge=stack.querySelector('.nsaBadge');
+  if(!badge){badge=document.createElement('span');badge.className='nsaBadge';stack.appendChild(badge);}
   if(/nsa:\s*n\/?a\b/i.test(text)){badge.className='nsaBadge nsaNA';badge.textContent='NSA N/A';}
   else if(/nsa:\s*no\b/i.test(text)){badge.className='nsaBadge nsaBad';badge.textContent='NSA NOT WORKING';}
   else{badge.className='nsaBadge nsaGood';badge.textContent='NSA WORKING';}
+  const hasVehicleNotes=/vehicle issue:|vehicle comments:/i.test(text);
+  let vehicle=stack.querySelector('.vehicleNotesBadge');
+  if(hasVehicleNotes){
+   if(!vehicle){vehicle=document.createElement('span');vehicle.className='vehicleNotesBadge';stack.appendChild(vehicle);}
+   vehicle.textContent='🟠 VEHICLE NOTES RECORDED';
+  }else if(vehicle)vehicle.remove();
  });
  if(observer)observer.observe(list,{childList:true});
 }
