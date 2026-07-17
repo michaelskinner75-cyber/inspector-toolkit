@@ -13,7 +13,7 @@ function inject(){
  if(!d.getElementById('checksheetLogStatusScript')){
   var b=d.createElement('script');
   b.id='checksheetLogStatusScript';
-  b.src='checksheet-log-status.js?v=20260717-213';
+  b.src='checksheet-log-status.js?v=20260717-225';
   d.body.appendChild(b);
  }
 }
