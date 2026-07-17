@@ -7,8 +7,13 @@ function addCss(){
  if(byId('checkLogStatusCss'))return;
  const s=document.createElement('style');
  s.id='checkLogStatusCss';
- s.textContent='#checkList .compactCheck{position:relative;border-left:7px solid #35a86b;border-radius:12px;overflow:hidden;margin:9px 0}#checkList .compactCheck.logAdvised{border-left-color:#e6b53f}#checkList .compactCheck.logOffence{border-left-color:#d84a53}#checkList .compactCheck.logClear{border-left-color:#35a86b}#checkList .compactTop{position:relative;padding-right:130px;min-height:62px}#checkList .checkStatusStack{position:absolute;right:9px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;gap:5px;width:112px;pointer-events:none}#checkList .nsaBadge,#checkList .vehicleNotesBadge{display:block;padding:6px 7px;border-radius:9px;text-align:center;font-size:9px;font-weight:900;line-height:1.15}#checkList .nsaGood{background:#1f8a55;color:#fff}#checkList .nsaBad{background:#b93440;color:#fff}#checkList .nsaNA{background:#2878b8;color:#fff}#checkList .vehicleNotesBadge{background:#d97706;color:#fff}@media(max-width:520px){#checkList .compactTop{padding-right:112px}#checkList .checkStatusStack{width:96px;right:6px}#checkList .nsaBadge,#checkList .vehicleNotesBadge{font-size:8px;padding:5px}}';
+ s.textContent='#checkList .compactCheck{position:relative;border-left:7px solid #35a86b;border-radius:12px;overflow:hidden;margin:9px 0}#checkList .compactCheck.logAdvised{border-left-color:#e6b53f}#checkList .compactCheck.logOffence{border-left-color:#d84a53}#checkList .compactCheck.logClear{border-left-color:#35a86b}#checkList .compactTop{position:relative;padding-right:130px;min-height:62px}#checkList .checkStatusStack{position:absolute;right:9px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;gap:5px;width:112px;pointer-events:none}#checkList .nsaBadge,#checkList .vehicleNotesBadge{display:block;padding:6px 7px;border-radius:9px;text-align:center;font-size:9px;font-weight:900;line-height:1.15}#checkList .nsaGood{background:#1f8a55;color:#fff}#checkList .nsaBad{background:#b93440;color:#fff}#checkList .nsaNA{background:#2878b8;color:#fff}#checkList .vehicleNotesBadge{background:#d97706;color:#fff}#checkList .vehicleDetailBlock{margin-top:9px;padding:9px 10px;border-left:5px solid #d97706;border-radius:8px;background:rgba(217,119,6,.12);line-height:1.45}#checkList .vehicleDetailBlock b{color:#f4b45f}@media(max-width:520px){#checkList .compactTop{padding-right:112px}#checkList .checkStatusStack{width:96px;right:6px}#checkList .nsaBadge,#checkList .vehicleNotesBadge{font-size:8px;padding:5px}}';
  document.head.appendChild(s);
+}
+function extractVehicle(raw){
+ const issue=(raw.match(/vehicle issue:\s*([^\n]+)/i)||[])[1]||'';
+ const comments=(raw.match(/vehicle comments:\s*([^\n]+)/i)||[])[1]||'';
+ return{issue:issue.trim(),comments:comments.trim()};
 }
 function decorate(){
  const list=byId('checkList');
@@ -16,7 +21,8 @@ function decorate(){
  if(observer)observer.disconnect();
  list.querySelectorAll('.compactCheck').forEach(card=>{
   const details=card.querySelector('.compactDetails');
-  const text=((details&&details.textContent)||card.textContent||'').toLowerCase();
+  const raw=(details&&details.textContent)||card.textContent||'';
+  const text=raw.toLowerCase();
   card.classList.remove('logClear','logAdvised','logOffence');
   if(/offence report submitted|offence report to be submitted|driver report:\s*offence/i.test(text))card.classList.add('logOffence');
   else if(/driver advised|driver report:\s*advised/i.test(text))card.classList.add('logAdvised');
@@ -30,12 +36,20 @@ function decorate(){
   if(/nsa:\s*n\/?a\b/i.test(text)){badge.className='nsaBadge nsaNA';badge.textContent='NSA N/A';}
   else if(/nsa:\s*no\b/i.test(text)){badge.className='nsaBadge nsaBad';badge.textContent='NSA NOT WORKING';}
   else{badge.className='nsaBadge nsaGood';badge.textContent='NSA WORKING';}
-  const hasVehicleNotes=/vehicle issue:|vehicle comments:/i.test(text);
+  const vehicleData=extractVehicle(raw);
+  const hasVehicleNotes=Boolean(vehicleData.issue||vehicleData.comments);
   let vehicle=stack.querySelector('.vehicleNotesBadge');
   if(hasVehicleNotes){
    if(!vehicle){vehicle=document.createElement('span');vehicle.className='vehicleNotesBadge';stack.appendChild(vehicle);}
    vehicle.textContent='🟠 VEHICLE NOTES RECORDED';
   }else if(vehicle)vehicle.remove();
+  if(details){
+   let block=details.querySelector('.vehicleDetailBlock');
+   if(hasVehicleNotes){
+    if(!block){block=document.createElement('div');block.className='vehicleDetailBlock';details.appendChild(block);}
+    block.innerHTML=(vehicleData.issue?'<b>Vehicle Issue:</b> '+vehicleData.issue:'')+(vehicleData.issue&&vehicleData.comments?'<br>':'')+(vehicleData.comments?'<b>Vehicle Comments:</b> '+vehicleData.comments:'');
+   }else if(block)block.remove();
+  }
  });
  if(observer)observer.observe(list,{childList:true});
 }
