@@ -18,6 +18,9 @@ data.boundaries=[
  {title:'West Fife Regional Zone',details:'Covers the West Fife area shown on the official Stagecoach West Fife zone map. Check the map for the exact outer boundary where West Fife meets Central Fife, Edinburgh and the wider East Scotland network.'},
  {title:'East Scotland Zone',details:'Valid for unlimited travel on Stagecoach services across the whole East Scotland operating area. Stagecoach describes this as travel on all services across East Scotland; specific exceptions or partner services should still be checked where applicable.'},
  {title:'Route 19 Ticket Boundary',details:'Valid on Stagecoach service 19 along the route serving Ballingry, Lochgelly, Cowdenbeath, Halbeath Park & Ride, Dunfermline and Rosyth. The ticket is for travel on Route 19 rather than general travel across the wider town or regional zones.'}
+{title:'Night Rider',details:'Valid from 6pm until the last bus service of the evening/ early morning, up to 4am
+Valid for unlimited travel across Fife, Perthshire, Dundee and Angus
+Not valid for services across the Forth (including Edinburgh, Livingston, Forth Valley and Glasgow), or for travel to Stirling or north of Montrose to Aberdeen.'}
 ];
 localStorage.setItem(DATA_KEY,JSON.stringify(data));
 localStorage.setItem(MARKER,'1');
