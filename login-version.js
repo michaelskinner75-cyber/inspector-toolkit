@@ -1,7 +1,7 @@
 (function(){
 'use strict';
-const VERSION='20.5';
-const UPLOADED='17/07/2026 11:05';
+const VERSION='20.6';
+const UPLOADED='17/07/2026 11:20';
 function addVersion(){
  const card=document.querySelector('#loginPage .loginCard');
  if(!card)return;
