@@ -16,9 +16,9 @@ function openManagementFromTools(){
 }
 function setup(){
  $('managementLoginBtn')?.remove();
- const nav=$('otherToolsNav');if(!nav)return false;
+ const nav=$('otherToolsNav');if(!nav)return;
  let btn=$('managementToolsBtn');
- if(!michael()){btn?.remove();return true;}
+ if(!michael()){if(btn)btn.remove();return;}
  if(!btn){btn=document.createElement('button');btn.id='managementToolsBtn';btn.type='button';btn.innerHTML='<span class="navIcon">📊</span>Management Overview Summary';nav.appendChild(btn);}
  btn.onclick=openManagementFromTools;
  const back=$('mgBack');
@@ -26,8 +26,11 @@ function setup(){
   back.dataset.toolBack='1';back.textContent='← Other Links & Tools';
   back.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();if(typeof openSection==='function')openSection('otherLinksTools');},true);
  }
- return true;
 }
-function init(){let tries=0;const t=setInterval(()=>{tries++;if(setup()||tries>40)clearInterval(t);},250);setTimeout(setup,2500);}
+function init(){
+ setup();
+ setInterval(setup,1000);
+ document.addEventListener('click',e=>{if(e.target.closest('#loginBtn,[data-login-name],#changeInspectorBtn'))setTimeout(setup,250);});
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
