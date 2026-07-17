@@ -15,6 +15,15 @@ function extractVehicle(raw){
  const comments=(raw.match(/vehicle comments:\s*([^\n]+)/i)||[])[1]||'';
  return{issue:issue.trim(),comments:comments.trim()};
 }
+function nsaState(text){
+ const nsaLine=(text.match(/nsa(?:\s+status)?\s*:\s*([^\n]+)/i)||[])[1]||'';
+ const value=nsaLine.trim().toLowerCase();
+ if(/^(?:n\s*[\/.]?\s*a|na|not\s+applicable|not\s+required)\b/i.test(value))return'na';
+ if(/^(?:no|not\s+working|failed|faulty)\b/i.test(value))return'bad';
+ if(/^(?:yes|working|fully\s+working)\b/i.test(value))return'good';
+ if(/nsa[^\n]*(?:n\s*[\/.]?\s*a|not\s+applicable|not\s+required)/i.test(text))return'na';
+ return'good';
+}
 function decorate(){
  const list=byId('checkList');
  if(!list)return;
@@ -33,8 +42,9 @@ function decorate(){
   if(!stack){stack=document.createElement('span');stack.className='checkStatusStack';top.appendChild(stack);}
   let badge=stack.querySelector('.nsaBadge');
   if(!badge){badge=document.createElement('span');badge.className='nsaBadge';stack.appendChild(badge);}
-  if(/nsa:\s*n\/?a\b/i.test(text)){badge.className='nsaBadge nsaNA';badge.textContent='NSA N/A';}
-  else if(/nsa:\s*no\b/i.test(text)){badge.className='nsaBadge nsaBad';badge.textContent='NSA NOT WORKING';}
+  const state=nsaState(raw);
+  if(state==='na'){badge.className='nsaBadge nsaNA';badge.textContent='NSA N/A';}
+  else if(state==='bad'){badge.className='nsaBadge nsaBad';badge.textContent='NSA NOT WORKING';}
   else{badge.className='nsaBadge nsaGood';badge.textContent='NSA WORKING';}
   const vehicleData=extractVehicle(raw);
   const hasVehicleNotes=Boolean(vehicleData.issue||vehicleData.comments);
