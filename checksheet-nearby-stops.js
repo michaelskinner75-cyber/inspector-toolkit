@@ -5,9 +5,23 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
 let currentStops=[],autoTried=false,activeLookup=null;
 function distance(a,b,c,d){const R=6371000,p=Math.PI/180,x=(d-b)*p*Math.cos((a+c)*p/2),y=(c-a)*p;return Math.round(Math.sqrt(x*x+y*y)*R);}
-function stopName(t){return t['naptan:CommonName']||t.name||t.local_ref||t.ref||'Bus stop';}
-function stopCode(t){return t['naptan:AtcoCode']||t['naptan:NaptanCode']||t.naptan_code||t.ref||t.local_ref||'';}
-function stopBearing(t){return t['naptan:Bearing']||t.direction||t.bearing||'';}
+function clean(v){return String(v||'').trim();}
+function uniqueParts(parts){const out=[];parts.map(clean).filter(Boolean).forEach(part=>{if(!out.some(x=>x.toLowerCase()===part.toLowerCase()))out.push(part);});return out;}
+function stopName(t){
+ const common=clean(t['naptan:CommonName']||t.name||t.local_ref||t.ref||'Bus stop');
+ const locality=clean(t['naptan:LocalityName']||t['naptan:Locality']||t.locality||t.town||t.village||t.suburb||t.place);
+ const indicator=clean(t['naptan:Indicator']||t.indicator||t['naptan:Bearing']||t.direction||t.bearing);
+ const parts=uniqueParts([locality,common]);
+ let name=parts.join(' ');
+ if(indicator&&!name.toLowerCase().includes(indicator.toLowerCase()))name+=' ('+indicator+')';
+ return name||'Bus stop';
+}
+function stopCode(t){
+ const candidates=[t.local_ref,t.ref,t['naptan:NaptanCode'],t.naptan_code,t['naptan:AtcoCode']].map(clean).filter(Boolean);
+ const short=candidates.find(x=>/^\d{3,6}$/.test(x));
+ return short||candidates[0]||'';
+}
+function stopBearing(t){return t['naptan:Indicator']||t['naptan:Bearing']||t.direction||t.bearing||'';}
 async function fetchStops(lat,lon){const query='[out:json][timeout:20];(node(around:900,'+lat+','+lon+')[highway=bus_stop];node(around:900,'+lat+','+lon+')[public_transport=platform][bus=yes];);out body;';let lastError=null;for(const url of endpoints){try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:'data='+encodeURIComponent(query)});if(!r.ok)throw new Error('Stop service unavailable');const j=await r.json();const seen=new Set();return (j.elements||[]).map(e=>{const t=e.tags||{},name=stopName(t),code=stopCode(t),bearing=stopBearing(t),dist=distance(lat,lon,e.lat,e.lon),key=(code||name+'|'+e.lat+'|'+e.lon).toLowerCase();return{name,code,bearing,dist,lat:e.lat,lon:e.lon,key};}).filter(x=>{if(seen.has(x.key))return false;seen.add(x.key);return true;}).sort((a,b)=>a.dist-b.dist).slice(0,15);}catch(e){lastError=e;}}throw lastError||new Error('Could not load nearby stops');}
 function publishStops(lat,lon){window.inspectorNearbyStops={stops:currentStops.slice(),lat,lon,updated:Date.now()};document.dispatchEvent(new CustomEvent('inspector-nearby-stops',{detail:window.inspectorNearbyStops}));}
 function sharedLookup(force){const cached=window.inspectorNearbyStops;if(!force&&cached?.stops?.length&&Date.now()-cached.updated<300000){currentStops=cached.stops.slice();return Promise.resolve(currentStops);}if(activeLookup)return activeLookup;activeLookup=new Promise((resolve,reject)=>{if(!navigator.geolocation){reject(new Error('Location unavailable'));return;}navigator.geolocation.getCurrentPosition(async p=>{try{currentStops=await fetchStops(p.coords.latitude,p.coords.longitude);publishStops(p.coords.latitude,p.coords.longitude);resolve(currentStops);}catch(e){reject(e);}finally{activeLookup=null;}},e=>{activeLookup=null;reject(e);},{enableHighAccuracy:true,timeout:12000,maximumAge:30000});});return activeLookup;}
