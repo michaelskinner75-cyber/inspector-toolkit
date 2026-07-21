@@ -7,7 +7,7 @@ function addCss(){
  if(byId('checkLogStatusCss'))return;
  const s=document.createElement('style');
  s.id='checkLogStatusCss';
- s.textContent='#checkList .compactCheck{position:relative;border-left:7px solid #35a86b;border-radius:12px;overflow:hidden;margin:9px 0}#checkList .compactCheck.logAdvised{border-left-color:#e6b53f}#checkList .compactCheck.logOffence{border-left-color:#d84a53}#checkList .compactCheck.logClear{border-left-color:#35a86b}#checkList .compactTop{position:relative;padding-right:130px;min-height:62px}#checkList .checkStatusStack{position:absolute;right:9px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;gap:5px;width:112px;pointer-events:none}#checkList .nsaBadge,#checkList .vehicleNotesBadge{display:block;padding:6px 7px;border-radius:9px;text-align:center;font-size:9px;font-weight:900;line-height:1.15}#checkList .nsaGood{background:#1f8a55;color:#fff}#checkList .nsaBad{background:#b93440;color:#fff}#checkList .nsaNA{background:#2878b8;color:#fff}#checkList .vehicleNotesBadge{background:#d97706;color:#fff}#checkList .vehicleDetailBlock{margin-top:9px;padding:9px 10px;border-left:5px solid #d97706;border-radius:8px;background:rgba(217,119,6,.12);line-height:1.45}#checkList .vehicleDetailBlock b{color:#f4b45f}@media(max-width:520px){#checkList .compactTop{padding-right:112px}#checkList .checkStatusStack{width:96px;right:6px}#checkList .nsaBadge,#checkList .vehicleNotesBadge{font-size:8px;padding:5px}}';
+ s.textContent='#checkList .compactCheck{position:relative;border-left:30px solid #35a86b;border-radius:12px;overflow:hidden;margin:9px 0}#checkList .compactCheck.logAdvised{border-left-color:#e6b53f}#checkList .compactCheck.logOffence{border-left-color:#d84a53}#checkList .compactCheck.logClear{border-left-color:#35a86b}#checkList .checkOutcomeLabel{position:absolute;left:-30px;top:0;bottom:0;width:30px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:900;letter-spacing:.08em;writing-mode:vertical-rl;transform:rotate(180deg);text-transform:uppercase;pointer-events:none;text-shadow:0 1px 1px rgba(0,0,0,.35)}#checkList .compactTop{position:relative;padding-right:130px;min-height:62px}#checkList .checkStatusStack{position:absolute;right:9px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;gap:5px;width:112px;pointer-events:none}#checkList .nsaBadge,#checkList .vehicleNotesBadge{display:block;padding:6px 7px;border-radius:9px;text-align:center;font-size:9px;font-weight:900;line-height:1.15}#checkList .nsaGood{background:#1f8a55;color:#fff}#checkList .nsaBad{background:#b93440;color:#fff}#checkList .nsaNA{background:#2878b8;color:#fff}#checkList .vehicleNotesBadge{background:#d97706;color:#fff}#checkList .vehicleDetailBlock{margin-top:9px;padding:9px 10px;border-left:5px solid #d97706;border-radius:8px;background:rgba(217,119,6,.12);line-height:1.45}#checkList .vehicleDetailBlock b{color:#f4b45f}@media(max-width:520px){#checkList .compactCheck{border-left-width:26px}#checkList .checkOutcomeLabel{left:-26px;width:26px;font-size:7px}#checkList .compactTop{padding-right:112px}#checkList .checkStatusStack{width:96px;right:6px}#checkList .nsaBadge,#checkList .vehicleNotesBadge{font-size:8px;padding:5px}}';
  document.head.appendChild(s);
 }
 function extractVehicle(raw){
@@ -33,9 +33,13 @@ function decorate(){
   const raw=(details&&details.textContent)||card.textContent||'';
   const text=raw.toLowerCase();
   card.classList.remove('logClear','logAdvised','logOffence');
-  if(/offence report submitted|offence report to be submitted|driver report:\s*offence/i.test(text))card.classList.add('logOffence');
-  else if(/driver advised|driver report:\s*advised/i.test(text))card.classList.add('logAdvised');
+  let outcome='CLEAR';
+  if(/offence report submitted|offence report to be submitted|driver report:\s*offence/i.test(text)){card.classList.add('logOffence');outcome='OFFENCE';}
+  else if(/driver advised|driver report:\s*advised/i.test(text)){card.classList.add('logAdvised');outcome='ADVISED';}
   else card.classList.add('logClear');
+  let outcomeLabel=card.querySelector('.checkOutcomeLabel');
+  if(!outcomeLabel){outcomeLabel=document.createElement('span');outcomeLabel.className='checkOutcomeLabel';card.appendChild(outcomeLabel);}
+  outcomeLabel.textContent=outcome;
   const top=card.querySelector('.compactTop');
   if(!top)return;
   let stack=top.querySelector('.checkStatusStack');
@@ -51,7 +55,7 @@ function decorate(){
   let vehicle=stack.querySelector('.vehicleNotesBadge');
   if(hasVehicleNotes){
    if(!vehicle){vehicle=document.createElement('span');vehicle.className='vehicleNotesBadge';stack.appendChild(vehicle);}
-   vehicle.textContent='🟠 VEHICLE NOTES RECORDED';
+   vehicle.textContent='VEHICLE NOTES';
   }else if(vehicle)vehicle.remove();
   if(details){
    let block=details.querySelector('.vehicleDetailBlock');
