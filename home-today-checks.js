@@ -20,15 +20,26 @@ function update(){
  const count=$('homeTodayChecksCount');
  if(count)count.textContent=String(countToday());
 }
+function openTodayChecks(){
+ try{
+  checkFilter='today';
+  localStorage.setItem('checkFilter','today');
+  document.querySelectorAll('[data-check-filter]').forEach(b=>b.classList.toggle('active',b.dataset.checkFilter==='today'));
+  if(typeof renderChecks==='function')renderChecks();
+  if(typeof openSection==='function')openSection('checksheet');
+  else $('checksheet')?.classList.add('active');
+  setTimeout(()=>$('checkList')?.scrollIntoView({behavior:'smooth',block:'start'}),120);
+ }catch(e){
+  document.querySelector('[data-open="checksheet"]')?.click();
+  setTimeout(()=>document.querySelector('[data-check-filter="today"]')?.click(),150);
+ }
+}
 function build(){
  const home=$('home');if(!home||$('homeTodayChecksBtn'))return false;
  const btn=document.createElement('button');
  btn.type='button';btn.id='homeTodayChecksBtn';btn.className='homeTodayChecksBtn';
  btn.innerHTML='<span class="homeTodayChecksIcon">✓</span><span><small>Checks completed today</small><b id="homeTodayChecksCount">0</b></span>';
- btn.onclick=()=>{
-  try{checkFilter='today';localStorage.setItem('checkFilter','today');if(typeof renderChecks==='function')renderChecks();if(typeof openSection==='function')openSection('checks');}
-  catch(e){document.querySelector('[data-open="checks"]')?.click();}
- };
+ btn.onclick=openTodayChecks;
  const stop=$('homeNearestStopCard');
  if(stop&&stop.parentNode===home)stop.insertAdjacentElement('afterend',btn);
  else{const nav=home.querySelector('.nav');if(nav)home.insertBefore(btn,nav);else home.appendChild(btn);}
