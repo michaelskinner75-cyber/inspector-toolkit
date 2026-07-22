@@ -7,7 +7,7 @@ function inject(){
   if(!doc||!doc.body||doc.getElementById('checksheetShareReportScript'))return;
   const script=doc.createElement('script');
   script.id='checksheetShareReportScript';
-  script.src='checksheet-share-report.js?v=20260722-233';
+  script.src='checksheet-share-report.js?v=20260722-234';
   doc.body.appendChild(script);
  }catch(e){console.error(e);}
 }
