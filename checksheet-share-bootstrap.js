@@ -6,9 +6,9 @@ function inject(){
  try{
   const doc=frame&&frame.contentDocument;
   if(!doc||!doc.body)return;
-  add(doc,'checksheetShareReportScript','checksheet-share-report.js?v=20260722-242');
-  add(doc,'savedCheckShareScript','saved-check-share.js?v=20260722-242');
-  add(doc,'removeLiveReportButtonsScript','remove-live-report-buttons.js?v=20260722-242');
+  add(doc,'checksheetShareReportScript','checksheet-share-report.js?v=20260722-243');
+  add(doc,'savedCheckShareScript','saved-check-share.js?v=20260722-243');
+  add(doc,'removeLiveReportButtonsScript','remove-live-report-buttons.js?v=20260722-243');
  }catch(e){console.error(e);}
 }
 if(frame)frame.addEventListener('load',()=>setTimeout(inject,300),{once:true});
