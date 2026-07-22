@@ -1,40 +1,34 @@
 (function(){
 'use strict';
 const LOGO='https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/StagecoachGroup.svg/500px-StagecoachGroup.svg.png';
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function linesFromCard(card){const details=card.querySelector('.compactDetails');if(!details)return[];const clone=details.cloneNode(true);clone.querySelectorAll('br').forEach(br=>br.replaceWith('\n'));return clone.textContent.split('\n').map(v=>v.trim()).filter(Boolean);}
 function strip(value,labels){let out=String(value||'-').trim();for(const label of labels)out=out.replace(new RegExp('^'+label+'\\s*:\\s*','i'),'').trim();return out||'-';}
 function parseJourney(text){const clean=strip(text,['Journey']);const parts=clean.split(/\s+(?:to|→)\s+/i);return{boarding:(parts[0]||'-').trim(),destination:(parts.slice(1).join(' to ')||'-').trim()};}
-function reportFromCard(card){
- const x=linesFromCard(card),journey=parseJourney(x[7]);
- const nsaRaw=strip(x[8],['NSA']);const nsaParts=nsaRaw.split(/\s+-\s+/);
- return{
-  dateTime:strip(x[0],['Inspection date/time','Date']),
-  inspector:strip(x[1],['Inspector']),depot:strip(x[2],['Depot']),driver:strip(x[3],['Driver']),
-  service:strip(x[4],['Service']),fleet:strip(x[5],['Fleet Number','Fleet']),timeChecked:strip(x[6],['Time Checked','Time boarded']),
-  boarding:journey.boarding,destination:journey.destination,nsa:strip(nsaParts[0],['NSA Working']),
-  nsaDetails:strip(nsaParts.slice(1).join(' - ')||((nsaParts[0]||'')==='Yes'?'Fully Working':'-'),['Details']),
-  driverReport:strip(x[9],['Driver Report']),reason:strip(x[10],['Driver report reason / inspection notes','Reason','Notes'])
- };
-}
+function reportFromCard(card){const x=linesFromCard(card),journey=parseJourney(x[7]),nsaRaw=strip(x[8],['NSA']),nsaParts=nsaRaw.split(/\s+-\s+/);return{dateTime:strip(x[0],['Inspection date/time','Date']),inspector:strip(x[1],['Inspector']),depot:strip(x[2],['Depot']),driver:strip(x[3],['Driver']),service:strip(x[4],['Service']),fleet:strip(x[5],['Fleet Number','Fleet']),timeChecked:strip(x[6],['Time Checked','Time boarded']),boarding:journey.boarding,destination:journey.destination,nsa:strip(nsaParts[0],['NSA Working']),nsaDetails:strip(nsaParts.slice(1).join(' - ')||((nsaParts[0]||'')==='Yes'?'Fully Working':'-'),['Details']),driverReport:strip(x[9],['Driver Report']),reason:strip(x[10],['Driver report reason / inspection notes','Reason','Notes'])};}
 function title(d){return'Inspector Check Sheet - Report Record'+(d.service&&d.service!=='-'?' - Service '+d.service:'')+(d.fleet&&d.fleet!=='-'?' - Fleet '+d.fleet:'');}
-function row(label,value,wide){return`<div class="r${wide?' wide':''}"><div class="l">${esc(label)}</div><div class="v">${esc(value)}</div></div>`;}
-function section(name,rows){return`<section><h2>${esc(name)}</h2><div class="grid">${rows}</div></section>`;}
-function html(d){
- const status=d.nsa==='Yes'?'Working':d.nsa==='N/A'?'N/A':'Attention required';
- return`<article><header><img src="${LOGO}" alt="Stagecoach"><strong>STAGECOACH SOUTH SCOTLAND</strong></header><div class="title"><h1>INSPECTOR CHECK SHEET / REPORT RECORD</h1></div><div class="meta"><div><span>Inspection date/time</span><b>${esc(d.dateTime)}</b></div><div><span>Inspector</span><b>${esc(d.inspector)}</b></div><div><span>Service</span><b>${esc(d.service)}</b></div><div><span>Fleet</span><b>${esc(d.fleet)}</b></div></div>${section('Inspection Details',row('Driver',d.driver)+row('Depot',d.depot)+row('Time Checked',d.timeChecked))}${section('Journey Details',row('Boarding point',d.boarding,true)+row('Destination',d.destination,true))}${section('NSA',row('NSA Working',d.nsa)+row('Status',status)+row('Details',d.nsaDetails,true))}${section('Driver Report',row('Outcome',d.driverReport)+row('Report reason / inspection notes',d.reason,true))}<footer><span>Stagecoach South Scotland</span><span>Designed &amp; Developed by Michael Skinner</span></footer></article>`;
-}
-function css(){return`*{box-sizing:border-box}body{margin:0;background:#fff;color:#102333;font-family:Arial,sans-serif}article{width:794px;min-height:1123px;background:#fff;position:relative;padding-bottom:62px}header{height:108px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:20px 38px;border-bottom:1px solid #dbe3e8}header img{width:215px;height:auto}header strong{font-size:12px;letter-spacing:.16em;color:#173c57;text-align:right}.title{padding:22px 38px;border-bottom:5px solid #f5a623;background:#0d2b40;color:#fff}.title h1{margin:0;font-size:25px;letter-spacing:.015em}.meta{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #dbe3e8;background:#f7f9fa}.meta div{padding:13px 18px;border-right:1px solid #dbe3e8}.meta div:last-child{border-right:0}.meta span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#647987}.meta b{display:block;margin-top:5px;font-size:13px}section{padding:17px 38px 0;break-inside:avoid}section h2{margin:0;padding:8px 12px;background:#173c57;color:#fff;border-left:7px solid #f5a623;font-size:15px;text-transform:uppercase;letter-spacing:.04em}.grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d9e1e6;border-top:0}.r{display:grid;grid-template-columns:125px 1fr;min-height:48px;border-top:1px solid #e1e7eb}.r:nth-child(-n+2){border-top:0}.r:nth-child(odd){border-right:1px solid #e1e7eb}.r.wide{grid-column:1/-1;border-right:0}.l{padding:10px 11px;background:#f3f6f8;font-size:12px;font-weight:700;color:#385266}.v{padding:10px 11px;font-size:13px;line-height:1.35;white-space:pre-wrap;overflow-wrap:anywhere}footer{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;gap:20px;padding:17px 38px;background:#0d2b40;color:#dbe7ee;font-size:10px}`;}
 function loadScript(src,id){return new Promise((resolve,reject)=>{if(document.getElementById(id))return resolve();const s=document.createElement('script');s.id=id;s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
+async function imageData(url){try{const res=await fetch(url,{mode:'cors'});const blob=await res.blob();return await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>resolve(null);r.readAsDataURL(blob);});}catch(e){return null;}}
 async function makePdf(d,name){
- await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js','reportHtml2Canvas');
  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','reportJsPdf');
- const host=document.createElement('div');host.style.cssText='position:fixed;left:-10000px;top:0;width:794px;background:#fff;z-index:-1';host.innerHTML='<style>'+css()+'</style>'+html(d);document.body.appendChild(host);
- await new Promise(r=>setTimeout(r,350));
- const canvas=await html2canvas(host.querySelector('article'),{scale:2.2,useCORS:true,backgroundColor:'#ffffff',logging:false});host.remove();
- const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','pt','a4'),pageW=pdf.internal.pageSize.getWidth(),pageH=pdf.internal.pageSize.getHeight(),margin=18,imgW=pageW-margin*2,imgH=canvas.height*imgW/canvas.width,img=canvas.toDataURL('image/jpeg',0.98);
- if(imgH<=pageH-margin*2){pdf.addImage(img,'JPEG',margin,margin,imgW,imgH,'FAST');}
- else{let y=margin,remaining=imgH;pdf.addImage(img,'JPEG',margin,y,imgW,imgH,'FAST');remaining-=pageH-margin*2;while(remaining>0){pdf.addPage();y=margin-(imgH-remaining);pdf.addImage(img,'JPEG',margin,y,imgW,imgH,'FAST');remaining-=pageH-margin*2;}}
+ const{jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight();
+ const C={page:[238,243,247],navy:[10,34,52],panel:[18,52,75],panel2:[25,65,91],orange:[244,174,54],white:[255,255,255],muted:[196,211,221],line:[67,103,127]};
+ const margin=30,contentW=W-margin*2;let y=28;
+ const setFill=c=>pdf.setFillColor(c[0],c[1],c[2]);const setText=c=>pdf.setTextColor(c[0],c[1],c[2]);
+ function pageBase(){setFill(C.page);pdf.rect(0,0,W,H,'F');setFill(C.navy);pdf.roundedRect(margin,22,contentW,H-44,14,14,'F');setFill(C.panel);pdf.roundedRect(margin+8,30,contentW-16,H-60,11,11,'F');}
+ function footer(){setFill(C.navy);pdf.rect(margin,H-52,contentW,24,'F');setText(C.muted);pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.text('Stagecoach South Scotland',margin+14,H-37);pdf.text('Designed & Developed by Michael Skinner',W-margin-14,H-37,{align:'right'});}
+ function newPage(){pdf.addPage();pageBase();y=46;}
+ function ensure(h){if(y+h>H-66){footer();newPage();}}
+ function sectionTitle(text){ensure(38);setFill(C.orange);pdf.roundedRect(margin+22,y,contentW-44,30,8,8,'F');setText(C.navy);pdf.setFont('helvetica','bold');pdf.setFontSize(14);pdf.text(text.toUpperCase(),margin+36,y+20);y+=40;}
+ function field(label,value,wide=true){const x=margin+22,w=contentW-44,labelW=150;pdf.setFont('helvetica','normal');pdf.setFontSize(11);const valueLines=pdf.splitTextToSize(String(value||'-'),w-labelW-28);const h=Math.max(42,20+valueLines.length*14);ensure(h+8);setFill(C.panel2);pdf.roundedRect(x,y,w,h,7,7,'F');setText(C.muted);pdf.setFont('helvetica','bold');pdf.setFontSize(10);pdf.text(String(label).toUpperCase(),x+14,y+18);setText(C.white);pdf.setFont('helvetica','normal');pdf.setFontSize(11);pdf.text(valueLines,x+labelW,y+18);y+=h+8;}
+ pageBase();
+ const logo=await imageData(LOGO);setFill(C.white);pdf.roundedRect(margin+22,y,contentW-44,58,8,8,'F');if(logo){try{pdf.addImage(logo,'PNG',margin+36,y+12,145,34);}catch(e){}}else{setText(C.navy);pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('Stagecoach',margin+36,y+34);}setText(C.navy);pdf.setFont('helvetica','bold');pdf.setFontSize(9);pdf.text('STAGECOACH SOUTH SCOTLAND',W-margin-36,y+34,{align:'right'});y+=70;
+ setFill(C.orange);pdf.roundedRect(margin+22,y,contentW-44,52,9,9,'F');setText(C.navy);pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('INSPECTOR CHECK SHEET / REPORT RECORD',W/2,y+32,{align:'center'});y+=64;
+ sectionTitle('Inspection Summary');field('Inspection date / time',d.dateTime);field('Inspector',d.inspector);field('Driver',d.driver);field('Depot',d.depot);field('Fleet Number',d.fleet);field('Time Checked',d.timeChecked);
+ sectionTitle('Journey Details');field('Service',d.service);field('Boarding Point',d.boarding);field('Destination',d.destination);
+ sectionTitle('NSA');field('NSA Working',d.nsa);field('Details',d.nsaDetails);
+ sectionTitle('Driver Report');field('Outcome',d.driverReport);field('Report Reason / Inspection Notes',d.reason);
+ footer();
+ pdf.setProperties({title:name,subject:'Inspector Check Sheet / Report Record',author:'Stagecoach South Scotland'});
  return new File([pdf.output('blob')],name.replace(/[^a-z0-9]+/gi,'-')+'.pdf',{type:'application/pdf'});
 }
 async function share(card){const d=reportFromCard(card),name=title(d),btn=card.querySelector('.savedCheckShareBtn');if(btn){btn.disabled=true;btn.textContent='CREATING PDF…';}try{const file=await makePdf(d,name);if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});return;}const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}catch(e){if(e&&e.name==='AbortError')return;alert('The PDF could not be shared. Please try again.');}finally{if(btn){btn.disabled=false;btn.textContent='SEND REPORT';}}}
