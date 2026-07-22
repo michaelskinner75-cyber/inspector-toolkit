@@ -11,8 +11,8 @@ function loadScript(src,id){return new Promise((resolve,reject)=>{if(document.ge
 async function imageData(url){try{const res=await fetch(url,{mode:'cors'});const blob=await res.blob();return await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>resolve(null);r.readAsDataURL(blob);});}catch(e){return null;}}
 async function makePdf(d,name){
  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','reportJsPdf');
- const{jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight();
- const C={white:[255,255,255],navy:[11,48,70],blue:[24,70,97],orange:[246,169,35],text:[21,40,55],label:[60,83,102],light:[243,246,248],line:[216,224,230]};
+ const{jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4',compress:true});const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight();
+ const C={white:[255,255,255],navy:[11,48,70],orange:[246,169,35],text:[21,40,55],label:[60,83,102],light:[243,246,248],line:[216,224,230]};
  const margin=16,left=34,right=W-34,contentW=right-left;let y=16;
  const fill=c=>pdf.setFillColor(c[0],c[1],c[2]);const colour=c=>pdf.setTextColor(c[0],c[1],c[2]);
  function footer(){fill(C.navy);pdf.rect(margin,H-28,W-margin*2,20,'F');colour([215,227,234]);pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.text('Stagecoach South Scotland',left,H-15);pdf.text('Designed & Developed by Michael Skinner',right,H-15,{align:'right'});}
@@ -29,11 +29,10 @@ async function makePdf(d,name){
  sectionTitle('Journey Details');tableRow('Service',d.service);tableRow('Boarding point',d.boarding);tableRow('Destination',d.destination);y+=14;
  sectionTitle('NSA');tableRow('NSA Working',d.nsa);tableRow('Details',d.nsaDetails);y+=14;
  sectionTitle('Driver');tableRow('Driver Report',d.driverReport);tableRow('Driver report reason / inspection notes',d.reason);
- footer();
- pdf.setProperties({title:name,subject:'Inspector Check Sheet / Report Record',author:'Stagecoach South Scotland'});
- return new File([pdf.output('blob')],name.replace(/[^a-z0-9]+/gi,'-')+'.pdf',{type:'application/pdf'});
+ footer();pdf.setProperties({title:name,subject:'Inspector Check Sheet / Report Record',author:'Stagecoach South Scotland'});
+ const bytes=pdf.output('arraybuffer');const safe=name.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'Inspection-Report';return new File([bytes],safe+'.pdf',{type:'application/pdf',lastModified:Date.now()});
 }
-async function share(card){const d=reportFromCard(card),name=title(d),btn=card.querySelector('.savedCheckShareBtn');if(btn){btn.disabled=true;btn.textContent='CREATING PDF…';}try{const file=await makePdf(d,name);if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});return;}const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}catch(e){if(e&&e.name==='AbortError')return;alert('The PDF could not be shared. Please try again.');}finally{if(btn){btn.disabled=false;btn.textContent='SEND REPORT';}}}
+async function share(card){const d=reportFromCard(card),name=title(d),btn=card.querySelector('.savedCheckShareBtn');if(btn){btn.disabled=true;btn.textContent='CREATING PDF…';}try{const file=await makePdf(d,name);if(file.type!=='application/pdf'||!file.name.toLowerCase().endsWith('.pdf'))throw new Error('Invalid PDF');if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});return;}const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}catch(e){if(e&&e.name==='AbortError')return;alert('The PDF could not be shared. Please try again.');}finally{if(btn){btn.disabled=false;btn.textContent='SEND REPORT';}}}
 function decorate(){document.querySelectorAll('#checkList .compactCheck').forEach(card=>{if(card.querySelector('.savedCheckShareBtn'))return;const btn=document.createElement('button');btn.type='button';btn.className='savedCheckShareBtn';btn.textContent='SEND REPORT';btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();share(card);});const top=card.querySelector('.compactTop');(top||card).appendChild(btn);});}
 function removeLive(){const c=document.getElementById('checksheetShareControls');if(c)c.remove();}
 function style(){if(document.getElementById('savedCheckShareCss'))return;const s=document.createElement('style');s.id='savedCheckShareCss';s.textContent='.compactTop{position:relative;padding-bottom:46px!important}.savedCheckShareBtn{position:absolute;right:12px;bottom:8px;border:1px solid #f4b23f;border-radius:9px;background:#f3aa35;color:#07131e;font-weight:800;font-size:12px;padding:8px 12px;z-index:3}.savedCheckShareBtn:disabled{opacity:.7}.savedCheckShareBtn:active{transform:scale(.98)}';document.head.appendChild(s);}
