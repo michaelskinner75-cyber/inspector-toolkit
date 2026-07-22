@@ -3,6 +3,7 @@
 const $=id=>document.getElementById(id);
 const SKIP_IDS=new Set(['checkSearch','saveCheckSheetBtn','clearCheckFormBtn','refreshChecksBtn']);
 function visible(el){return !!(el.offsetWidth||el.offsetHeight||el.getClientRects().length);}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function cleanLabel(text){return String(text||'').replace(/\s+/g,' ').replace(/[:*]+$/,'').trim();}
 function fieldLabel(el){
  const linked=el.id&&document.querySelector('label[for="'+CSS.escape(el.id)+'"]');
@@ -25,8 +26,8 @@ function sectionName(el){
  const title=section&&section.querySelector('.formSectionTitle,h3,.panelTitle');
  return cleanLabel(title?.textContent)||'Inspection Details';
 }
-function buildReport(){
- const sheet=$('checksheet');if(!sheet)return'';
+function collectReport(){
+ const sheet=$('checksheet');if(!sheet)return null;
  const inspector=localStorage.getItem('activeInspector')||$('loggedInInspector')?.textContent?.trim()||'Not recorded';
  const controls=[...sheet.querySelectorAll('input,select,textarea')].filter(el=>!SKIP_IDS.has(el.id)&&el.type!=='file'&&visible(el));
  const groups=new Map();
@@ -35,47 +36,69 @@ function buildReport(){
   const label=fieldLabel(el);if(!label)continue;
   const section=sectionName(el);
   if(!groups.has(section))groups.set(section,[]);
-  groups.get(section).push([label,value]);
+  const key=label+'|'+value;
+  if(!groups.get(section).some(row=>row.key===key))groups.get(section).push({key,label,value});
  }
- const now=new Date();
- const lines=['INSPECTOR CHECK SHEET REPORT','',`Inspector: ${inspector}`,`Report created: ${now.toLocaleDateString('en-GB')} ${now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`];
- for(const [section,rows] of groups){
-  lines.push('',section.toUpperCase(),'-'.repeat(Math.min(42,Math.max(8,section.length))));
-  const seen=new Set();
-  for(const [label,value] of rows){const key=label+'|'+value;if(seen.has(key))continue;seen.add(key);lines.push(label+': '+value);}
- }
- lines.push('','Generated from Inspector Hub.');
+ return {inspector,created:new Date(),groups};
+}
+function reportTitle(data){
+ const service=$('csService')?.value?.trim();const fleet=$('csFleet')?.value?.trim();
+ return 'Inspector Check Sheet Report'+(service?' - Service '+service:'')+(fleet?' - Fleet '+fleet:'');
+}
+function buildText(data){
+ if(!data)return'';
+ const lines=['INSPECTOR HUB','INSPECTOR CHECK SHEET REPORT','',`Inspector: ${data.inspector}`,`Report created: ${data.created.toLocaleDateString('en-GB')} ${data.created.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`];
+ for(const [section,rows] of data.groups){lines.push('',section.toUpperCase(),'-'.repeat(Math.min(42,Math.max(8,section.length))));rows.forEach(r=>lines.push(r.label+': '+r.value));}
+ lines.push('','Generated from Inspector Hub.','Designed & Developed by Michael Skinner');
  return lines.join('\n');
+}
+function buildHtml(data){
+ if(!data)return'';
+ let sections='';
+ for(const [section,rows] of data.groups){
+  sections+=`<section class="reportSection"><h2>${esc(section)}</h2><div class="reportGrid">`+rows.map(r=>`<div class="reportRow"><div class="reportLabel">${esc(r.label)}</div><div class="reportValue">${esc(r.value).replace(/\n/g,'<br>')}</div></div>`).join('')+'</div></section>';
+ }
+ return `<article class="inspectionReport"><header class="reportHeader"><div class="brandMark"><span></span><span></span><span></span></div><div><div class="reportBrand">INSPECTOR HUB</div><div class="reportRegion">STAGECOACH EAST SCOTLAND</div></div></header><div class="reportTitleBand"><h1>INSPECTOR CHECK SHEET REPORT</h1><p>Operational inspection record</p></div><div class="reportMeta"><div><span>Inspector</span><strong>${esc(data.inspector)}</strong></div><div><span>Report created</span><strong>${esc(data.created.toLocaleDateString('en-GB'))}</strong></div><div><span>Time</span><strong>${esc(data.created.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}))}</strong></div></div>${sections}<footer class="reportFooter"><div>Generated from Inspector Hub</div><div>Designed &amp; Developed by Michael Skinner</div></footer></article>`;
 }
 function ensureModal(){
  if($('checksheetReportModal'))return;
  const modal=document.createElement('div');modal.id='checksheetReportModal';modal.className='shareReportModal';modal.hidden=true;
- modal.innerHTML='<div class="shareReportCard" role="dialog" aria-modal="true" aria-labelledby="shareReportTitle"><h3 id="shareReportTitle">Inspection Report Preview</h3><textarea id="shareReportText" readonly></textarea><div class="shareReportActions"><button type="button" class="btn" id="copyReportBtn">COPY</button><button type="button" class="btn" id="shareReportNowBtn">SHARE REPORT</button><button type="button" class="btn danger" id="closeReportBtn">CLOSE</button></div></div>';
+ modal.innerHTML='<div class="shareReportCard" role="dialog" aria-modal="true" aria-labelledby="shareReportTitle"><div class="previewTop"><h3 id="shareReportTitle">Inspection Report Preview</h3><button type="button" class="previewClose" id="closeReportTopBtn" aria-label="Close">×</button></div><div id="shareReportPreview"></div><div class="shareReportActions"><button type="button" class="btn" id="copyReportBtn">COPY TEXT</button><button type="button" class="btn" id="printReportBtn">PRINT / PDF</button><button type="button" class="btn sharePrimary" id="shareReportNowBtn">SHARE REPORT</button><button type="button" class="btn danger" id="closeReportBtn">CLOSE</button></div></div>';
  document.body.appendChild(modal);
- $('closeReportBtn').onclick=()=>{modal.hidden=true;};
- modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true;});
- $('copyReportBtn').onclick=async()=>{const text=$('shareReportText').value;try{await navigator.clipboard.writeText(text);alert('Report copied.');}catch(e){$('shareReportText').select();document.execCommand('copy');alert('Report copied.');}};
- $('shareReportNowBtn').onclick=()=>shareText($('shareReportText').value);
- }
-async function shareText(text){
- if(!text)return;
- const service=$('csService')?.value?.trim();const fleet=$('csFleet')?.value?.trim();
- const title='Inspector Check Sheet Report'+(service?' - Service '+service:'')+(fleet?' - Fleet '+fleet:'');
- if(navigator.share){try{await navigator.share({title,text});return;}catch(e){if(e.name==='AbortError')return;}}
- const subject=encodeURIComponent(title);const body=encodeURIComponent(text.slice(0,12000));
- window.location.href='mailto:?subject='+subject+'&body='+body;
+ const close=()=>{modal.hidden=true;};$('closeReportBtn').onclick=close;$('closeReportTopBtn').onclick=close;modal.addEventListener('click',e=>{if(e.target===modal)close();});
+ $('copyReportBtn').onclick=async()=>{const text=modal.dataset.reportText||'';try{await navigator.clipboard.writeText(text);alert('Report copied.');}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();alert('Report copied.');}};
+ $('printReportBtn').onclick=()=>printReport();
+ $('shareReportNowBtn').onclick=()=>shareReport(currentReport);
 }
-function preview(){const text=buildReport();if(!text){alert('Unable to create the report.');return;}ensureModal();$('shareReportText').value=text;$('checksheetReportModal').hidden=false;}
+let currentReport=null;
+async function shareReport(data){
+ if(!data)return;
+ const text=buildText(data),title=reportTitle(data);
+ const html='<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>'+esc(title)+'</title><style>'+reportDocumentCss()+'</style></head><body>'+buildHtml(data)+'</body></html>';
+ try{
+  const file=new File([html],title.replace(/[^a-z0-9]+/gi,'-')+'.html',{type:'text/html'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({title,text,files:[file]});return;}
+  if(navigator.share){await navigator.share({title,text});return;}
+ }catch(e){if(e.name==='AbortError')return;}
+ window.location.href='mailto:?subject='+encodeURIComponent(title)+'&body='+encodeURIComponent(text.slice(0,12000));
+}
+function reportDocumentCss(){return `*{box-sizing:border-box}body{margin:0;padding:24px;background:#eef2f5;color:#102333;font-family:Arial,sans-serif}.inspectionReport{max-width:850px;margin:auto;background:white;box-shadow:0 8px 30px rgba(0,0,0,.12)}.reportHeader{display:flex;align-items:center;gap:16px;padding:22px 28px;background:#0d2b40;color:white}.brandMark{display:flex;gap:4px}.brandMark span{display:block;width:12px;height:42px;border-radius:8px}.brandMark span:nth-child(1){background:#f5a623}.brandMark span:nth-child(2){background:#e44f56}.brandMark span:nth-child(3){background:#4a90e2}.reportBrand{font-size:25px;font-weight:800;letter-spacing:.08em}.reportRegion{font-size:11px;letter-spacing:.18em;opacity:.82;margin-top:4px}.reportTitleBand{padding:24px 28px;border-bottom:5px solid #f5a623}.reportTitleBand h1{margin:0;font-size:27px}.reportTitleBand p{margin:6px 0 0;color:#597080}.reportMeta{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#dbe3e8;border-bottom:1px solid #dbe3e8}.reportMeta div{background:#f7f9fa;padding:14px 20px}.reportMeta span{display:block;font-size:11px;text-transform:uppercase;color:#647987;letter-spacing:.08em}.reportMeta strong{display:block;margin-top:5px}.reportSection{padding:20px 28px 0}.reportSection h2{margin:0;padding:9px 12px;background:#173c57;color:white;border-left:7px solid #f5a623;font-size:16px;text-transform:uppercase;letter-spacing:.04em}.reportGrid{border:1px solid #d9e1e6;border-top:0}.reportRow{display:grid;grid-template-columns:minmax(150px,34%) 1fr;border-top:1px solid #e1e7eb}.reportRow:first-child{border-top:0}.reportLabel{padding:11px 13px;background:#f3f6f8;font-weight:700;color:#385266}.reportValue{padding:11px 13px;white-space:normal}.reportFooter{display:flex;justify-content:space-between;gap:20px;margin-top:26px;padding:16px 28px;background:#0d2b40;color:#dbe7ee;font-size:11px}@media(max-width:600px){body{padding:0}.inspectionReport{box-shadow:none}.reportMeta{grid-template-columns:1fr}.reportRow{grid-template-columns:1fr}.reportLabel{padding-bottom:4px}.reportValue{padding-top:4px}.reportFooter{display:block}.reportFooter div+div{margin-top:5px}}@media print{body{padding:0;background:white}.inspectionReport{max-width:none;box-shadow:none}.reportSection{break-inside:avoid}.reportFooter{position:relative}}`;}
+function printReport(){
+ if(!currentReport)return;
+ const w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print the report.');return;}
+ w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(reportTitle(currentReport))+'</title><style>'+reportDocumentCss()+'</style></head><body>'+buildHtml(currentReport)+'<script>window.onload=function(){window.print()}<\/script></body></html>');w.document.close();
+}
+function preview(){const data=collectReport();if(!data){alert('Unable to create the report.');return;}currentReport=data;ensureModal();$('shareReportPreview').innerHTML=buildHtml(data);$('checksheetReportModal').dataset.reportText=buildText(data);$('checksheetReportModal').hidden=false;}
 function addButtons(){
  const sheet=$('checksheet');const save=$('saveCheckSheetBtn');if(!sheet||!save||$('checksheetShareControls'))return false;
  const controls=document.createElement('div');controls.id='checksheetShareControls';controls.className='grid shareReportControls';
  controls.innerHTML='<button type="button" class="btn" id="previewCheckReportBtn">PREVIEW REPORT</button><button type="button" class="btn sharePrimary" id="shareCheckReportBtn">SHARE REPORT</button>';
  const saveGrid=save.closest('.grid');saveGrid.insertAdjacentElement('afterend',controls);
  $('previewCheckReportBtn').onclick=preview;
- $('shareCheckReportBtn').onclick=()=>{const text=buildReport();if(!text){alert('Unable to create the report.');return;}shareText(text);};
+ $('shareCheckReportBtn').onclick=()=>{const data=collectReport();if(!data){alert('Unable to create the report.');return;}currentReport=data;shareReport(data);};
  return true;
 }
-function style(){if($('checksheetShareCss'))return;const s=document.createElement('style');s.id='checksheetShareCss';s.textContent='.shareReportControls{margin-top:10px}.shareReportControls .sharePrimary{background:#eea83e!important;color:#07131e!important}.shareReportModal{position:fixed;inset:0;z-index:100000;background:rgba(3,12,20,.82);padding:18px;overflow:auto}.shareReportModal[hidden]{display:none}.shareReportCard{max-width:720px;margin:4vh auto;background:#102b40;border:1px solid #507087;border-radius:16px;padding:16px;color:#fff}.shareReportCard h3{margin:0 0 12px}.shareReportCard textarea{box-sizing:border-box;width:100%;min-height:56vh;padding:14px;border:1px solid #7890a0;border-radius:10px;background:#fff;color:#07131e;font:14px/1.45 Arial,sans-serif;resize:vertical}.shareReportActions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}@media(max-width:560px){.shareReportActions{grid-template-columns:1fr 1fr}.shareReportActions .danger{grid-column:1/-1}}';document.head.appendChild(s);}
+function style(){if($('checksheetShareCss'))return;const s=document.createElement('style');s.id='checksheetShareCss';s.textContent='.shareReportControls{margin-top:10px}.shareReportControls .sharePrimary,.shareReportActions .sharePrimary{background:#eea83e!important;color:#07131e!important}.shareReportModal{position:fixed;inset:0;z-index:100000;background:rgba(3,12,20,.88);padding:12px;overflow:auto}.shareReportModal[hidden]{display:none}.shareReportCard{max-width:900px;margin:2vh auto;background:#102b40;border:1px solid #507087;border-radius:16px;padding:14px;color:#fff}.previewTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.previewTop h3{margin:0}.previewClose{border:0;background:transparent;color:#fff;font-size:30px;line-height:1;cursor:pointer}.shareReportCard #shareReportPreview{max-height:68vh;overflow:auto;border-radius:10px;background:#eef2f5;padding:12px}.shareReportCard .inspectionReport{color:#102333}.shareReportActions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}@media(max-width:700px){.shareReportActions{grid-template-columns:1fr 1fr}.shareReportCard #shareReportPreview{padding:0}.shareReportCard{padding:10px}}'+reportDocumentCss();document.head.appendChild(s);}
 function init(){style();ensureModal();if(addButtons())return;let tries=0;const timer=setInterval(()=>{if(addButtons()||++tries>20)clearInterval(timer);},250);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
