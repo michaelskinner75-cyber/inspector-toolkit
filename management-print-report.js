@@ -1,0 +1,50 @@
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const clean=v=>String(v??'').trim();
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function parseDate(v){if(typeof parseRowDate==='function')return parseRowDate(v);let d=new Date(v);if(!isNaN(d))return d;const p=clean(v).split('/');if(p.length===3)return new Date(Number(p[2].length===2?'20'+p[2]:p[2]),Number(p[1])-1,Number(p[0]));return new Date(0);}
+function rows(sheet){let a=[];try{if(typeof cloud!=='undefined'&&cloud&&Array.isArray(cloud[sheet]))a=cloud[sheet].slice();}catch(e){}if(!a.length)return[];const h=(a[0]||[]).map(v=>clean(v).toLowerCase());return h.some(v=>['date','time','inspector','driver','fleet','service','depot','location'].includes(v))?a.slice(1):a;}
+function filterState(){return window.MANAGEMENT_DATE_FILTER||{range:'month',from:'',to:'',bounds:{from:new Date(new Date().getFullYear(),new Date().getMonth(),1),to:new Date()}};}
+function inRange(r){const b=filterState().bounds||{};const d=parseDate(r[0]);return d>=(b.from||new Date(0))&&d<=(b.to||new Date(8640000000000000));}
+function inspectorMatch(r){const value=$('mgInspectorFilter')?.value||'all';return value==='all'||clean(r[2]).toLowerCase()===value.toLowerCase();}
+function serviceCode(v){return clean(v).toUpperCase().replace(/\s+/g,'');}
+function services(){const set=new Set();(window.INSPECTOR_SERVICES||[]).forEach(s=>{const c=serviceCode(s.code);if(c){set.add(c);c.split('/').forEach(x=>x&&set.add(x));}});return [...set].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));}
+function displayDate(v){const d=parseDate(v);return isNaN(d)?clean(v):d.toLocaleDateString('en-GB');}
+function displayTime(v){const s=clean(v);const m=s.match(/^(\d{1,2}):(\d{2})/);if(m)return m[1].padStart(2,'0')+':'+m[2];const d=new Date(s);return isNaN(d)?s:d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});}
+function rangeText(){return clean($('mgPeriodText')?.textContent).replace(/^Reporting Period:\s*/i,'')||'Selected Period';}
+function timeBand(v){const s=displayTime(v),m=s.match(/^(\d{2}):(\d{2})$/);if(!m)return'No time recorded';const h=Number(m[1])+Number(m[2])/60;if(h>=3&&h<7)return'Early Morning (03:00–07:00)';if(h>=7&&h<9)return'Morning Peak (07:00–09:00)';if(h>=9&&h<12)return'Late Morning (09:00–12:00)';if(h>=12&&h<16)return'Afternoon (12:00–16:00)';if(h>=16&&h<19)return'Evening Peak (16:00–19:00)';return'Evening / Late (19:00–03:00)';}
+function buildData(){
+ const checks=rows('Inspections').filter(inRange).filter(inspectorMatch);
+ const timing=rows('Early Running').filter(inRange).filter(inspectorMatch);
+ const nsa=rows('NSA Faults').filter(inRange).filter(inspectorMatch).filter(r=>r[7]==='No'||(r[8]&&r[8]!=='Fully Working'&&r[8]!=='N/A'));
+ const master=services();
+ const map={};
+ checks.forEach(r=>{const s=serviceCode(r[5]);if(!s)return;(map[s]||(map[s]=[])).push({date:r[0],time:r[7]||r[1],driver:r[4],fleet:r[6],location:r[8],inspector:r[2]});});
+ const checked=Object.keys(map).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+ const unchecked=master.filter(s=>!map[s]);
+ const bands={};checks.forEach(r=>{const b=timeBand(r[7]||r[1]);bands[b]=(bands[b]||0)+1;});
+ const inspectors={};checks.forEach(r=>{const n=clean(r[2])||'Unknown';inspectors[n]=(inspectors[n]||0)+1;});
+ return{checks,timing,nsa,master,map,checked,unchecked,bands,inspectors};
+}
+function tr(cells,head){return'<tr>'+cells.map(x=>'<'+(head?'th':'td')+'>'+x+'</'+(head?'th':'td')+'>').join('')+'</tr>';}
+function printReport(){
+ const d=buildData();
+ const selectedInspector=$('mgInspectorFilter')?.selectedOptions?.[0]?.textContent||'All Inspectors';
+ const generated=new Date().toLocaleString('en-GB',{dateStyle:'full',timeStyle:'short'});
+ const coverage=d.master.length?Math.round((d.checked.length/d.master.length)*100):0;
+ const checkedRows=d.checked.map(s=>{const entries=d.map[s];const times=entries.map(x=>displayDate(x.date)+' '+displayTime(x.time)).join('<br>');const details=entries.map(x=>[clean(x.driver)||'-','Fleet '+(clean(x.fleet)||'-'),clean(x.location)||'-',clean(x.inspector)||'-'].join(' • ')).join('<br>');return tr([esc(s),String(entries.length),times,esc(details).replace(/&lt;br&gt;/g,'<br>')]);}).join('');
+ const uncheckedRows=d.unchecked.map(s=>tr([esc(s),'Not checked in selected period'])).join('');
+ const bandOrder=['Early Morning (03:00–07:00)','Morning Peak (07:00–09:00)','Late Morning (09:00–12:00)','Afternoon (12:00–16:00)','Evening Peak (16:00–19:00)','Evening / Late (19:00–03:00)','No time recorded'];
+ const bandRows=bandOrder.map(b=>tr([esc(b),String(d.bands[b]||0)])).join('');
+ const timingRows=d.timing.map(r=>tr([esc(displayDate(r[0])),esc(displayTime(r[1])),esc(clean(r[4]||r[5])||'-'),esc(clean(r[3])||'-'),esc(clean(r[8])||'-'),esc(clean(r[9])||'-'),esc(clean(r[10])||'-'),esc(clean(r[2])||'-')])).join('');
+ const nsaRows=d.nsa.map(r=>tr([esc(displayDate(r[0])),esc(displayTime(r[1])),esc(clean(r[5])||'-'),esc(clean(r[4])||'-'),esc(clean(r[8])||'-'),esc(clean(r[9])||'-'),esc(clean(r[2])||'-')])).join('');
+ const inspectorRows=Object.entries(d.inspectors).sort((a,b)=>b[1]-a[1]).map(([n,c])=>tr([esc(n),String(c)])).join('');
+ const html='<!doctype html><html><head><meta charset="utf-8"><title>Management Summary Report</title><style>@page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;font-size:10pt;margin:0}h1{margin:0;font-size:22pt}h2{margin:22px 0 8px;font-size:15pt;border-bottom:2px solid #111;padding-bottom:4px}h3{margin:14px 0 6px}.meta{margin:8px 0 14px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.card{border:1px solid #999;padding:9px;text-align:center}.card b{display:block;font-size:18pt}.card span{font-size:8pt}.good{border-left:5px solid #2e7d32}.warn{border-left:5px solid #c47c00}.bad{border-left:5px solid #b71c1c}table{width:100%;border-collapse:collapse;margin:6px 0 14px;page-break-inside:auto}tr{page-break-inside:avoid;page-break-after:auto}th,td{border:1px solid #aaa;padding:5px;vertical-align:top;text-align:left}th{background:#e8edf1}.section{page-break-before:auto}.newpage{page-break-before:always}.small{font-size:8pt;color:#444}.footer{margin-top:20px;border-top:1px solid #999;padding-top:6px;font-size:8pt;color:#555}@media print{button{display:none}}</style></head><body><h1>Inspector Hub — Management Summary</h1><div class="meta"><b>Reporting Period:</b> '+esc(rangeText())+'<br><b>Inspector Filter:</b> '+esc(selectedInspector)+'<br><b>Generated:</b> '+esc(generated)+'</div><div class="summary"><div class="card"><b>'+d.checks.length+'</b><span>Total checks</span></div><div class="card good"><b>'+d.checked.length+'</b><span>Services checked</span></div><div class="card warn"><b>'+d.unchecked.length+'</b><span>Services not checked</span></div><div class="card"><b>'+coverage+'%</b><span>Service coverage</span></div><div class="card"><b>'+d.timing.length+'</b><span>Timing checks</span></div><div class="card bad"><b>'+d.nsa.length+'</b><span>NSA issues</span></div><div class="card"><b>'+new Set(d.checks.map(r=>clean(r[4]).toLowerCase()).filter(Boolean)).size+'</b><span>Drivers checked</span></div><div class="card"><b>'+new Set(d.checks.map(r=>clean(r[6])).filter(Boolean)).size+'</b><span>Fleet checked</span></div></div><h2>Checks by Time of Day</h2><table>'+tr(['Time period','Checks'],true)+bandRows+'</table><h2>Checks Completed by Inspector</h2><table>'+tr(['Inspector','Checks'],true)+(inspectorRows||tr(['No inspector activity','0']))+'</table><h2 class="newpage">Every Service Checked</h2><table>'+tr(['Service','Number of checks','Date and time checked','Driver / fleet / location / inspector'],true)+(checkedRows||tr(['None','0','-','-']))+'</table><h2 class="newpage">Services Not Checked</h2><table>'+tr(['Service','Status'],true)+(uncheckedRows||tr(['None','All listed services were checked']))+'</table><h2 class="newpage">All Timing Checks</h2><table>'+tr(['Date','Logged time','Service','Location','Scheduled','Actual','Minutes','Inspector'],true)+(timingRows||tr(['No timing checks','','','','','','','']))+'</table><h2>NSA Issues</h2><table>'+tr(['Date','Time','Service','Fleet','Fault','Notes','Inspector'],true)+(nsaRows||tr(['No NSA issues','','','','','','']))+'</table><div class="footer">Inspector Hub management report — Designed and developed by Michael Skinner</div><script>window.onload=function(){setTimeout(function(){window.print();},250)}<\/script></body></html>';
+ const w=window.open('','_blank');if(!w){alert('Please allow pop-ups to generate the printable report.');return;}w.document.open();w.document.write(html);w.document.close();
+}
+function build(){const sec=$('managementSummary');if(!sec||$('mgPrintReportPanel'))return false;const panel=document.createElement('div');panel.id='mgPrintReportPanel';panel.className='panel mgPrintReportPanel';panel.innerHTML='<h3>Printable Period Report</h3><p class="small">Creates a full A4 report using the selected date period and inspector filter, including every checked and unchecked service, check dates and times, time-of-day coverage, timing checks and NSA issues.</p><button type="button" class="btn" id="mgGeneratePrintReport">GENERATE PRINTABLE REPORT</button>';sec.appendChild(panel);$('mgGeneratePrintReport').onclick=printReport;return true;}
+function style(){if($('mgPrintReportCss'))return;const s=document.createElement('style');s.id='mgPrintReportCss';s.textContent='.mgPrintReportPanel{margin-top:16px;border:2px solid #eea83e}.mgPrintReportPanel .btn{width:100%;font-weight:900;font-size:15px;padding:14px}';document.head.appendChild(s);}
+function init(){style();let n=0;const t=setInterval(()=>{n++;if(build()||n>50)clearInterval(t);},200);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
