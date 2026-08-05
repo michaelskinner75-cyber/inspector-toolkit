@@ -8,6 +8,7 @@ function inject(){
   if(!doc||!doc.body)return;
   add(doc,'checksheetShareReportScript','checksheet-share-report.js?v=20260722-246');
   add(doc,'savedCheckShareScriptV2','saved-check-share-v2.js?v=20260805-303');
+  add(doc,'savedCheckShareSeparatedV2','saved-check-share-separated-v2.js?v=20260805-304');
   add(doc,'removeLiveReportButtonsScript','remove-live-report-buttons.js?v=20260722-246');
  }catch(e){console.error(e);}
 }
