@@ -6,7 +6,7 @@ function inject(){
  if(!d||!d.body||d.getElementById('savedCheckExpandFixScript'))return;
  const s=d.createElement('script');
  s.id='savedCheckExpandFixScript';
- s.src='saved-check-expand-fix.js?v=20260805-305';
+ s.src='saved-check-expand-fix.js?v=20260805-306';
  d.body.appendChild(s);
 }
 frame?.addEventListener('load',()=>setTimeout(inject,1800));
