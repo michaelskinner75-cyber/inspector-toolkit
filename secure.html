@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Inspector Hub</title>
+<style>
+html,body{margin:0;height:100%;background:#0b1b2b;font-family:Arial,sans-serif;color:#fff;overflow:hidden}
+iframe{border:0;width:100%;height:100vh;display:block;background:#0b1b2b;opacity:0;visibility:hidden;transition:opacity .18s ease}
+body.hub-ready iframe{opacity:1;visibility:visible}
+#hubBoot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;background:#0b1b2b;transition:opacity .18s ease}
+body.hub-ready #hubBoot{opacity:0;pointer-events:none}
+.bootCard{width:min(360px,88vw);padding:28px 22px;border-radius:18px;text-align:center;background:#102b40;border:1px solid #31546d}
+.bootTitle{font-weight:800;font-size:24px;letter-spacing:.08em}.bootSub{margin-top:8px;font-size:13px;opacity:.75}
+</style>
+</head>
+<body>
+<div id="hubBoot"><div class="bootCard"><div class="bootTitle">INSPECTOR HUB</div><div class="bootSub">Preparing secure login…</div></div></div>
+<iframe id="hubFrame" src="app.html?v=20260806-secure" title="Inspector Hub" allow="geolocation"></iframe>
+<script src="hub-loader.js?v=20260806-secure"></script>
+<script src="management-summary-refresh-loader.js?v=20260802-303"></script>
+<script src="management-time-loader.js?v=20260802-303"></script>
+<script src="management-print-loader.js?v=20260802-303"></script>
+<script src="management-range-dropdown-loader.js?v=20260802-303"></script>
+<script src="nearby-tool-bootstrap.js?v=20260717-218"></script>
+<script src="management-overview-hotfix.js?v=20260717-205"></script>
+<script src="checksheet-log-status-loader.js?v=20260721-227"></script>
+<script src="checksheet-share-bootstrap.js?v=20260722-246"></script>
+</body>
+</html>
