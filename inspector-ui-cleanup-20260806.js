@@ -20,8 +20,9 @@ function buildToggle(){
  return true;
 }
 function setNsaDefault(){
- const nsa=$('csNSA');if(!nsa)return;
+ const nsa=$('csNSA');if(!nsa)return false;
  if(!nsa.dataset.cleanupDefaulted){nsa.value='N/A';nsa.dataset.cleanupDefaulted='1';nsa.dispatchEvent(new Event('change',{bubbles:true}));}
+ return true;
 }
 function notesAnchor(){
  const reason=$('csDriverReason');
@@ -36,18 +37,14 @@ function buildOtherNotes(){
  const section=$('checksheet');if(!section)return false;
  let panel=$('otherNotesPanel');
  if(!panel){
-  panel=document.createElement('div');
-  panel.id='otherNotesPanel';
-  panel.className='panel otherNotesPanel inspectionOtherNotes';
+  panel=document.createElement('div');panel.id='otherNotesPanel';panel.className='panel otherNotesPanel inspectionOtherNotes';
   panel.innerHTML='<button type="button" id="otherNotesToggle" class="otherNotesToggle" aria-expanded="false"><span>Other Notes</span><span id="otherNotesArrow">▼</span></button><div id="otherNotesBody" hidden><label for="csOtherNotes">Additional inspection notes</label><textarea class="field" id="csOtherNotes" placeholder="Add any other notes for this inspection"></textarea></div>';
  }
- const anchor=notesAnchor();
- if(!anchor)return false;
+ const anchor=notesAnchor();if(!anchor)return false;
  if(panel.parentNode!==anchor.parent||panel.nextSibling!==anchor.before)anchor.parent.insertBefore(panel,anchor.before);
  const toggle=$('otherNotesToggle');
  if(toggle&&!toggle.dataset.bound){toggle.dataset.bound='1';toggle.onclick=()=>{const body=$('otherNotesBody'),open=body.hidden;body.hidden=!open;toggle.setAttribute('aria-expanded',String(open));$('otherNotesArrow').textContent=open?'▲':'▼';};}
- syncNotesVisibility();
- return true;
+ syncNotesVisibility();return true;
 }
 function syncNotesVisibility(){
  const panel=$('otherNotesPanel');if(!panel)return;
@@ -55,57 +52,37 @@ function syncNotesVisibility(){
  panel.classList.toggle('inspectionModeHidden',active===false);
 }
 function buildTimingResultsButton(){
- const wrap=document.querySelector('#integratedTimingPanel .itResultsWrap');
- const body=$('itResultsBody');
- if(!wrap||!body)return false;
+ const wrap=document.querySelector('#integratedTimingPanel .itResultsWrap');const body=$('itResultsBody');if(!wrap||!body)return false;
  let btn=$('timingResultsActionBtn');
  if(!btn){
-  btn=document.createElement('button');
-  btn.type='button';
-  btn.id='timingResultsActionBtn';
-  btn.className='btn timingResultsActionBtn';
-  btn.textContent='VIEW TIMING CHECK RESULTS';
-  wrap.parentNode.insertBefore(btn,wrap);
-  btn.onclick=()=>{
-   const opening=body.style.display==='none';
-   body.style.display=opening?'':'none';
-   wrap.style.display=opening?'block':'none';
-   btn.textContent=opening?'HIDE TIMING CHECK RESULTS':'VIEW TIMING CHECK RESULTS';
-  };
+  btn=document.createElement('button');btn.type='button';btn.id='timingResultsActionBtn';btn.className='btn timingResultsActionBtn';btn.textContent='VIEW TIMING CHECK RESULTS';wrap.parentNode.insertBefore(btn,wrap);
+  btn.onclick=()=>{const opening=wrap.style.display==='none';wrap.style.display=opening?'block':'none';body.style.display=opening?'':'none';btn.textContent=opening?'HIDE TIMING CHECK RESULTS':'VIEW TIMING CHECK RESULTS';};
  }
  const oldToggle=$('itToggleResults');if(oldToggle)oldToggle.style.display='none';
  const head=wrap.querySelector('.itResultsHead');if(head)head.style.display='none';
- if(!btn.dataset.initialised){
-  btn.dataset.initialised='1';
-  body.style.display='none';
-  wrap.style.display='none';
- }
+ if(!btn.dataset.initialised){btn.dataset.initialised='1';body.style.display='none';wrap.style.display='none';}
  return true;
 }
 function preserveOtherNotes(){
- const save=$('saveCheckSheetBtn');if(!save||save.dataset.otherNotesHooked)return;
+ const save=$('saveCheckSheetBtn');if(!save||save.dataset.otherNotesHooked)return false;
  save.dataset.otherNotesHooked='1';
- save.addEventListener('click',()=>{
-  const note=($('csOtherNotes')?.value||'').trim(),reason=$('csDriverReason');
-  if(note&&reason&&!reason.value.includes('Other Notes:'))reason.value=(reason.value.trim()?reason.value.trim()+'\n\n':'')+'Other Notes: '+note;
- },true);
+ save.addEventListener('click',()=>{const note=($('csOtherNotes')?.value||'').trim(),reason=$('csDriverReason');if(note&&reason&&!reason.value.includes('Other Notes:'))reason.value=(reason.value.trim()?reason.value.trim()+'\n\n':'')+'Other Notes: '+note;},true);
  const reset=()=>setTimeout(()=>{if($('csOtherNotes'))$('csOtherNotes').value='';if($('otherNotesBody'))$('otherNotesBody').hidden=true;if($('otherNotesArrow'))$('otherNotesArrow').textContent='▼';if($('otherNotesToggle'))$('otherNotesToggle').setAttribute('aria-expanded','false');const nsa=$('csNSA');if(nsa){nsa.value='N/A';nsa.dispatchEvent(new Event('change',{bubbles:true}));}},80);
- $('clearCheckFormBtn')?.addEventListener('click',reset);
- save.addEventListener('click',reset);
+ $('clearCheckFormBtn')?.addEventListener('click',reset);save.addEventListener('click',reset);return true;
 }
-function style(){if($('inspectorUiCleanupCss'))return;const s=document.createElement('style');s.id='inspectorUiCleanupCss';s.textContent=`
-#homeSearchWrap,#homeTodayChecksBtn,.savedCheckShareBtn,#checksheetShareControls{display:none!important}
-#checksheet .compactModeSwitch{position:relative;display:grid!important;grid-template-columns:1fr 1fr!important;gap:0!important;max-width:440px;margin:10px auto 16px!important;padding:4px!important;border-radius:999px!important;background:#091b2b!important;border:1px solid #416783!important}
-#checksheet .compactModeSwitch button{min-height:44px!important;padding:8px 12px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:#c8d5df!important;font-size:13px!important;box-shadow:none!important}
-#checksheet .compactModeSwitch button.active{background:#eea83e!important;color:#07131e!important}
-#checksheet .otherNotesPanel{padding:0!important;overflow:hidden;margin-top:12px!important}
-#checksheet .otherNotesToggle{width:100%;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:0;background:#17324b;color:#fff;font-weight:900;text-align:left}
-#checksheet .otherNotesPanel #otherNotesBody{padding:12px}
-#checksheet .otherNotesPanel label{display:block;margin-bottom:7px;color:#c8d5df;font-weight:800}
-#checksheet .otherNotesPanel textarea{min-height:120px;box-sizing:border-box;width:100%}
-#integratedTimingPanel .timingResultsActionBtn{width:100%;margin-top:12px;min-height:50px;font-weight:900}
-`;
- document.head.appendChild(s);}
-function init(){style();let tries=0;const timer=setInterval(()=>{tries++;removeUnwanted();buildToggle();setNsaDefault();buildOtherNotes();buildTimingResultsButton();preserveOtherNotes();syncNotesVisibility();if(tries>80)clearInterval(timer);},250);document.addEventListener('click',e=>{if(e.target.closest('[data-check-type]'))setTimeout(()=>{syncNotesVisibility();buildTimingResultsButton();},20);});new MutationObserver(()=>{removeUnwanted();buildToggle();buildOtherNotes();buildTimingResultsButton();syncNotesVisibility();}).observe(document.body,{childList:true,subtree:true});}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,2200));else setTimeout(init,2200);
+function style(){
+ if($('inspectorUiCleanupCss'))return;
+ const s=document.createElement('style');s.id='inspectorUiCleanupCss';s.textContent=`#homeSearchWrap,#homeTodayChecksBtn,.savedCheckShareBtn,#checksheetShareControls{display:none!important}#checksheet .compactModeSwitch{position:relative;display:grid!important;grid-template-columns:1fr 1fr!important;gap:0!important;max-width:440px;margin:10px auto 16px!important;padding:4px!important;border-radius:999px!important;background:#091b2b!important;border:1px solid #416783!important}#checksheet .compactModeSwitch button{min-height:44px!important;padding:8px 12px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:#c8d5df!important;font-size:13px!important;box-shadow:none!important}#checksheet .compactModeSwitch button.active{background:#eea83e!important;color:#07131e!important}#checksheet .otherNotesPanel{padding:0!important;overflow:hidden;margin-top:12px!important}#checksheet .otherNotesToggle{width:100%;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:0;background:#17324b;color:#fff;font-weight:900;text-align:left}#checksheet .otherNotesPanel #otherNotesBody{padding:12px}#checksheet .otherNotesPanel label{display:block;margin-bottom:7px;color:#c8d5df;font-weight:800}#checksheet .otherNotesPanel textarea{min-height:120px;box-sizing:border-box;width:100%}#integratedTimingPanel .timingResultsActionBtn{width:100%;margin-top:12px;min-height:50px;font-weight:900}`;
+ document.head.appendChild(s);
+}
+function apply(){removeUnwanted();buildToggle();setNsaDefault();buildOtherNotes();buildTimingResultsButton();preserveOtherNotes();syncNotesVisibility();}
+function init(){
+ style();apply();
+ let tries=0;const timer=setInterval(()=>{tries++;apply();if(tries>=16)clearInterval(timer);},300);
+ document.addEventListener('click',e=>{
+  if(e.target.closest('[data-check-type]'))setTimeout(()=>{syncNotesVisibility();buildTimingResultsButton();},30);
+  if(e.target.closest('[data-open="checksheet"]'))setTimeout(apply,100);
+ });
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,900));else setTimeout(init,900);
 })();
