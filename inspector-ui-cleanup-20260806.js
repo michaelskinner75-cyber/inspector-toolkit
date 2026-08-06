@@ -40,7 +40,6 @@ function buildOtherNotes(){
   panel.id='otherNotesPanel';
   panel.className='panel otherNotesPanel inspectionOtherNotes';
   panel.innerHTML='<button type="button" id="otherNotesToggle" class="otherNotesToggle" aria-expanded="false"><span>Other Notes</span><span id="otherNotesArrow">▼</span></button><div id="otherNotesBody" hidden><label for="csOtherNotes">Additional inspection notes</label><textarea class="field" id="csOtherNotes" placeholder="Add any other notes for this inspection"></textarea></div>';
-  $('otherNotesToggle')?.addEventListener('click',()=>{});
  }
  const anchor=notesAnchor();
  if(!anchor)return false;
@@ -54,6 +53,34 @@ function syncNotesVisibility(){
  const panel=$('otherNotesPanel');if(!panel)return;
  const active=$('checkTypeChooser')?.querySelector('[data-check-type="inspection"]')?.classList.contains('active');
  panel.classList.toggle('inspectionModeHidden',active===false);
+}
+function buildTimingResultsButton(){
+ const wrap=document.querySelector('#integratedTimingPanel .itResultsWrap');
+ const body=$('itResultsBody');
+ if(!wrap||!body)return false;
+ let btn=$('timingResultsActionBtn');
+ if(!btn){
+  btn=document.createElement('button');
+  btn.type='button';
+  btn.id='timingResultsActionBtn';
+  btn.className='btn timingResultsActionBtn';
+  btn.textContent='VIEW TIMING CHECK RESULTS';
+  wrap.parentNode.insertBefore(btn,wrap);
+  btn.onclick=()=>{
+   const opening=body.style.display==='none';
+   body.style.display=opening?'':'none';
+   wrap.style.display=opening?'block':'none';
+   btn.textContent=opening?'HIDE TIMING CHECK RESULTS':'VIEW TIMING CHECK RESULTS';
+  };
+ }
+ const oldToggle=$('itToggleResults');if(oldToggle)oldToggle.style.display='none';
+ const head=wrap.querySelector('.itResultsHead');if(head)head.style.display='none';
+ if(!btn.dataset.initialised){
+  btn.dataset.initialised='1';
+  body.style.display='none';
+  wrap.style.display='none';
+ }
+ return true;
 }
 function preserveOtherNotes(){
  const save=$('saveCheckSheetBtn');if(!save||save.dataset.otherNotesHooked)return;
@@ -76,8 +103,9 @@ function style(){if($('inspectorUiCleanupCss'))return;const s=document.createEle
 #checksheet .otherNotesPanel #otherNotesBody{padding:12px}
 #checksheet .otherNotesPanel label{display:block;margin-bottom:7px;color:#c8d5df;font-weight:800}
 #checksheet .otherNotesPanel textarea{min-height:120px;box-sizing:border-box;width:100%}
+#integratedTimingPanel .timingResultsActionBtn{width:100%;margin-top:12px;min-height:50px;font-weight:900}
 `;
  document.head.appendChild(s);}
-function init(){style();let tries=0;const timer=setInterval(()=>{tries++;removeUnwanted();buildToggle();setNsaDefault();buildOtherNotes();preserveOtherNotes();syncNotesVisibility();if(tries>80)clearInterval(timer);},250);document.addEventListener('click',e=>{if(e.target.closest('[data-check-type]'))setTimeout(syncNotesVisibility,20);});new MutationObserver(()=>{removeUnwanted();buildToggle();buildOtherNotes();syncNotesVisibility();}).observe(document.body,{childList:true,subtree:true});}
+function init(){style();let tries=0;const timer=setInterval(()=>{tries++;removeUnwanted();buildToggle();setNsaDefault();buildOtherNotes();buildTimingResultsButton();preserveOtherNotes();syncNotesVisibility();if(tries>80)clearInterval(timer);},250);document.addEventListener('click',e=>{if(e.target.closest('[data-check-type]'))setTimeout(()=>{syncNotesVisibility();buildTimingResultsButton();},20);});new MutationObserver(()=>{removeUnwanted();buildToggle();buildOtherNotes();buildTimingResultsButton();syncNotesVisibility();}).observe(document.body,{childList:true,subtree:true});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,2200));else setTimeout(init,2200);
 })();
