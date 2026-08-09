@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>Inspector Hub</title>
 <style>
 html,body{margin:0;height:100%;background:#0b1b2b;font-family:Arial,sans-serif;color:#fff;overflow:hidden}
@@ -16,19 +13,19 @@ body.hub-ready #hubBoot{opacity:0;pointer-events:none}
 .bootCard{width:min(360px,88vw);padding:28px 22px;border-radius:18px;text-align:center;background:linear-gradient(145deg,#102b40,#071827);border:1px solid #31546d;box-shadow:0 18px 50px rgba(0,0,0,.35)}
 .bootTitle{font-weight:800;font-size:24px;letter-spacing:.08em}.bootSub{margin-top:8px;font-size:13px;opacity:.75}.bootBar{height:5px;margin-top:22px;border-radius:99px;overflow:hidden;background:#233e52}.bootBar:after{content:'';display:block;width:42%;height:100%;border-radius:99px;background:#f4a51c;animation:bootMove 1.05s ease-in-out infinite alternate}@keyframes bootMove{from{transform:translateX(-10%)}to{transform:translateX(150%)}}
 </style>
-<script>
-(async()=>{
- try{
-  if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()));}
-  if('caches' in window){const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)));}
- }catch(e){}
-})();
-</script>
 </head>
 <body>
 <div id="hubBoot"><div class="bootCard"><div class="bootTitle">INSPECTOR HUB</div><div class="bootSub">Preparing your tools…</div><div class="bootBar"></div></div></div>
-<iframe id="hubFrame" src="app.html?v=20260806-clean-1115" title="Inspector Hub" allow="geolocation"></iframe>
-<script src="hub-loader.js?v=20260806-clean-1115"></script>
+<iframe id="hubFrame" src="app.html?v=20260809-speed-1" title="Inspector Hub" allow="geolocation"></iframe>
+<script>
+/* Keep normal browser caching for speed. Only the lightweight loader is refreshed each launch,
+   so newly deployed tool versions are picked up without clearing every cached asset. */
+(function(){
+ const s=document.createElement('script');
+ s.src='hub-loader.js?v='+Date.now();
+ document.body.appendChild(s);
+})();
+</script>
 <script src="management-summary-refresh-loader.js?v=20260806-clean-1115"></script>
 <script src="management-time-loader.js?v=20260806-clean-1115"></script>
 <script src="management-print-loader.js?v=20260806-clean-1115"></script>
