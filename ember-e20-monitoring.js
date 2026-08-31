@@ -84,21 +84,6 @@ function rowFromForm(){
   ];
 }
 function validate(){
-  const type=$('emberType').value;
-  const movement=type==='Departure'||type==='Arrival';
-  if(movement&&(!$('emberScheduled').value||!$('emberActual').value)){
-    alert('Please enter both the scheduled and actual time.');
-    return false;
-  }
-  if(type!=='General'&&!$('emberCorrectStance').value){
-    alert('Please confirm whether the E20 used the correct stance.');
-    return false;
-  }
-  const issue=$('emberIssue').value!=='None'||$('ember747').value!=='None'||$('ember787').value!=='None';
-  if(issue&&!$('emberNotes').value.trim()){
-    alert('Please add a short note explaining the issue or impact.');
-    return false;
-  }
   return true;
 }
 async function saveObservation(){
