@@ -271,6 +271,8 @@ function setup(){
     }
   });
   resetForm();
+  const emberAutoRefresh=setInterval(()=>{if($('emberE20')?.classList.contains('active'))loadSharedData();},30000);
+  window.addEventListener('beforeunload',()=>clearInterval(emberAutoRefresh),{once:true});
 }
 function init(){
   setup();
