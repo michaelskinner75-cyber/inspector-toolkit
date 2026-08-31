@@ -3,7 +3,6 @@
 const $=id=>document.getElementById(id);
 const TARGETS=['busTimes','utrack','ticketFinder','journeyPlanner','driverKnowledge','driversHandbook'];
 const SERVICE_UPDATES_URL='https://www.stagecoachbus.com/regional-service-updates/east-scotland/glenrothes-leven-and-kirkcaldy';
-const EDINBURGH_BOARD_URL='edinburgh-departures.html';
 const BUS_STATIONS=[
   ['Edinburgh Bus Station','https://bustimes.org/stations/620G600739','🏰'],
   ['Glasgow Buchanan','https://bustimes.org/stops/60903826','🏙️'],
