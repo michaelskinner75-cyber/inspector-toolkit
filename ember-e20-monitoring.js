@@ -4,7 +4,6 @@
 const $=id=>document.getElementById(id);
 const SHEET='Ember E20';
 const LOCATION='Edinburgh Airport';
-const SERVICE='E20';
 const LAUNCH='Wednesday 2 September 2026';
 
 function inspector(){
@@ -63,7 +62,7 @@ function updatePreview(){
 }
 function resetForm(){
   ['emberScheduled','emberActual','emberVehicle','emberPassengersOff','emberPassengersOn','emberLoadAfter','emberStance','emberConflictMinutes','emberNotes'].forEach(id=>{if($(id))$(id).value='';});
-  if($('emberType'))$('emberType').value='Departure';
+  if($('emberService'))$('emberService').value='E1';
   if($('emberCorrectStance'))$('emberCorrectStance').value='';
   if($('ember747'))$('ember747').value='None';
   if($('ember787'))$('ember787').value='None';
@@ -71,16 +70,16 @@ function resetForm(){
   updatePreview();
 }
 function rowFromForm(){
-  const type=$('emberType').value;
+  const service=$('emberService').value;
   const scheduled=$('emberScheduled').value;
   const actual=$('emberActual').value;
   const d=minsDiff(scheduled,actual);
   return [
-    uid(),dateGb(),nowGb(),inspector(),type,scheduled,actual,d===null?'':d,punct(d),
+    uid(),dateGb(),nowGb(),inspector(),service,scheduled,actual,d===null?'':d,punct(d),
     $('emberVehicle').value.trim(),numberValue('emberPassengersOff'),numberValue('emberPassengersOn'),
     numberValue('emberLoadAfter'),$('emberStance').value.trim(),$('emberCorrectStance').value,
     numberValue('emberConflictMinutes'),$('ember747').value,$('ember787').value,$('emberIssue').value,
-    $('emberNotes').value.trim(),LOCATION,SERVICE
+    $('emberNotes').value.trim(),LOCATION,service
   ];
 }
 function validate(){
@@ -137,7 +136,7 @@ function renderRecent(rows){
   const el=$('emberRecent');
   if(!el)return;
   if(!rows.length){
-    el.innerHTML='<div class="emberEmpty">No E20 observations have been submitted yet.</div>';
+    el.innerHTML='<div class="emberEmpty">No Ember observations have been submitted yet.</div>';
     return;
   }
   el.innerHTML=rows.slice().reverse().slice(0,30).map(r=>{
@@ -192,7 +191,7 @@ function setup(){
     const b=document.createElement('button');
     b.id='emberE20Btn';
     b.dataset.open='emberE20';
-    b.innerHTML='<span class="navIcon">🔥</span>Ember E20 Monitoring';
+    b.innerHTML='<span class="navIcon">🔥</span>Ember Monitoring';
     nav.insertBefore(b,nav.firstChild);
   }
   const anchor=$('otherLinksTools')||document.querySelector('.section:last-of-type');
@@ -202,12 +201,12 @@ function setup(){
   section.className='section';
   section.innerHTML=`
     <button class="backBtn" data-open="home">← Back</button>
-    <h2>Ember E20 Monitoring</h2>
+    <h2>Ember Monitoring</h2>
     <div class="emberHero"><div class="emberHeroIcon">🔥</div><div><b>Launch Day Monitoring</b><small>${LAUNCH} • E20 Glasgow ↔ Edinburgh Airport • Expected stance E</small></div></div>
     <div class="emberInspector">Submitting as <strong id="emberInspectorName"></strong></div>
     <div class="panel">
       <div class="grid">
-        <label class="emberFieldLabel">Observation Type<select class="field" id="emberType"><option>Departure</option><option>Arrival</option><option>Stance Watch</option><option>General</option></select></label>
+        <label class="emberFieldLabel">Service<select class="field" id="emberService"><option>E1</option><option>E4</option><option>E19</option><option>E20</option></select></label>
         <label class="emberFieldLabel">Scheduled Time<input class="field" id="emberScheduled" type="time"></label>
         <label class="emberFieldLabel">Actual Time<input class="field" id="emberActual" type="time"></label>
         <label class="emberFieldLabel">Vehicle / Fleet / Reg<input class="field" id="emberVehicle" placeholder="If known"></label>
