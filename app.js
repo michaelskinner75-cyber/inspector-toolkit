@@ -27,7 +27,43 @@ function completeLogin(){if(!pendingInspector){alert('Please select an inspector
 function changeInspector(){localStorage.removeItem('activeInspector');showLogin();}
 function initInspectorLogin(){updateLoggedInDisplay();showLogin();}
 async function cloudAppend(sheet,row){setStatus('Saving to cloud...');try{await fetch(WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({sheet,row})});setStatus('Saved to cloud.');}catch(e){setStatus('Cloud save failed. Saved on this device.');}const key='local_'+sheet;const arr=JSON.parse(localStorage.getItem(key)||'[]');arr.push(row);localStorage.setItem(key,JSON.stringify(arr));}
-async function loadCloud(){setStatus('Loading cloud data...');for(const sheet of sheets){try{const res=await fetch(WEB_APP_URL+'?sheet='+encodeURIComponent(sheet));const json=await res.json();cloud[sheet]=json.data||[];}catch(e){console.log(e);}}setStatus('Cloud data loaded.');renderAll();}
+let cloudLoadPromise=null;
+function hydrateCloudCache(){
+ let used=false;
+ sheets.forEach(sheet=>{
+  if((cloud[sheet]||[]).length)return;
+  try{
+   const cached=JSON.parse(localStorage.getItem('cloud_cache_'+sheet)||'null');
+   if(Array.isArray(cached)&&cached.length){cloud[sheet]=cached;used=true;}
+  }catch(e){}
+ });
+ if(used)renderAll();
+ return used;
+}
+async function fetchCloudSheet(sheet){
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),7000);
+ try{
+  const joiner=WEB_APP_URL.includes('?')?'&':'?';
+  const res=await fetch(WEB_APP_URL+joiner+'sheet='+encodeURIComponent(sheet)+'&_='+Date.now(),{cache:'no-store',signal:controller.signal});
+  if(!res.ok)throw new Error('HTTP '+res.status);
+  const json=await res.json();
+  if(!json||!Array.isArray(json.data))throw new Error('Invalid cloud response');
+  cloud[sheet]=json.data;
+  try{localStorage.setItem('cloud_cache_'+sheet,JSON.stringify(json.data));}catch(e){}
+ }finally{clearTimeout(timer);}
+}
+async function loadCloud(){
+ if(cloudLoadPromise)return cloudLoadPromise;
+ const hadCache=hydrateCloudCache();
+ setStatus(hadCache?'Refreshing cloud data...':'Loading cloud data...');
+ cloudLoadPromise=Promise.allSettled(sheets.map(fetchCloudSheet)).then(results=>{
+  const failed=results.filter(r=>r.status==='rejected').length;
+  setStatus(failed?('Cloud updated • '+failed+' source'+(failed===1?'':'s')+' delayed'):'Cloud data loaded.');
+  renderAll();
+ }).finally(()=>{cloudLoadPromise=null;});
+ return cloudLoadPromise;
+}
 function saveCheckSheet(){const row=[normaliseDateForSave($('csDate').value),normaliseTimeForSave(now()),getInspector(),$('csDepot').value,$('csDriver').value,$('csService').value,$('csFleet').value,normaliseTimeForSave($('csTimeOn').value),$('csBoarding').value,$('csDestination').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csDriverReport').value,$('csDriverReason').value];cloudAppend('Inspections',row);cloudAppend('NSA Faults',[row[0],row[1],getInspector(),$('csDepot').value,$('csFleet').value,$('csService').value,$('csDriver').value,$('csNSA').value,$('csNSAFault').value,$('csNSANotes').value,$('csBoarding').value,$('csDestination').value,'Inspector Check Sheet']);if($('csDriverReport').value!=='No Driver Report')cloudAppend('Driver Reports',[$('csDate').value||today(),now(),getInspector(),$('csDriver').value,$('csDepot').value,$('csDriverReport').value,$('csDriverReason').value,$('csService').value,$('csFleet').value]);clearCheckForm();setTimeout(loadCloud,1200);}
 function clearCheckForm(){['csDepot','csDriver','csService','csFleet','csTimeOn','csBoarding','csDestination','csNSANotes','csDriverReason'].forEach(id=>$(id).value='');$('csNSA').value='Yes';$('csNSAFault').value='Fully Working';$('csDriverReport').value='No Driver Report';}
 function parseRowDate(v){const d=new Date(v);if(!isNaN(d))return d;const p=String(v||'').split('/');if(p.length===3)return new Date(p[2].length===2?'20'+p[2]:p[2],p[1]-1,p[0]);return new Date();}
