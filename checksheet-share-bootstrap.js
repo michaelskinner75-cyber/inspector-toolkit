@@ -7,7 +7,7 @@ function inject(){
   const doc=frame&&frame.contentDocument;
   if(!doc||!doc.body)return;
   add(doc,'checksheetShareReportScript','checksheet-share-report.js?v=20260722-246');
-  add(doc,'savedCheckShareScript','saved-check-share.js?v=20260722-246');
+  add(doc,'savedCheckShareScript','saved-check-share.js?v=20260903-offence-report-1');
   add(doc,'removeLiveReportButtonsScript','remove-live-report-buttons.js?v=20260722-246');
  }catch(e){console.error(e);}
 }
