@@ -5,7 +5,75 @@ function linesFromCard(card){const details=card.querySelector('.compactDetails')
 function strip(value,labels){let out=String(value||'-').trim();for(const label of labels)out=out.replace(new RegExp('^'+label+'\\s*:\\s*','i'),'').trim();return out||'-';}
 function parseJourney(text){const clean=strip(text,['Journey']);const parts=clean.split(/\s+(?:to|→)\s+/i);return{boarding:(parts[0]||'-').trim(),destination:(parts.slice(1).join(' to ')||'-').trim()};}
 function splitDateTime(value){const s=String(value||'-').trim();const m=s.match(/^(.*?)(?:\s+)(\d{1,2}:\d{2})$/);return m?{date:m[1],time:m[2]}:{date:s,time:'-'};}
-function reportFromCard(card){const x=linesFromCard(card),journey=parseJourney(x[7]),nsaRaw=strip(x[8],['NSA']),nsaParts=nsaRaw.split(/\s+-\s+/),dt=splitDateTime(strip(x[0],['Inspection date/time','Date']));return{date:dt.date,savedTime:dt.time,inspector:strip(x[1],['Inspector']),depot:strip(x[2],['Depot']),driver:strip(x[3],['Driver']),service:strip(x[4],['Service']),fleet:strip(x[5],['Fleet Number','Fleet']),timeChecked:strip(x[6],['Time Checked','Time boarded']),boarding:journey.boarding,destination:journey.destination,nsa:strip(nsaParts[0],['NSA Working']),nsaDetails:strip(nsaParts.slice(1).join(' - ')||((nsaParts[0]||'')==='Yes'?'Fully Working':'-'),['Details']),driverReport:strip(x[9],['Driver Report']),reason:strip(x[10],['Driver report reason / inspection notes','Reason','Notes'])};}
+function labelled(lines,labels){
+ for(const line of lines){
+  const raw=String(line||'').trim();
+  const lower=raw.toLowerCase();
+  for(const label of labels){
+   const prefix=String(label||'').trim().toLowerCase()+':';
+   if(lower.startsWith(prefix))return raw.slice(raw.indexOf(':')+1).trim();
+  }
+ }
+ return'';
+}
+function formatSavedDate(v){try{return typeof formatDateValue==='function'?formatDateValue(v):String(v||'-');}catch(e){return String(v||'-');}}
+function formatSavedTime(v){try{return typeof formatTimeValue==='function'?formatTimeValue(v):String(v||'-');}catch(e){return String(v||'-');}}
+function inspectionRows(){
+ const rows=[];
+ try{if(typeof cloud!=='undefined'&&cloud&&Array.isArray(cloud['Inspections']))rows.push(...cloud['Inspections']);}catch(e){}
+ try{const local=JSON.parse(localStorage.getItem('local_Inspections')||'[]');if(Array.isArray(local))rows.push(...local);}catch(e){}
+ return rows.filter(Array.isArray);
+}
+function rowByReference(ref){
+ const wanted=String(ref||'').trim().toLowerCase();
+ if(!wanted)return null;
+ return inspectionRows().find(r=>String(r[15]||'').trim().toLowerCase()===wanted)||null;
+}
+function reportFromRow(r){
+ const nsaDetails=[r[11],r[12]].map(v=>String(v||'').trim()).filter(Boolean).join(' - ')||((String(r[10]||'').trim()==='Yes')?'Fully Working':'-');
+ return{
+  date:formatSavedDate(r[0]),savedTime:formatSavedTime(r[1]),inspector:String(r[2]||'-').trim()||'-',
+  depot:String(r[3]||'-').trim()||'-',driver:String(r[4]||'-').trim()||'-',service:String(r[5]||'-').trim()||'-',
+  fleet:String(r[6]||'-').trim()||'-',timeChecked:formatSavedTime(r[7]),boarding:String(r[8]||'-').trim()||'-',
+  destination:String(r[9]||'-').trim()||'-',nsa:String(r[10]||'-').trim()||'-',nsaDetails,
+  driverReport:String(r[13]||'-').trim()||'-',reason:String(r[14]||'-').trim()||'-',
+  offenceRef:String(r[15]||'').trim(),nature:String(r[16]||'').trim(),passengers:String(r[17]||'').trim()
+ };
+}
+function reportFromCard(card){
+ const x=linesFromCard(card);
+ const offenceRef=labelled(x,['Offence Reference']);
+ const saved=rowByReference(offenceRef);
+ if(saved)return reportFromRow(saved);
+
+ const dateLine=x.find(v=>/^\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}\b/.test(v)||/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}\b/.test(v))||x[0]||'-';
+ const dateIndex=Math.max(0,x.indexOf(dateLine));
+ const dt=splitDateTime(strip(dateLine,['Inspection date/time','Date']));
+ const val=(labels,offset)=>labelled(x,labels)||strip(x[dateIndex+offset],labels);
+
+ const journey=parseJourney(val(['Journey'],7));
+ const nsaRaw=val(['NSA'],8);
+ const nsaParts=nsaRaw.split(/\s+-\s+/);
+ const reportIndex=x.findIndex(v=>String(v||'').trim().toLowerCase().startsWith('driver report:'));
+
+ let reason=labelled(x,['Driver report reason / inspection notes','Reason','Notes']);
+ if(!reason&&reportIndex>=0){
+  reason=x.slice(reportIndex+1).filter(v=>{
+   const s=String(v||'').trim().toLowerCase();
+   return !['offence reference:','nature of offence:','passengers:','inspector:','depot:','driver:','service:','fleet:','fleet number:','time checked:','time boarded:','journey:','nsa:','driver report:'].some(p=>s.startsWith(p));
+  }).join('\n').trim();
+ }
+ if(!reason)reason=strip(x[dateIndex+10],['Driver report reason / inspection notes','Reason','Notes']);
+
+ return{
+  date:dt.date,savedTime:dt.time,inspector:val(['Inspector'],1),depot:val(['Depot'],2),driver:val(['Driver'],3),
+  service:val(['Service'],4),fleet:val(['Fleet Number','Fleet'],5),timeChecked:val(['Time Checked','Time boarded'],6),
+  boarding:journey.boarding,destination:journey.destination,nsa:strip(nsaParts[0],['NSA Working']),
+  nsaDetails:strip(nsaParts.slice(1).join(' - ')||((nsaParts[0]||'')==='Yes'?'Fully Working':'-'),['Details']),
+  driverReport:labelled(x,['Driver Report'])||val(['Driver Report'],9),reason:reason||'-',offenceRef,
+  nature:labelled(x,['Nature of Offence']),passengers:labelled(x,['Passengers'])
+ };
+}
 function title(d){return'Inspection-Report'+(d.service&&d.service!=='-'?'-Service-'+d.service:'')+(d.fleet&&d.fleet!=='-'?'-Fleet-'+d.fleet:'');}
 function loadScript(src,id){return new Promise((resolve,reject)=>{if(document.getElementById(id))return resolve();const s=document.createElement('script');s.id=id;s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
 async function imageData(url){try{const res=await fetch(url,{mode:'cors'});const blob=await res.blob();return await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>resolve(null);r.readAsDataURL(blob);});}catch(e){return null;}}
@@ -28,7 +96,17 @@ async function makePdf(d,name){
  sectionTitle('Inspection Details');tableRow('Date',d.date);tableRow('Time Checked',d.timeChecked);tableRow('Driver',d.driver);tableRow('Depot',d.depot);tableRow('Fleet Number',d.fleet);y+=14;
  sectionTitle('Journey Details');tableRow('Service',d.service);tableRow('Boarding point',d.boarding);tableRow('Destination',d.destination);y+=14;
  sectionTitle('NSA');tableRow('NSA Working',d.nsa);tableRow('Details',d.nsaDetails);y+=14;
- sectionTitle('Driver');tableRow('Driver Report',d.driverReport);tableRow('Driver report reason / inspection notes',d.reason);
+ sectionTitle('Driver');tableRow('Driver Report',d.driverReport);
+ const isOffence=/offence/i.test(String(d.driverReport||''))||d.offenceRef||d.nature||d.passengers;
+ if(isOffence){
+  y+=14;sectionTitle('Offence Details');
+  if(d.offenceRef)tableRow('Offence Reference',d.offenceRef);
+  if(d.nature)tableRow('Nature of Offence',d.nature);
+  if(d.passengers)tableRow('Passengers',d.passengers);
+  tableRow('Inspector offence details / notes',d.reason);
+ }else{
+  tableRow('Driver report reason / inspection notes',d.reason);
+ }
  footer();pdf.setProperties({title:name,subject:'Inspector Check Sheet / Report Record',author:'Stagecoach South Scotland'});
  const bytes=pdf.output('arraybuffer');const safe=name.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'Inspection-Report';return{bytes,name:safe+'.pdf'};
 }
