@@ -4,7 +4,6 @@ const $=id=>document.getElementById(id);
 const MATCHERS=[
  {label:'Service Coverage',test:(t,id)=>t.includes('service coverage')||id.includes('coverage')},
  {label:'Report Search',test:(t,id)=>t.includes('report search')||id.includes('reportsearch')},
- {label:'Operations Map',test:(t,id)=>t.includes('operations map')||id.includes('operationsmap')},
  {label:'NSA Log',test:(t,id)=>t.includes('nsa log')||t.includes('nsa faults')||t==='nsa'||id==='nsa'||id.includes('nsalog')},
  {label:'Timing Check Results',test:(t,id)=>t.includes('timing check results')||id==='timing'},
  {label:'Management Summary',test:(t,id)=>t.includes('management summary')||id.includes('managementsummary')}
@@ -20,7 +19,7 @@ function setup(){
  const home=$('home'),nav=home?.querySelector('.nav');
  if(!home||!nav||$('reportsChecks'))return;
  const folder=document.createElement('button');folder.dataset.open='reportsChecks';folder.innerHTML='<span class="navIcon">📋</span>Reports &amp; Checks';nav.appendChild(folder);
- const section=document.createElement('section');section.id='reportsChecks';section.className='section';section.innerHTML='<button class="backBtn" data-open="home">← Back</button><h2>Reports &amp; Checks</h2><div class="rcHero"><span>📋</span><div><b>Reports &amp; Checks</b><small>Coverage, reports, maps, NSA records and management information.</small></div></div><div class="nav rcNav" id="reportsChecksNav"></div>';
+ const section=document.createElement('section');section.id='reportsChecks';section.className='section';section.innerHTML='<button class="backBtn" data-open="home">← Back</button><h2>Reports &amp; Checks</h2><div class="rcHero"><span>📋</span><div><b>Reports &amp; Checks</b><small>Coverage, reports, NSA records and management information.</small></div></div><div class="nav rcNav" id="reportsChecksNav"></div>';
  const anchor=$('otherLinksTools')||document.querySelector('.section:last-of-type');anchor.parentNode.insertBefore(section,anchor);
  moveMatches();const observer=new MutationObserver(()=>moveMatches());observer.observe(document.body,{childList:true,subtree:true});setTimeout(moveMatches,1000);setTimeout(moveMatches,2500);
 }
