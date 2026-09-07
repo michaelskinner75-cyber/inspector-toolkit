@@ -19,7 +19,7 @@ function nsaCls(v){const x=nsa(v);return x==='Working'?'ok':x==='Not Working'?'b
 function key(r){return [toIso(r[0]),r[1],r[2],r[3],r[5],r[8],r[9]].map(norm).join('|');}
 function local(){try{const x=JSON.parse(localStorage.getItem('local_'+SHEET)||'[]');return Array.isArray(x)?x:[];}catch(e){return [];}}
 function rows(){const a=remote.length&&norm(remote[0]?.[3])==='duty number'?remote.slice(1):remote,m=new Map();[...local(),...a].forEach(r=>Array.isArray(r)&&r[0]&&r[3]&&m.set(key(r),r));return [...m.values()];}
-function current(){const d=$('mroDate')?.value||iso();return rows().filter(r=>toIso(r[0])===d).sort((a,b)=>String(a[8]).localeCompare(String(b[8])));}
+function current(){const d=$('mroDate')?.value||iso();return rows().filter(r=>toIso(r[0])===d).sort((a,b)=>((mins(b[1])??-1)-(mins(a[1])??-1))||String(b[8]).localeCompare(String(a[8])));}
 function stats(a){const c=a.filter(r=>diff(r[8],r[9])!==null),late=c.filter(r=>diff(r[8],r[9])>=6).length;return {total:c.length,late,on:c.length-late,p:c.length?(c.length-late)/c.length*100:0};}
 function live(){const d=diff($('mroScheduled')?.value,$('mroActual')?.value),e=$('mroLive');if(!e)return;e.className='mroLive '+(d===null?'':cls(d));e.textContent=d===null?'Enter scheduled and actual time':text(d);}
 function render(){
