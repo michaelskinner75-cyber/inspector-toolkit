@@ -2,6 +2,17 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/*
+  Some Stagecoach regional zones overlap. Lochgelly is one of those places:
+  both Central Fife and West Fife tickets are valid there. Check these known
+  overlap areas before the wider town-radius estimates so Lochgelly is not
+  incorrectly classified as the Dunfermline Town Zone.
+*/
+const overlapAreas=[
+ {name:'Lochgelly',lat:56.1285,lon:-3.3094,r:5.5,tickets:['Central Fife','West Fife','East Scotland']}
+];
+
 const localZones=[
  {name:'Dundee',lat:56.462,lon:-2.971,r:13,tickets:['Dundee','Angus','North East Fife','North Perthshire and the Carse','East Scotland']},
  {name:'Forfar',lat:56.644,lon:-2.889,r:12,tickets:['Forfar','Angus','East Scotland']},
@@ -22,7 +33,13 @@ const regionalZones=[
  {name:'South Perthshire and Kinross',lat:56.260,lon:-3.500,r:55,tickets:['South Perthshire and Kinross','East Scotland']}
 ];
 function km(a,b,c,d){const R=6371,p=Math.PI/180,x=(d-b)*p*Math.cos((a+c)*p/2),y=(c-a)*p;return Math.sqrt(x*x+y*y)*R;}
-function ticketsFor(lat,lon){for(const z of localZones)if(km(lat,lon,z.lat,z.lon)<=z.r)return z.tickets;const matches=regionalZones.filter(z=>km(lat,lon,z.lat,z.lon)<=z.r).sort((a,b)=>km(lat,lon,a.lat,a.lon)-km(lat,lon,b.lat,b.lon));if(matches.length)return [...new Set(matches.flatMap(z=>z.tickets))];return['East Scotland'];}
+function ticketsFor(lat,lon){
+ for(const z of overlapAreas)if(km(lat,lon,z.lat,z.lon)<=z.r)return z.tickets;
+ for(const z of localZones)if(km(lat,lon,z.lat,z.lon)<=z.r)return z.tickets;
+ const matches=regionalZones.filter(z=>km(lat,lon,z.lat,z.lon)<=z.r).sort((a,b)=>km(lat,lon,a.lat,a.lon)-km(lat,lon,b.lat,b.lon));
+ if(matches.length)return [...new Set(matches.flatMap(z=>z.tickets))];
+ return['East Scotland'];
+}
 function style(){if($('homeValidTicketsCss'))return;const s=document.createElement('style');s.id='homeValidTicketsCss';s.textContent='.homeValidTicketsBtn{width:auto!important;margin:6px 0 0!important;padding:5px 9px!important;min-height:0!important;font-size:10px!important;line-height:1.05;background:#f4a51c!important;color:#081827!important;font-weight:900}.hvtModal{display:none;position:fixed;inset:0;z-index:12000;padding:16px;background:rgba(0,0,0,.76)}.hvtModal.show{display:flex;align-items:center;justify-content:center}.hvtCard{width:min(330px,92vw);padding:12px;border-radius:13px;background:#0b1b2b;border:2px solid #f4a51c}.hvtHead{display:flex;align-items:center;justify-content:space-between;gap:8px}.hvtHead h3{margin:0;font-size:17px}.hvtClose{padding:5px 8px!important;font-size:11px!important}.hvtLinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.hvtLink{border:1px solid #4b718b;border-radius:999px;background:#12344e;color:#fff;padding:7px 10px;font-size:12px;font-weight:800;cursor:pointer}.hvtLink:first-child{border-color:#f4a51c}.hvtEmpty{font-size:12px;margin-top:10px;color:#b8c5ce}';document.head.appendChild(s);}
 function close(){$('homeValidTicketsModal')?.classList.remove('show');}
 function jump(title){close();const opener=document.querySelector('[data-open="guideTicketsFares"]')||$('guideTicketsFaresBtn');opener?.click();setTimeout(()=>{const wanted=(title+' zone').toLowerCase();const summaries=[...document.querySelectorAll('#guideTicketsFares summary')];const hit=summaries.find(x=>{const t=x.textContent.trim().toLowerCase();return t===title.toLowerCase()||t===wanted||t.startsWith(title.toLowerCase());});if(hit){const d=hit.closest('details');if(d)d.open=true;hit.scrollIntoView({behavior:'smooth',block:'center'});}},350);}
