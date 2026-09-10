@@ -6,7 +6,7 @@ function inject(){
  if(!d||d.getElementById('managementDriverActionsScript'))return;
  const s=d.createElement('script');
  s.id='managementDriverActionsScript';
- s.src='management-driver-actions.js?v=20260910-1';
+ s.src='management-driver-actions.js?v=20260910-2';
  d.body.appendChild(s);
 }
 frame?.addEventListener('load',()=>setTimeout(inject,2800));
