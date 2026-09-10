@@ -6,6 +6,7 @@ function inject(){
  try{
   const doc=frame&&frame.contentDocument;
   if(!doc||!doc.body)return;
+  add(doc,'stagecoachReportLogoFixScript','stagecoach-report-logo-fix.js?v=20260910-1');
   add(doc,'checksheetShareReportScript','checksheet-share-report.js?v=20260722-246');
   add(doc,'savedCheckShareScript','saved-check-share.js?v=20260903-offence-report-1');
   add(doc,'removeLiveReportButtonsScript','remove-live-report-buttons.js?v=20260722-246');
