@@ -39,9 +39,8 @@ function style(){
 function init(){
  style(); enhance();
  const sec=$('managementSummary'); if(!sec){setTimeout(init,700);return;}
- const obs=new MutationObserver(enhance); obs.observe(sec,{childList:true,subtree:true});
- sec.addEventListener('click',e=>{const detail=e.target.closest('[data-action-index]');if(detail){openDetail(detail.dataset.actionType,detail.dataset.actionIndex);return;}const card=e.target.closest('[data-mg-driver-action]');if(card)openList(card.dataset.mgDriverAction);});
- sec.addEventListener('keydown',e=>{const card=e.target.closest('[data-mg-driver-action]');if(card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openList(card.dataset.mgDriverAction);}});
+ const obs=new MutationObserver(enhance); obs.observe(document.body,{childList:true,subtree:true});
+ if(!window.__mgDriverActionsBound){window.__mgDriverActionsBound=true;document.addEventListener('click',e=>{const detail=e.target.closest('[data-action-index]');if(detail){openDetail(detail.dataset.actionType,detail.dataset.actionIndex);return;}const card=e.target.closest('[data-mg-driver-action]');if(card){e.preventDefault();openList(card.dataset.mgDriverAction);}});document.addEventListener('keydown',e=>{const card=e.target.closest('[data-mg-driver-action]');if(card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openList(card.dataset.mgDriverAction);}});}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
