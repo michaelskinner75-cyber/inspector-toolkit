@@ -5,7 +5,7 @@ function addStyle(){
  if($('homeStopRefreshCss'))return;
  const s=document.createElement('style');
  s.id='homeStopRefreshCss';
- s.textContent='.homeNearestActions{grid-template-columns:1fr 1fr!important}.homeUseLocationBtn{grid-column:1/-1;min-height:44px!important;background:#173d5c!important;border:1px solid #5b84a0!important;color:#fff!important;font-size:12px!important;font-weight:900!important;letter-spacing:.02em}.homeUseLocationBtn:disabled{opacity:.65}.homeUseLocationBtn.locating{position:relative}.homeUseLocationBtn.locating:after{content:"";display:inline-block;width:12px;height:12px;margin-left:8px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;vertical-align:-2px;animation:homeLocationSpin .8s linear infinite}@keyframes homeLocationSpin{to{transform:rotate(360deg)}}@media(max-width:620px){.homeNearestActions{grid-template-columns:1fr 1fr!important}.homeUseLocationBtn{grid-column:1/-1}}';
+ s.textContent='.homeUseLocationBtn{display:block;width:calc(100% - 20px);margin:0 10px 10px!important;min-height:44px!important;background:#173d5c!important;border:1px solid #5b84a0!important;color:#fff!important;font-size:12px!important;font-weight:900!important;letter-spacing:.02em}.homeUseLocationBtn:disabled{opacity:.65}.homeUseLocationBtn.locating{position:relative}.homeUseLocationBtn.locating:after{content:"";display:inline-block;width:12px;height:12px;margin-left:8px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;vertical-align:-2px;animation:homeLocationSpin .8s linear infinite}@keyframes homeLocationSpin{to{transform:rotate(360deg)}}';
  document.head.appendChild(s);
 }
 function openCard(){
@@ -49,13 +49,13 @@ async function useCurrentLocation(btn){
  }
 }
 function addControl(){
- const card=$('homeNearestStopCard'),actions=card&&$('homeNearestBody')?.querySelector('.homeNearestActions');
- if(!card||!actions)return false;
+ const card=$('homeNearestStopCard'),body=$('homeNearestBody');
+ if(!card||!body)return false;
  const old=$('homeNearestRefresh');if(old)old.remove();
  let btn=$('homeUseCurrentLocation');
  if(!btn){
   btn=document.createElement('button');btn.type='button';btn.id='homeUseCurrentLocation';btn.className='btn homeUseLocationBtn';btn.textContent='📍 USE CURRENT LOCATION';
-  actions.insertBefore(btn,actions.firstChild);btn.onclick=e=>{e.preventDefault();e.stopPropagation();useCurrentLocation(btn);};
+  body.before(btn);btn.onclick=e=>{e.preventDefault();e.stopPropagation();useCurrentLocation(btn);};
  }
  const cached=window.inspectorNearbyStops;
  const pick=$('homePickNearby');
@@ -63,7 +63,7 @@ function addControl(){
  const name=$('homeNearestStopName'),meta=$('homeNearestStopMeta');
  if(!cached?.stops?.length&&name&&/finding|waiting|unable/i.test(name.textContent||'')){
   name.textContent='Find a nearby bus stop';
-  if(meta)meta.textContent='Open this section and tap Use Current Location.';
+  if(meta)meta.textContent='Tap Use Current Location, then choose the stop you want.';
  }
  return true;
 }
