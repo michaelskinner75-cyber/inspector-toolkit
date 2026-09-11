@@ -51,7 +51,7 @@ function selectedFilter(){
 function markButtons(){
  document.querySelectorAll('[data-check-filter]').forEach(b=>b.classList.toggle('active',b.dataset.checkFilter===activeFilter));
 }
-function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));}
 function renderFixedChecks(){
  const list=document.getElementById('checkList');
  if(!list)return;
@@ -67,12 +67,11 @@ function renderFixedChecks(){
  });
  list.innerHTML=rows.map((r,i)=>{
   const date=typeof formatDateValue==='function'?formatDateValue(r[0]):r[0]||'-';
-  const savedTime=typeof formatTimeValue==='function'?formatTimeValue(r[1]):r[1]||'-';
   const timeOn=typeof formatTimeValue==='function'?formatTimeValue(r[7]):r[7]||'-';
   const ref=r[15]||'';
   const status=typeof statusMark==='function'?statusMark(r):(r[13]||'OK');
   const cls=typeof statusClass==='function'?statusClass(r):'';
-  const details=[ref?'<b>Offence Reference: '+safe(ref)+'</b>':'',safe(date+' '+savedTime),'Inspector: '+safe(r[2]||'-'),'Depot: '+safe(r[3]||'-'),'Driver: '+safe(r[4]||'-'),'Service: '+safe(r[5]||'-'),'Fleet: '+safe(r[6]||'-'),'Time boarded: '+safe(timeOn),'Journey: '+safe((r[8]||'-')+' to '+(r[9]||'-')),'NSA: '+safe(r[10]||'-')+(r[10]==='No'?' - '+safe(r[11]||'-')+' - '+safe(r[12]||'-'):''),'Driver Report: '+safe(r[13]||'-'),safe(r[14]||'-')].filter(Boolean);
+  const details=[ref?'<b>Offence Reference: '+safe(ref)+'</b>':'','Inspector: '+safe(r[2]||'-'),'Depot: '+safe(r[3]||'-'),'Driver: '+safe(r[4]||'-'),'Service: '+safe(r[5]||'-'),'Fleet: '+safe(r[6]||'-'),'Time boarded: '+safe(timeOn),'Journey: '+safe((r[8]||'-')+' to '+(r[9]||'-')),'NSA: '+safe(r[10]||'-')+(r[10]==='No'?' - '+safe(r[11]||'-')+' - '+safe(r[12]||'-'):''),'Driver Report: '+safe(r[13]||'-'),safe(r[14]||'-')].filter(Boolean);
   return '<div class="compactCheck '+safe(cls)+'"><div class="compactTop" data-toggle="pcf'+i+'"><div class="compactMain">'+safe(date)+' '+safe(timeOn)+' | '+safe(r[5]||'-')+' | '+safe(r[6]||'-')+' | '+safe(r[4]||'-')+' | '+safe(status)+(ref?' | '+safe(ref):'')+'</div><div class="compactSub">'+safe(r[3]||'-')+' • '+safe(r[8]||'-')+' → '+safe(r[9]||'-')+' • '+safe(r[2]||'-')+'</div></div><div class="compactDetails" id="pcf'+i+'">'+details.join('<br>')+'</div></div>';
  }).join('')||'No checks for this view.';
  markButtons();
