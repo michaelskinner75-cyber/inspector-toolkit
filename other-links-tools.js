@@ -4,7 +4,6 @@ const $=id=>document.getElementById(id);
 const TARGETS=['busTimes','utrack','ticketFinder','journeyPlanner','driverKnowledge','driversHandbook'];
 const SERVICE_UPDATES_URL='https://www.stagecoachbus.com/regional-service-updates/east-scotland/glenrothes-leven-and-kirkcaldy';
 const BUS_STATIONS=[
-  ['Edinburgh Bus Station','https://bustimes.org/stations/620G600739','🏰'],
   ['Glasgow Buchanan','https://bustimes.org/stops/60903826','🏙️'],
   ['Dunfermline Bus Station','https://bustimes.org/stations/650GD1601','🚌'],
   ['St Andrews Bus Station','https://bustimes.org/stations/650GN9501','⛳'],
