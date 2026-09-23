@@ -18,6 +18,7 @@ function extractVehicle(raw){
 function nsaState(text){
  const nsaLine=(text.match(/nsa(?:\s+status)?\s*:\s*([^\n]+)/i)||[])[1]||'';
  const value=nsaLine.trim().toLowerCase();
+ if(/^tc\b/i.test(value))return'tc';
  if(/^(?:n\s*[\/.]?\s*a|na|not\s+applicable|not\s+required)\b/i.test(value))return'na';
  if(/^(?:no|not\s+working|failed|faulty)\b/i.test(value))return'bad';
  if(/^(?:yes|working|fully\s+working)\b/i.test(value))return'good';
@@ -47,7 +48,8 @@ function decorate(){
   let badge=stack.querySelector('.nsaBadge');
   if(!badge){badge=document.createElement('span');badge.className='nsaBadge';stack.appendChild(badge);}
   const state=nsaState(raw);
-  if(state==='na'){badge.className='nsaBadge nsaNA';badge.textContent='NSA N/A';}
+  if(state==='tc'){badge.className='nsaBadge nsaNA';badge.textContent='NSA TC';}
+  else if(state==='na'){badge.className='nsaBadge nsaNA';badge.textContent='NSA N/A';}
   else if(state==='bad'){badge.className='nsaBadge nsaBad';badge.textContent='NSA NOT WORKING';}
   else{badge.className='nsaBadge nsaGood';badge.textContent='NSA WORKING';}
   const vehicleData=extractVehicle(raw);
