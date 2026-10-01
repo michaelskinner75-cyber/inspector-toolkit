@@ -8,7 +8,7 @@ function load(){
   if(!doc||doc.getElementById('serviceCatalogue20260817'))return;
   const script=doc.createElement('script');
   script.id='serviceCatalogue20260817';
-  script.src='service-catalog-20260817.js?v=20260817-1';
+  script.src='service-catalog-20260817.js?v=20261001-73-74-1';
   doc.body.appendChild(script);
 }
 frame.addEventListener('load',load);
