@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const CHANGE_ID='east-scotland-2026-08';
+const CHANGE_ID='east-scotland-2026-10-73-74';
 const withdrawals=[
   {code:'5',route:'Ferrytoll Park and Ride - Duloch Park - Ferrytoll Park and Ride',effectiveDate:'2026-08-17'},
   {code:'X56',route:'Edinburgh - Halbeath P&R - Perth',effectiveDate:'2026-08-24'}
@@ -10,6 +10,10 @@ const additions=[
   {code:'83',route:"Dunfermline bus station - Duloch Park - St David's Harbour - Inverkeithing Railway Station",effectiveDate:'2026-08-17'},
   {code:'87',route:'Wellwood Community Centre - Dunfermline - Duloch Park - Dalgety Bay - Inverkeithing Railway Station',effectiveDate:'2026-08-17'}
 ];
+const removedCodes=new Set(['73A','73C','74A','74C']);
+const routeOverrides={
+  '74':'Shanwell - Shanwell'
+};
 
 function clean(value){return String(value||'').trim().toLowerCase();}
 function same(a,b){return clean(a.code)===clean(b.code)&&clean(a.route)===clean(b.route);}
@@ -20,7 +24,13 @@ function today(){
 function update(list){
   const date=today();
   const activeWithdrawals=withdrawals.filter(item=>item.effectiveDate<=date);
-  const next=(Array.isArray(list)?list:[]).filter(item=>!activeWithdrawals.some(withdrawn=>same(item,withdrawn)));
+  const next=(Array.isArray(list)?list:[])
+    .filter(item=>!activeWithdrawals.some(withdrawn=>same(item,withdrawn)))
+    .filter(item=>!removedCodes.has(String(item.code||'').trim().toUpperCase()))
+    .map(item=>{
+      const code=String(item.code||'').trim().toUpperCase();
+      return routeOverrides[code]?{...item,route:routeOverrides[code]}:item;
+    });
   additions.filter(item=>item.effectiveDate<=date).forEach(item=>{
     if(!next.some(existing=>same(existing,item)))next.push({code:item.code,route:item.route});
   });
@@ -45,10 +55,11 @@ function apply(){
   window.dispatchEvent(new StorageEvent('storage',{key:'serviceCoverageList'}));
   window.INSPECTOR_SERVICE_CATALOGUE={
     changeId:CHANGE_ID,
-    effectiveDate:'2026-08-17',
-    source:'Stagecoach Fife and Perth service changes',
-    withdrawn:withdrawals,
-    added:additions
+    effectiveDate:'2026-10-01',
+    source:'Inspector Hub service catalogue updates',
+    withdrawn:[...withdrawals,...[...removedCodes].map(code=>({code,route:'All variants',effectiveDate:'2026-10-01'}))],
+    added:additions,
+    amended:[{code:'74',route:'Shanwell - Shanwell',effectiveDate:'2026-10-01'}]
   };
   return changed;
 }
