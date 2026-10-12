@@ -8,6 +8,7 @@ function selectedCode(){return clean($('csService')?.value).toUpperCase();}
 function terminusOptions(route){
  const code=selectedCode();
  if(code==='74')return['Shanwell'];
+ if(code==='X27')return['Leven','Kirkcaldy'];
  const base=endpoints(route);
  if(code==='73')return [...new Set([...base,'Dundee Whitehall Street','Carnoustie Westhaven Park'])];
  return base;
