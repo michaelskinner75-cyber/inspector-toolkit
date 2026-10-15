@@ -77,7 +77,8 @@
           <input class="field" id="csDepot" placeholder="Depot (or select West Scotland above)">
         </div>
         <input class="field" id="csDriver" placeholder="Driver">
-        <input class="field" id="csService" placeholder="Service">
+        <label class="fieldLabel">Service Group<select class="field" id="csServiceGroup"><option value="">Select service group</option><option>East Scotland</option><option>West Scotland</option></select></label>
+        <input class="field" id="csService" list="westScotlandServices" placeholder="Service (type or select)"><datalist id="westScotlandServices"><option value="1"></option><option value="1A"></option><option value="1B"></option><option value="2"></option><option value="2A"></option><option value="3"></option><option value="3B"></option><option value="4"></option><option value="5"></option><option value="6"></option><option value="7"></option><option value="9"></option><option value="10"></option><option value="11"></option><option value="12"></option><option value="14"></option><option value="18"></option><option value="22"></option><option value="23"></option><option value="25"></option><option value="25A"></option><option value="25B"></option><option value="25C"></option><option value="25D"></option><option value="25E"></option><option value="25X"></option><option value="28"></option><option value="28A"></option><option value="30"></option><option value="30A"></option><option value="X36"></option><option value="X36A"></option><option value="42"></option><option value="42A"></option><option value="X42"></option><option value="43"></option><option value="43A"></option><option value="50"></option><option value="52"></option><option value="58"></option><option value="60"></option><option value="61"></option><option value="X71"></option><option value="X74"></option><option value="76"></option><option value="X76"></option><option value="X76B"></option><option value="X77"></option><option value="X77K"></option><option value="X78"></option><option value="X79"></option><option value="97"></option><option value="110"></option><option value="301"></option><option value="302"></option><option value="306"></option><option value="321"></option><option value="322"></option><option value="323"></option><option value="323A"></option><option value="324"></option><option value="343"></option><option value="347"></option><option value="352"></option><option value="356"></option><option value="358"></option><option value="360"></option><option value="361"></option><option value="585"></option><option value="585A"></option><option value="X585"></option><option value="S3"></option><option value="S9"></option></datalist>
         <input class="field" id="csFleet" placeholder="Fleet number">
         <input class="field" id="csTimeOn" type="time">
         <input class="field" id="csBoarding" placeholder="Boarding point">
@@ -206,6 +207,25 @@
     this.style.display='none';
     toggle.setAttribute('aria-expanded','false');
     toggle.textContent='WEST SCOTLAND DEPOTS ▸';
+  });
+})();
+</script>
+<script>
+(function(){
+  const group=document.getElementById('csServiceGroup');
+  const service=document.getElementById('csService');
+  const list=document.getElementById('westScotlandServices');
+  if(!group||!service||!list)return;
+  const westServices=["1","1A","1B","2","2A","3","3B","4","5","6","7","9","10","11","12","14","18","22","23","25","25A","25B","25C","25D","25E","25X","28","28A","30","30A","X36","X36A","42","42A","X42","43","43A","50","52","58","60","61","X71","X74","76","X76","X76B","X77","X77K","X78","X79","97","110","301","302","306","321","322","323","323A","324","343","347","352","356","358","360","361","585","585A","X585","S3","S9"];
+  const existing=[...list.options].map(o=>o.value);
+  group.addEventListener('change',function(){
+    if(this.value==='West Scotland'){
+      list.replaceChildren(...westServices.map(value=>{const option=document.createElement('option');option.value=value;return option;}));
+      service.placeholder='West Scotland service (type or select)';
+    } else {
+      list.replaceChildren(...existing.map(value=>{const option=document.createElement('option');option.value=value;return option;}));
+      service.placeholder='Service (type or select)';
+    }
   });
 })();
 </script>
