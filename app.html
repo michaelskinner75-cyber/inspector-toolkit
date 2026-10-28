@@ -10,6 +10,9 @@
 .nsaCard.good{background:#123d33;border-left:7px solid #459679}
 .nsaCard.bad{background:#5a1d22;border-left:7px solid #d64545}
 .nsaCard.na{background:#33485a;border-left:7px solid #7f98aa}
+#michaelLoginPinWrap[hidden],#michaelLoginPinError[hidden]{display:none!important}
+.michaelPinWrap{display:block;text-align:left;font-size:13px;font-weight:800;color:#dce6ed;margin:12px 0 4px}
+.michaelPinError{color:#ff9d9d;font-size:13px;font-weight:800;margin:7px 0}
 </style>
 </head>
 <body>
@@ -26,6 +29,8 @@
       <button type="button" class="loginChoice" data-login-name="Other">Other</button>
     </div>
     <input class="field" id="loginOtherInspector" placeholder="Enter inspector name" style="display:none">
+    <label id="michaelLoginPinWrap" class="michaelPinWrap" hidden>Michael Skinner PIN<input class="field" id="michaelLoginPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="Enter 4-digit PIN"></label>
+    <div id="michaelLoginPinError" class="michaelPinError" role="alert" hidden>Incorrect PIN. Please try again.</div>
     <div id="loginSelectionText" class="loginSelectionText">No inspector selected</div>
     <button class="btn loginBtn" id="loginBtn">LOG IN</button>
   </div>
@@ -182,6 +187,6 @@
     <section id="cloud" class="section"><button class="backBtn" data-open="home">← Back</button><h2>Cloud Data</h2><button class="btn refreshCloud">REFRESH CLOUD DATA</button><div class="log" id="cloudLog"></div></section>
   </div>
 </div>
-<script src="app.js?v=20261028-other-work-1"></script>
+<script src="app.js?v=20261028-michael-login-pin-2"></script>
 </body>
 </html>
