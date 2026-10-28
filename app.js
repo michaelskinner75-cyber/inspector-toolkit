@@ -1,5 +1,5 @@
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3LPrQ7Y1b7Suq7OvYSyoqoW4iYrAzNjBq6Li7t4SbtrfriBjH16e5iGG2ZRTKyjzk0A/exec';
-const sheets = ['Inspections','NSA Faults','Driver Reports','Early Running','Ticket Log'];
+const sheets = ['Inspections','NSA Faults','Driver Reports','Early Running','Ticket Log','Other Work'];
 let cloud = Object.fromEntries(sheets.map(s => [s, []]));
 let tickets = JSON.parse(localStorage.getItem('cloudTickets') || '[]');
 let lastTicket = tickets.length ? tickets.at(-1).type : 'None';
