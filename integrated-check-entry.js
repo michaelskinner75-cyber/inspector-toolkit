@@ -92,7 +92,7 @@ function fullDayValue(label,v){
   return '<div class="fdrDetail"><strong>'+esc(label)+'</strong><span>'+esc(value)+'</span></div>';
 }
 function fullDayCard(entry){
-  const r=entry.raw,parts=[],title=entry.label;
+  const r=entry.raw,parts=[];let title=entry.label;
   if(entry.kind==='inspection'){
     title='Service '+(r[5]||'-')+' • '+(r[4]||'Driver not entered');
     parts.push(fullDayValue('Depot',r[3]),fullDayValue('Driver',r[4]),fullDayValue('Service',r[5]),fullDayValue('Fleet',r[6]),fullDayValue('Boarding point',r[8]),fullDayValue('Destination',r[9]),fullDayValue('Time checked',fullDayTime(r[7])),fullDayValue('NSA',r[10]),fullDayValue('NSA fault',r[11]),fullDayValue('NSA notes',r[12]),fullDayValue('Driver action',r[13]),fullDayValue('Offence reference',r[15]),fullDayValue('Inspection / offence details',r[14]));
