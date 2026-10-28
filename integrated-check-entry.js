@@ -31,9 +31,8 @@ function buildOtherWorkPanel(section){if($('integratedOtherWorkPanel'))return $(
 const fullDaySources=['Inspections','Timing Checks','Early Running','Other Work'];
 let fullDayLoading=null;
 function fullDayIsMichael(){
-  const name=typeof getInspector==='function'?getInspector():(localStorage.getItem('activeInspector')||'');
-  return String(name).trim()==='M Skinner' &&
-    sessionStorage.getItem('michaelLoginVerified')==='1' &&
+  return typeof michaelSessionActive==='function' &&
+    michaelSessionActive() &&
     !!$('loginPage')?.classList.contains('hidden');
 }
 function fullDayDateKey(value){
