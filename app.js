@@ -18,14 +18,75 @@ function setStatus(t){$('syncStatus').textContent=t;}
 function download(name,text){const b=new Blob([text],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function openSection(id){const target=$(id);if(!target)return;document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));target.classList.add('active');window.scrollTo(0,0);}
 let pendingInspector='';
+const MICHAEL_LOGIN_SESSION='michaelLoginVerified';
+// Simple in-browser PIN gate. The public site does not provide server-side access control.
+function isMichaelLoginName(name){return /^(?:m\.?\s*skinner|michael\s+skinner)$/i.test(String(name||'').trim());}
 function getInspector(){return localStorage.getItem('activeInspector')||'';}
 function updateLoggedInDisplay(){const el=$('loggedInInspector');if(el)el.textContent=getInspector()||'Not logged in';}
-function selectLoginInspector(name){pendingInspector=name;document.querySelectorAll('.loginChoice').forEach(b=>b.classList.toggle('selected',b.dataset.loginName===name));const other=$('loginOtherInspector');if(other){other.style.display=name==='Other'?'block':'none';if(name!=='Other')other.value='';}const txt=$('loginSelectionText');if(txt)txt.textContent=name==='Other'?'Enter the inspector name below':`Selected: ${name}`;}
-function showLogin(){pendingInspector='';document.querySelectorAll('.loginChoice').forEach(b=>b.classList.remove('selected'));const other=$('loginOtherInspector');if(other){other.value='';other.style.display='none';}const txt=$('loginSelectionText');if(txt)txt.textContent='No inspector selected';$('loginPage').classList.remove('hidden');}
+function updateMichaelPinField(){
+ const name=pendingInspector==='Other'?$('loginOtherInspector')?.value:pendingInspector;
+ const visible=isMichaelLoginName(name),wrap=$('michaelLoginPinWrap'),pin=$('michaelLoginPin'),err=$('michaelLoginPinError');
+ if(wrap)wrap.hidden=!visible;
+ if(!visible&&pin)pin.value='';
+ if(err)err.hidden=true;
+}
+function selectLoginInspector(name){
+ pendingInspector=name;
+ document.querySelectorAll('.loginChoice').forEach(b=>b.classList.toggle('selected',b.dataset.loginName===name));
+ const other=$('loginOtherInspector');
+ if(other){other.style.display=name==='Other'?'block':'none';if(name!=='Other')other.value='';}
+ const txt=$('loginSelectionText');
+ if(txt)txt.textContent=name==='Other'?'Enter the inspector name below':`Selected: ${name}`;
+ updateMichaelPinField();
+ if(isMichaelLoginName(name))$('michaelLoginPin')?.focus();
+}
+function showLogin(){
+ sessionStorage.removeItem(MICHAEL_LOGIN_SESSION);
+ pendingInspector='';
+ document.querySelectorAll('.loginChoice').forEach(b=>b.classList.remove('selected'));
+ const other=$('loginOtherInspector');if(other){other.value='';other.style.display='none';}
+ const pin=$('michaelLoginPin');if(pin)pin.value='';
+ const wrap=$('michaelLoginPinWrap');if(wrap)wrap.hidden=true;
+ const err=$('michaelLoginPinError');if(err)err.hidden=true;
+ const txt=$('loginSelectionText');if(txt)txt.textContent='No inspector selected';
+ $('loginPage').classList.remove('hidden');
+ document.dispatchEvent(new Event('inspector-hub-login-change'));
+}
 function hideLogin(){$('loginPage').classList.add('hidden');}
-function completeLogin(){if(!pendingInspector){alert('Please select an inspector.');return;}const other=$('loginOtherInspector').value.trim();if(pendingInspector==='Other'&&!other){alert('Please enter the inspector name.');return;}const name=pendingInspector==='Other'?other:pendingInspector;localStorage.setItem('activeInspector',name);updateLoggedInDisplay();hideLogin();openSection('home');renderAll();}
-function changeInspector(){localStorage.removeItem('activeInspector');showLogin();}
-function initInspectorLogin(){updateLoggedInDisplay();showLogin();}
+function completeLogin(){
+ if(!pendingInspector){alert('Please select an inspector.');return;}
+ const other=$('loginOtherInspector').value.trim();
+ if(pendingInspector==='Other'&&!other){alert('Please enter the inspector name.');return;}
+ const requestedName=pendingInspector==='Other'?other:pendingInspector;
+ const michael=isMichaelLoginName(requestedName);
+ const pin=$('michaelLoginPin'),err=$('michaelLoginPinError');
+ if(michael&&(!pin||pin.value!=='1111')){
+   if(err)err.hidden=false;
+   if(pin){pin.value='';pin.focus();}
+   return;
+ }
+ const name=michael?'M Skinner':requestedName;
+ sessionStorage.removeItem(MICHAEL_LOGIN_SESSION);
+ if(michael)sessionStorage.setItem(MICHAEL_LOGIN_SESSION,'1');
+ localStorage.setItem('activeInspector',name);
+ if(pin)pin.value='';
+ if(err)err.hidden=true;
+ updateLoggedInDisplay();hideLogin();
+ document.dispatchEvent(new Event('inspector-hub-login-change'));
+ openSection('home');renderAll();
+}
+function changeInspector(){
+ sessionStorage.removeItem(MICHAEL_LOGIN_SESSION);
+ localStorage.removeItem('activeInspector');
+ updateLoggedInDisplay();
+ showLogin();
+}
+function initInspectorLogin(){
+ updateLoggedInDisplay();
+ showLogin();
+ $('loginOtherInspector')?.addEventListener('input',updateMichaelPinField);
+ $('michaelLoginPin')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();completeLogin();}});
+}
 async function cloudAppend(sheet,row){
  const rows=cloud[sheet]||(cloud[sheet]=[]);
  rows.push(row);
