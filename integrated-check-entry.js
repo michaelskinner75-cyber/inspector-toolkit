@@ -41,7 +41,7 @@ function fullDayDateKey(value){
   let m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\b|T)/);
   if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
   m=v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2}|\d{4})(?:\b|\s|$)/);
-  if(m){const year=m[3].length===2?'20'+m[3]:m[3];return year+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');}
+  if(m){const year=m[3].length===2?'20'+m[3]:m[3],first=Number(m[1]),second=Number(m[2]);const month=second>12&&first<=12?first:second,day=second>12&&first<=12?second:first;if(month<1||month>12||day<1||day>31)return'';return year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');}
   const date=new Date(v);return isNaN(date.getTime())?'':fullDayDateKey(date);
 }
 function fullDayMinutes(value){
@@ -100,7 +100,7 @@ function fullDayCard(entry){
     title='Service '+(r[4]||'-')+' • '+(r[3]||'Location not entered');
     parts.push(fullDayValue('Location',r[3]),fullDayValue('Service',r[4]),fullDayValue('Destination',r[5]),fullDayValue('Fleet',r[6]),fullDayValue('Driver',r[7]),fullDayValue('Scheduled',fullDayTime(r[8])),fullDayValue('Actual',fullDayTime(r[9])),fullDayValue('Result',r[11]||(Number.isFinite(Number(r[10]))?resultText(Number(r[10])):'')));
   }else{
-    title=r[5]||'Other Work';
+    title='Other Work Carried Out';
     parts.push(fullDayValue('Time From',fullDayTime(r[3])),fullDayValue('Time Until',fullDayTime(r[4])),fullDayValue('Work carried out',r[5]));
   }
   return '<article class="fdrCard fdr-'+entry.kind+'"><div class="fdrCardTop"><span class="fdrTime">'+esc(entry.time)+'</span><span class="fdrType">'+esc(entry.label)+'</span></div><h4>'+esc(title)+'</h4><div class="fdrBy">'+esc(entry.inspector||'Inspector not recorded')+'</div><div class="fdrDetails">'+parts.filter(Boolean).join('')+'</div></article>';
