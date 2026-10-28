@@ -112,9 +112,11 @@ function fullDayCard(entry){
     subline=inspector;
     parts.push(fullDayValue('Time From',fullDayTime(r[3])),fullDayValue('Time Until',fullDayTime(r[4])),fullDayValue('Work carried out',r[5]));
   }
-  // Native details behaves like Previous Inspections: collapsed by default,
-  // individually expandable via mouse, touch or keyboard, with no extra scripts.
-  return '<details class="fdrCard fdr-'+entry.kind+'"><summary class="fdrCardSummary"><span class="fdrCardHeading"><span class="fdrType">'+esc(entry.label)+'</span><span class="fdrHeadline">'+esc(headline)+'</span><span class="fdrSub">'+esc(subline)+'</span></span><span class="fdrExpand" aria-hidden="true"></span></summary><div class="fdrDetails">'+parts.filter(Boolean).join('')+'</div></details>';
+  // Match Previous Checks exactly: the same compactCheck, compactTop,
+  // compactMain, compactSub and compactDetails expansion mechanism.
+  const id='fullDayDetails'+entry.order;
+  const cls=entry.kind==='inspection'&&/offence|report submitted/i.test(String(r[13]||''))?' offence':entry.kind==='inspection'&&/advised/i.test(String(r[13]||''))?' advised':'';
+  return '<div class="compactCheck fdrCompact fdr-'+entry.kind+cls+'"><div class="compactTop" data-toggle="'+id+'" role="button" tabindex="0" aria-expanded="false"><div class="compactMain">'+esc(entry.label)+' • '+esc(headline)+'</div><div class="compactSub">'+esc(subline)+'</div></div><div class="compactDetails" id="'+id+'">'+parts.filter(Boolean).join('')+'</div></div>';
 }
 
 function fullDayInspectorOptions(){
@@ -156,6 +158,7 @@ function addFullDayStyle(){
   if($('fullDayStyle'))return;
   const s=document.createElement('style');s.id='fullDayStyle';
   s.textContent='#checksheet .checkTypeChooser{grid-template-columns:repeat(2,minmax(0,1fr))}#fullDayPanel{padding:15px;border-radius:14px;background:#10263a;border:1px solid #31536d}#fullDayPanel .fdrControls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}#fullDayPanel .fdrField{font-size:13px;color:#c5d2dc;font-weight:800;display:block}#fullDayPanel .fdrField .field{width:100%;box-sizing:border-box;margin-top:6px}#fullDayPanel #fdrInspectorWrap[hidden]{display:none!important}#fullDayPanel .fdrRefreshRow{margin-top:12px}#fullDayPanel .fdrStatus{font-size:12px;color:#b8c5ce;margin:10px 0}#fullDayPanel .fdrDayTitle{font-size:18px;margin:16px 0 12px}#fullDayPanel .fdrStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}#fullDayPanel .fdrStats>div{background:#091d2d;padding:12px 8px;border:1px solid #31536d;border-radius:10px;text-align:center}#fullDayPanel .fdrStats b{display:block;color:#eea83e;font-size:24px}#fullDayPanel .fdrStats span{display:block;color:#d0dbe3;font-size:11px;margin-top:3px}#fullDayPanel .fdrCard{background:#0d1c2b;border-radius:12px;padding:13px;margin:10px 0;border-left:5px solid #459679}#fullDayPanel .fdrCard.fdr-timing{border-left-color:#eea83e}#fullDayPanel .fdrCard.fdr-other{border-left-color:#5b9ce1}#fullDayPanel .fdrCardTop{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#fff}#fullDayPanel .fdrTime{font-weight:900;font-size:16px}#fullDayPanel .fdrType{font-size:11px;font-weight:800;background:#21405b;border-radius:20px;padding:4px 8px}#fullDayPanel .fdrCard h4{font-size:15px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}#fullDayPanel .fdrBy{font-size:12px;color:#b8c5ce;margin-bottom:9px}#fullDayPanel .fdrDetails{display:grid;grid-template-columns:1fr;gap:5px}#fullDayPanel .fdrDetail{font-size:13px;display:grid;grid-template-columns:minmax(110px,28%) minmax(0,1fr);gap:10px;padding-top:5px;border-top:1px solid #244055}#fullDayPanel .fdrDetail strong{color:#b8c5ce}#fullDayPanel .fdrDetail span{white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:620px){#checksheet .checkTypeChooser{grid-template-columns:repeat(2,minmax(0,1fr))}#fullDayPanel .fdrControls{grid-template-columns:1fr}#fullDayPanel .fdrStats{grid-template-columns:repeat(2,minmax(0,1fr))}#fullDayPanel .fdrDetail{grid-template-columns:1fr;gap:2px}}';
+  s.textContent+='#fullDayPanel .fdrCompact{margin:9px 0;border-left:7px solid #459679}#fullDayPanel .fdrCompact.fdr-timing{border-left-color:#eea83e}#fullDayPanel .fdrCompact.fdr-other{border-left-color:#5b9ce1}#fullDayPanel .fdrCompact.offence{border-left-color:#c83f49}#fullDayPanel .fdrCompact.advised{border-left-color:#eea83e}#fullDayPanel .fdrCompact .compactMain{line-height:1.4;overflow-wrap:anywhere}#fullDayPanel .fdrCompact .compactTop:focus-visible{outline:2px solid #eea83e;outline-offset:-2px}#fullDayPanel .fdrCompact .fdrDetail{line-height:1.5}';
   s.textContent+='#fullDayPanel details.fdrCard{padding:0;overflow:hidden}#fullDayPanel .fdrCardSummary{display:flex;justify-content:space-between;align-items:center;gap:12px;list-style:none;cursor:pointer;padding:12px 14px;touch-action:manipulation;min-height:46px}#fullDayPanel .fdrCardSummary::-webkit-details-marker{display:none}#fullDayPanel .fdrCardSummary::marker{content:""}#fullDayPanel .fdrCardHeading{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}#fullDayPanel .fdrType{align-self:flex-start}#fullDayPanel .fdrHeadline{color:#fff;font-weight:800;font-size:14px;line-height:1.4;overflow-wrap:anywhere}#fullDayPanel .fdrSub{font-size:12px;line-height:1.45;color:#b8c5ce;overflow-wrap:anywhere}#fullDayPanel .fdrExpand{flex:none;border:solid #eea83e;border-width:0 2px 2px 0;padding:4px;transform:rotate(45deg);transition:transform .15s}#fullDayPanel details[open] .fdrExpand{transform:rotate(225deg)}#fullDayPanel .fdrCardSummary:focus-visible{outline:2px solid #eea83e;outline-offset:-3px}#fullDayPanel .fdrCard .fdrDetails{display:grid;padding:2px 14px 14px;border-top:1px solid #31536d}#fullDayPanel .fdrCard:not([open]) .fdrDetails{display:none}';
   document.head.appendChild(s);
 }
@@ -168,6 +171,22 @@ function buildFullDayPanel(section){
   $('fdrDate').onchange=renderFullDay;
   $('fdrInspector').onchange=renderFullDay;
   $('fdrRefresh').onclick=refreshFullDay;
+  // Preserve the same tap-to-expand behaviour used by Previous Checks;
+  // make the summary keyboard accessible and sync the expanded state.
+  $('fdrReport').addEventListener('keydown',event=>{
+    const toggle=event.target.closest('.compactTop[data-toggle]');
+    if(toggle&&(event.key==='Enter'||event.key===' ')){
+      event.preventDefault();toggle.click();
+    }
+  });
+  $('fdrReport').addEventListener('click',event=>{
+    const toggle=event.target.closest('.compactTop[data-toggle]');
+    if(!toggle)return;
+    setTimeout(()=>{
+      const details=$(toggle.dataset.toggle);
+      toggle.setAttribute('aria-expanded',String(!!details?.classList.contains('show')));
+    },0);
+  });
   renderFullDay();
   return panel;
 }
