@@ -19,6 +19,57 @@ function download(name,text){const b=new Blob([text],{type:'text/csv'});const a=
 function openSection(id){const target=$(id);if(!target)return;document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));target.classList.add('active');window.scrollTo(0,0);}
 let pendingInspector='';
 const MICHAEL_LOGIN_SESSION='michaelLoginVerified';
+const MICHAEL_LOGIN_EXPIRY='michaelLoginExpiresAt';
+const MICHAEL_LOGIN_DURATION=60*60*1000;
+let michaelLoginTimer=null;
+function michaelSessionExpiry(){
+ const expires=Number(localStorage.getItem(MICHAEL_LOGIN_EXPIRY));
+ return Number.isFinite(expires)&&expires>0?expires:0;
+}
+function michaelSessionActive(){
+ return getInspector()==='M Skinner'
+  &&sessionStorage.getItem(MICHAEL_LOGIN_SESSION)==='1'
+  &&michaelSessionExpiry()>Date.now();
+}
+function clearMichaelLoginState(){
+ if(michaelLoginTimer!==null){clearTimeout(michaelLoginTimer);michaelLoginTimer=null;}
+ sessionStorage.removeItem(MICHAEL_LOGIN_SESSION);
+ localStorage.removeItem(MICHAEL_LOGIN_EXPIRY);
+}
+function scheduleMichaelLoginExpiry(){
+ if(michaelLoginTimer!==null){clearTimeout(michaelLoginTimer);michaelLoginTimer=null;}
+ if(!michaelSessionActive())return;
+ michaelLoginTimer=setTimeout(checkMichaelLoginExpiry,Math.max(1,michaelSessionExpiry()-Date.now()));
+}
+function checkMichaelLoginExpiry(){
+ const name=getInspector();
+ if(name==='M Skinner'&&michaelSessionActive())return;
+ if(name!=='M Skinner'&&sessionStorage.getItem(MICHAEL_LOGIN_SESSION)!=='1')return;
+ const wasMichael=name==='M Skinner';
+ clearMichaelLoginState();
+ if(wasMichael)localStorage.removeItem('activeInspector');
+ updateLoggedInDisplay();
+ showLogin();
+ const label=$('loginSelectionText');
+ if(wasMichael&&label)label.textContent='Michael Skinner login expired after one hour. Enter your PIN to log in again.';
+}
+function restoreMichaelLogin(){
+ if(getInspector()==='M Skinner'&&michaelSessionExpiry()>Date.now()){
+  sessionStorage.setItem(MICHAEL_LOGIN_SESSION,'1');
+  hideLogin();
+  updateLoggedInDisplay();
+  scheduleMichaelLoginExpiry();
+  document.dispatchEvent(new Event('inspector-hub-login-change'));
+  return true;
+ }
+ if(getInspector()==='M Skinner'){
+  clearMichaelLoginState();
+  localStorage.removeItem('activeInspector');
+  updateLoggedInDisplay();
+ }
+ showLogin();
+ return false;
+}
 // Simple in-browser PIN gate. The public site does not provide server-side access control.
 function isMichaelLoginName(name){return /^(?:m\.?\s*skinner|michael\s+skinner)$/i.test(String(name||'').trim());}
 function getInspector(){return localStorage.getItem('activeInspector')||'';}
@@ -41,7 +92,7 @@ function selectLoginInspector(name){
  if(isMichaelLoginName(name))$('michaelLoginPin')?.focus();
 }
 function showLogin(){
- sessionStorage.removeItem(MICHAEL_LOGIN_SESSION);
+ clearMichaelLoginState();
  pendingInspector='';
  document.querySelectorAll('.loginChoice').forEach(b=>b.classList.remove('selected'));
  const other=$('loginOtherInspector');if(other){other.value='';other.style.display='none';}
@@ -66,9 +117,13 @@ function completeLogin(){
    return;
  }
  const name=michael?'M Skinner':requestedName;
- sessionStorage.removeItem(MICHAEL_LOGIN_SESSION);
- if(michael)sessionStorage.setItem(MICHAEL_LOGIN_SESSION,'1');
+ clearMichaelLoginState();
  localStorage.setItem('activeInspector',name);
+ if(michael){
+  localStorage.setItem(MICHAEL_LOGIN_EXPIRY,String(Date.now()+MICHAEL_LOGIN_DURATION));
+  sessionStorage.setItem(MICHAEL_LOGIN_SESSION,'1');
+  scheduleMichaelLoginExpiry();
+ }
  if(pin)pin.value='';
  if(err)err.hidden=true;
  updateLoggedInDisplay();hideLogin();
@@ -76,16 +131,23 @@ function completeLogin(){
  openSection('home');renderAll();
 }
 function changeInspector(){
- sessionStorage.removeItem(MICHAEL_LOGIN_SESSION);
+ clearMichaelLoginState();
  localStorage.removeItem('activeInspector');
  updateLoggedInDisplay();
  showLogin();
 }
 function initInspectorLogin(){
  updateLoggedInDisplay();
- showLogin();
+ restoreMichaelLogin();
  $('loginOtherInspector')?.addEventListener('input',updateMichaelPinField);
  $('michaelLoginPin')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();completeLogin();}});
+ // Suspended mobile tabs can defer timers; validate immediately when returning.
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkMichaelLoginExpiry();});
+ window.addEventListener('focus',checkMichaelLoginExpiry);
+ window.addEventListener('pageshow',checkMichaelLoginExpiry);
+ window.addEventListener('storage',e=>{
+  if(e.key===MICHAEL_LOGIN_EXPIRY||e.key==='activeInspector')checkMichaelLoginExpiry();
+ });
 }
 async function cloudAppend(sheet,row){
  const rows=cloud[sheet]||(cloud[sheet]=[]);
