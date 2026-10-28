@@ -92,19 +92,31 @@ function fullDayValue(label,v){
   return '<div class="fdrDetail"><strong>'+esc(label)+'</strong><span>'+esc(value)+'</span></div>';
 }
 function fullDayCard(entry){
-  const r=entry.raw,parts=[];let title=entry.label;
+  const r=entry.raw,parts=[];
+  const inspector=entry.inspector||'Inspector not recorded';
+  let headline='',subline='';
   if(entry.kind==='inspection'){
-    title='Service '+(r[5]||'-')+' • '+(r[4]||'Driver not entered');
+    const status=/offence|report submitted/i.test(String(r[13]||''))?'REPORTED':/advised/i.test(String(r[13]||''))?'ADVISED':r[10]==='No'?'NSA':'OK';
+    headline=[entry.time,r[5]||'-',r[6]||'-',r[4]||'-',status].join(' | ');
+    subline=[r[3]||'-',(r[8]||'-')+' → '+(r[9]||'-'),inspector].join(' • ');
     parts.push(fullDayValue('Depot',r[3]),fullDayValue('Driver',r[4]),fullDayValue('Service',r[5]),fullDayValue('Fleet',r[6]),fullDayValue('Boarding point',r[8]),fullDayValue('Destination',r[9]),fullDayValue('Time checked',fullDayTime(r[7])),fullDayValue('NSA',r[10]),fullDayValue('NSA fault',r[11]),fullDayValue('NSA notes',r[12]),fullDayValue('Driver action',r[13]),fullDayValue('Offence reference',r[15]),fullDayValue('Inspection / offence details',r[14]));
   }else if(entry.kind==='timing'){
-    title='Service '+(r[4]||'-')+' • '+(r[3]||'Location not entered');
-    parts.push(fullDayValue('Location',r[3]),fullDayValue('Service',r[4]),fullDayValue('Destination',r[5]),fullDayValue('Fleet',r[6]),fullDayValue('Driver',r[7]),fullDayValue('Scheduled',fullDayTime(r[8])),fullDayValue('Actual',fullDayTime(r[9])),fullDayValue('Result',r[11]||(Number.isFinite(Number(r[10]))?resultText(Number(r[10])):'')));
+    const status=r[11]||(Number.isFinite(Number(r[10]))?resultText(Number(r[10])):'-');
+    headline=[entry.time,r[4]||'-',r[6]||'-',r[7]||'-',status].join(' | ');
+    subline=[r[3]||'-',r[5]||'-',inspector].join(' • ');
+    parts.push(fullDayValue('Location',r[3]),fullDayValue('Service',r[4]),fullDayValue('Destination',r[5]),fullDayValue('Fleet',r[6]),fullDayValue('Driver',r[7]),fullDayValue('Scheduled',fullDayTime(r[8])),fullDayValue('Actual',fullDayTime(r[9])),fullDayValue('Result',status));
   }else{
-    title='Other Work Carried Out';
+    const note=String(r[5]||'').replace(/\s+/g,' ').trim();
+    const shortNote=note.length>72?note.slice(0,69).trimEnd()+'…':note;
+    headline=[fullDayTime(r[3])+' – '+fullDayTime(r[4]),'OTHER WORK',shortNote||'-'].join(' | ');
+    subline=inspector;
     parts.push(fullDayValue('Time From',fullDayTime(r[3])),fullDayValue('Time Until',fullDayTime(r[4])),fullDayValue('Work carried out',r[5]));
   }
-  return '<article class="fdrCard fdr-'+entry.kind+'"><div class="fdrCardTop"><span class="fdrTime">'+esc(entry.time)+'</span><span class="fdrType">'+esc(entry.label)+'</span></div><h4>'+esc(title)+'</h4><div class="fdrBy">'+esc(entry.inspector||'Inspector not recorded')+'</div><div class="fdrDetails">'+parts.filter(Boolean).join('')+'</div></article>';
+  // Native details behaves like Previous Inspections: collapsed by default,
+  // individually expandable via mouse, touch or keyboard, with no extra scripts.
+  return '<details class="fdrCard fdr-'+entry.kind+'"><summary class="fdrCardSummary"><span class="fdrCardHeading"><span class="fdrType">'+esc(entry.label)+'</span><span class="fdrHeadline">'+esc(headline)+'</span><span class="fdrSub">'+esc(subline)+'</span></span><span class="fdrExpand" aria-hidden="true"></span></summary><div class="fdrDetails">'+parts.filter(Boolean).join('')+'</div></details>';
 }
+
 function fullDayInspectorOptions(){
   const select=$('fdrInspector'),wrap=$('fdrInspectorWrap');
   if(!select||!wrap)return;
@@ -144,12 +156,13 @@ function addFullDayStyle(){
   if($('fullDayStyle'))return;
   const s=document.createElement('style');s.id='fullDayStyle';
   s.textContent='#checksheet .checkTypeChooser{grid-template-columns:repeat(2,minmax(0,1fr))}#fullDayPanel{padding:15px;border-radius:14px;background:#10263a;border:1px solid #31536d}#fullDayPanel .fdrControls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}#fullDayPanel .fdrField{font-size:13px;color:#c5d2dc;font-weight:800;display:block}#fullDayPanel .fdrField .field{width:100%;box-sizing:border-box;margin-top:6px}#fullDayPanel #fdrInspectorWrap[hidden]{display:none!important}#fullDayPanel .fdrRefreshRow{margin-top:12px}#fullDayPanel .fdrStatus{font-size:12px;color:#b8c5ce;margin:10px 0}#fullDayPanel .fdrDayTitle{font-size:18px;margin:16px 0 12px}#fullDayPanel .fdrStats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}#fullDayPanel .fdrStats>div{background:#091d2d;padding:12px 8px;border:1px solid #31536d;border-radius:10px;text-align:center}#fullDayPanel .fdrStats b{display:block;color:#eea83e;font-size:24px}#fullDayPanel .fdrStats span{display:block;color:#d0dbe3;font-size:11px;margin-top:3px}#fullDayPanel .fdrCard{background:#0d1c2b;border-radius:12px;padding:13px;margin:10px 0;border-left:5px solid #459679}#fullDayPanel .fdrCard.fdr-timing{border-left-color:#eea83e}#fullDayPanel .fdrCard.fdr-other{border-left-color:#5b9ce1}#fullDayPanel .fdrCardTop{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#fff}#fullDayPanel .fdrTime{font-weight:900;font-size:16px}#fullDayPanel .fdrType{font-size:11px;font-weight:800;background:#21405b;border-radius:20px;padding:4px 8px}#fullDayPanel .fdrCard h4{font-size:15px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}#fullDayPanel .fdrBy{font-size:12px;color:#b8c5ce;margin-bottom:9px}#fullDayPanel .fdrDetails{display:grid;grid-template-columns:1fr;gap:5px}#fullDayPanel .fdrDetail{font-size:13px;display:grid;grid-template-columns:minmax(110px,28%) minmax(0,1fr);gap:10px;padding-top:5px;border-top:1px solid #244055}#fullDayPanel .fdrDetail strong{color:#b8c5ce}#fullDayPanel .fdrDetail span{white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:620px){#checksheet .checkTypeChooser{grid-template-columns:repeat(2,minmax(0,1fr))}#fullDayPanel .fdrControls{grid-template-columns:1fr}#fullDayPanel .fdrStats{grid-template-columns:repeat(2,minmax(0,1fr))}#fullDayPanel .fdrDetail{grid-template-columns:1fr;gap:2px}}';
+  s.textContent+='#fullDayPanel details.fdrCard{padding:0;overflow:hidden}#fullDayPanel .fdrCardSummary{display:flex;justify-content:space-between;align-items:center;gap:12px;list-style:none;cursor:pointer;padding:12px 14px;touch-action:manipulation;min-height:46px}#fullDayPanel .fdrCardSummary::-webkit-details-marker{display:none}#fullDayPanel .fdrCardSummary::marker{content:""}#fullDayPanel .fdrCardHeading{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}#fullDayPanel .fdrType{align-self:flex-start}#fullDayPanel .fdrHeadline{color:#fff;font-weight:800;font-size:14px;line-height:1.4;overflow-wrap:anywhere}#fullDayPanel .fdrSub{font-size:12px;line-height:1.45;color:#b8c5ce;overflow-wrap:anywhere}#fullDayPanel .fdrExpand{flex:none;border:solid #eea83e;border-width:0 2px 2px 0;padding:4px;transform:rotate(45deg);transition:transform .15s}#fullDayPanel details[open] .fdrExpand{transform:rotate(225deg)}#fullDayPanel .fdrCardSummary:focus-visible{outline:2px solid #eea83e;outline-offset:-3px}#fullDayPanel .fdrCard .fdrDetails{display:grid;padding:2px 14px 14px;border-top:1px solid #31536d}#fullDayPanel .fdrCard:not([open]) .fdrDetails{display:none}';
   document.head.appendChild(s);
 }
 function buildFullDayPanel(section){
   if($('fullDayPanel'))return $('fullDayPanel');
   const panel=document.createElement('div');panel.id='fullDayPanel';panel.className='inspectionModeHidden';
-  panel.innerHTML='<h3>Full Day Report</h3><p class="small">All inspections, timing checks and other work for the date selected, shown in time order.</p><div class="fdrControls"><label class="fdrField">Select Date<input type="date" class="field" id="fdrDate"></label><label class="fdrField" id="fdrInspectorWrap" hidden>Filter by Inspector<select class="field" id="fdrInspector"><option value="all">All inspectors</option></select></label></div><div class="fdrRefreshRow"><button type="button" class="btn" id="fdrRefresh">REFRESH FULL DAY REPORT</button></div><div class="fdrStatus" id="fdrStatus" role="status">Select a date to review all recorded work.</div><div id="fdrReport"></div>';
+  panel.innerHTML='<h3>Full Day Report</h3><p class="small">All inspections, timing checks and other work for the selected date. Tap any entry to expand its details.</p><div class="fdrControls"><label class="fdrField">Select Date<input type="date" class="field" id="fdrDate"></label><label class="fdrField" id="fdrInspectorWrap" hidden>Filter by Inspector<select class="field" id="fdrInspector"><option value="all">All inspectors</option></select></label></div><div class="fdrRefreshRow"><button type="button" class="btn" id="fdrRefresh">REFRESH FULL DAY REPORT</button></div><div class="fdrStatus" id="fdrStatus" role="status">Select a date to review all recorded work.</div><div id="fdrReport"></div>';
   section.append(panel);
   $('fdrDate').value=otherWorkLocalDate();
   $('fdrDate').onchange=renderFullDay;
