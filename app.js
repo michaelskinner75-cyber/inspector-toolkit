@@ -27,9 +27,7 @@ function michaelSessionExpiry(){
  return Number.isFinite(expires)&&expires>0?expires:0;
 }
 function michaelSessionActive(){
- return getInspector()==='M Skinner'
-  &&sessionStorage.getItem(MICHAEL_LOGIN_SESSION)==='1'
-  &&michaelSessionExpiry()>Date.now();
+ return getInspector()==='M Skinner' && michaelSessionExpiry()>Date.now();
 }
 function clearMichaelLoginState(){
  if(michaelLoginTimer!==null){clearTimeout(michaelLoginTimer);michaelLoginTimer=null;}
@@ -43,7 +41,10 @@ function scheduleMichaelLoginExpiry(){
 }
 function checkMichaelLoginExpiry(){
  const name=getInspector();
- if(name==='M Skinner'&&michaelSessionActive())return;
+ if(name==='M Skinner'&&michaelSessionActive()){
+  hideLogin();
+  return;
+ }
  if(name!=='M Skinner'&&sessionStorage.getItem(MICHAEL_LOGIN_SESSION)!=='1')return;
  const wasMichael=name==='M Skinner';
  clearMichaelLoginState();
@@ -89,10 +90,16 @@ function selectLoginInspector(name){
  const txt=$('loginSelectionText');
  if(txt)txt.textContent=name==='Other'?'Enter the inspector name below':`Selected: ${name}`;
  updateMichaelPinField();
+ if(isMichaelLoginName(name)&&michaelSessionActive()){
+  restoreMichaelLogin();
+  openSection('home');
+  return;
+ }
  if(isMichaelLoginName(name))$('michaelLoginPin')?.focus();
 }
 function showLogin(){
- clearMichaelLoginState();
+ // Displaying the login screen must not erase an unexpired device session.
+ // The session is cleared only on explicit logout, switching accounts or expiry.
  pendingInspector='';
  document.querySelectorAll('.loginChoice').forEach(b=>b.classList.remove('selected'));
  const other=$('loginOtherInspector');if(other){other.value='';other.style.display='none';}
@@ -110,6 +117,11 @@ function completeLogin(){
  if(pendingInspector==='Other'&&!other){alert('Please enter the inspector name.');return;}
  const requestedName=pendingInspector==='Other'?other:pendingInspector;
  const michael=isMichaelLoginName(requestedName);
+ if(michael&&michaelSessionActive()){
+  restoreMichaelLogin();
+  openSection('home');
+  return;
+ }
  const pin=$('michaelLoginPin'),err=$('michaelLoginPinError');
  if(michael&&(!pin||pin.value!=='1111')){
    if(err)err.hidden=false;
