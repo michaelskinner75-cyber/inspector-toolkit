@@ -43,7 +43,7 @@ async function useCurrentLocation(btn){
   },50);
  }catch(e){
   if(name)name.textContent='Unable to find nearby stops';
-  if(meta)meta.textContent='Check location access, then tap Use Current Location again.';
+  if(meta)meta.textContent='Nearby bus stop data did not load. Try again, or enter the stop manually in the Check Sheet.';
  }finally{
   btn.disabled=false;btn.classList.remove('locating');btn.textContent='📍 USE CURRENT LOCATION';
  }
