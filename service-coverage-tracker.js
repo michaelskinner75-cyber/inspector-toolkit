@@ -7,8 +7,8 @@ const today=()=>M.date(new Date()),clock=()=>new Date().toLocaleTimeString('en-G
 let filter='all',editing='',lastRefresh=0,refreshing=null;
 function group(s){const c=String(s.code||'').toUpperCase();if(c.startsWith('X'))return'X';if(/^[A-Z]/.test(c))return'OTHER';const n=parseInt(c,10);return Number.isNaN(n)||n>=100?'OTHER':String(Math.floor(n/10)*10);}
 function editBox(s){
- const item=s.override&&s.override.status!=='AUTO'?s.override:s.item;
- const state=s.override?.status==='NOT_CHECKED'?'NOT_CHECKED':s.item?'CHECKED':'NOT_CHECKED';
+ const item=s.override&&s.override.status!=='AUTO'?s.override:(s.item||s.original);
+ const state=s.override&&s.override.status!=='AUTO'?s.override.status:(s.original?'CHECKED':'NOT_CHECKED');
  const inspector=item?.inspector||((typeof getInspector==='function')?getInspector():'');
  return '<form class="sctEdit" data-sct-form="'+esc(s.id)+'"><label>Status<select class="field" name="status"><option value="CHECKED" '+(state==='CHECKED'?'selected':'')+'>Checked</option><option value="NOT_CHECKED" '+(state==='NOT_CHECKED'?'selected':'')+'>Not checked</option><option value="AUTO">Return to automatic tracking</option></select></label><label>Inspector<input name="inspector" class="field" value="'+esc(inspector)+'"></label><label>Date checked<input name="date" type="date" class="field" value="'+esc(item?.date||today())+'"></label><label>Time checked<input name="time" type="time" class="field" value="'+esc(item?.time||clock())+'"></label><div class="sctActions"><button class="btn" type="submit">SAVE CHANGES</button><button class="btn danger" type="button" data-sct-cancel>CANCEL</button></div><div class="small">Amendments are shared; the original inspection record is unchanged.</div></form>';
 }
@@ -77,7 +77,7 @@ function start(){
  section.addEventListener('submit',e=>{if(e.target.matches('[data-sct-form]'))save(e);});
  search?.addEventListener('input',render);
  window.renderCoverage=render;render();setTimeout(refresh,400);
- document.addEventListener('click',e=>{if(e.target.closest('[data-open="coverage"]'))setTimeout(()=>{if(Date.now()-lastRefresh>20000)refresh();},200);});
+ document.addEventListener('click',e=>{if(e.target.closest('[data-open="coverage"]'))setTimeout(refresh,200);});
  setInterval(()=>{if(section.classList.contains('active')&&Date.now()-lastRefresh>55000)refresh();},60000);
  return true;
 }
