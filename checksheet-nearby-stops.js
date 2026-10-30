@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const endpoints=['https://overpass.private.coffee/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter','https://lz4.overpass-api.de/api/interpreter','https://overpass.osm.ch/api/interpreter'];
-const CACHE_KEY='inspectorNearbyStopsCacheV9';
+const CACHE_KEY='inspectorNearbyStopsCacheV10';
 const officialNameCache=new Map();
 let currentStops=[],autoTried=false,activeLookup=null;
 function distance(a,b,c,d){const R=6371000,p=Math.PI/180,x=(d-b)*p*Math.cos((a+c)*p/2),y=(c-a)*p;return Math.round(Math.sqrt(x*x+y*y)*R);}
@@ -17,7 +17,46 @@ function stripSiteSuffix(value){return clean(value).replace(/\s+[-–—]\s+(?:b
 function parseOfficialTitle(text){const lines=String(text||'').split(/\r?\n/).map(clean).filter(Boolean);const heading=lines.find(x=>/^#\s+/.test(x)&&!/bustimes\.org/i.test(x));if(heading)return stripSiteSuffix(heading.replace(/^#\s+/,''));const title=lines.find(x=>/^Title:\s*/i.test(x));if(title)return stripSiteSuffix(title.replace(/^Title:\s*/i,''));return'';}
 async function officialStopName(code){const key=clean(code).toUpperCase();if(!key)return'';if(officialNameCache.has(key))return officialNameCache.get(key);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),2500);try{const url='https://r.jina.ai/http://https://bustimes.org/stops/'+encodeURIComponent(key);const r=await fetch(url,{headers:{Accept:'text/plain'},signal:controller.signal});if(!r.ok)throw new Error('Official title unavailable');const name=parseOfficialTitle(await r.text());officialNameCache.set(key,name);return name;}catch(e){officialNameCache.set(key,'');return'';}finally{clearTimeout(timer);}}
 async function enrichNamesInBackground(stops,lat,lon){const batch=stops.slice(0,5);await Promise.all(batch.map(async s=>{const official=await officialStopName(s.code);if(official)s.name=official;}));if(stops===currentStops||stops.every((s,i)=>currentStops[i]?.key===s.key))publishStops(lat,lon);}
+// First-party Scottish stop catalogue is hosted on the same domain as Inspector Hub.
+// This avoids third-party cross-origin restrictions that can break on iPhones.
+let bundledStopsPromise=null;
+async function loadBundledStops(){
+ if(bundledStopsPromise)return bundledStopsPromise;
+ bundledStopsPromise=(async()=>{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  try{
+   const r=await fetch('scotland-bus-stops.json',{cache:'force-cache',signal:controller.signal});
+   if(!r.ok)throw new Error('Local stop catalogue not published yet');
+   const data=await r.json();
+   if(!Array.isArray(data.stops)||data.stops.length<1000)throw new Error('Local stop catalogue incomplete');
+   return data.stops;
+  }finally{clearTimeout(timer);}
+ })().catch(e=>{bundledStopsPromise=null;throw e;});
+ return bundledStopsPromise;
+}
+async function findBundledStops(lat,lon){
+ // This catalogue includes East Scotland and neighbouring Scottish regions.
+ if(lat<54||lat>59||lon< -8||lon>0)return [];
+ const records=await loadBundledStops(),nearby=[];
+ const radius=3500,cos=Math.cos(lat*Math.PI/180),unitLat=111195,unitLon=111195*cos;
+ for(const item of records){
+  const y=(item[0]-lat)*unitLat;
+  if(Math.abs(y)>radius)continue;
+  const x=(item[1]-lon)*unitLon,metres=Math.round(Math.sqrt(x*x+y*y));
+  if(metres>radius)continue;
+  const name=clean(item[3]),locality=clean(item[4]),indicator=clean(item[5]);
+  let fullName=name||'Bus stop';
+  if(indicator&&!fullName.toLowerCase().includes(indicator.toLowerCase()))fullName+=' ('+indicator+')';
+  if(locality&&!fullName.toLowerCase().startsWith(locality.toLowerCase()))fullName=locality+', '+fullName;
+  nearby.push({name:fullName,code:clean(item[2]),bearing:indicator,dist:metres,lat:item[0],lon:item[1],key:clean(item[2]).toLowerCase()});
+ }
+ return nearby.sort((a,b)=>a.dist-b.dist).slice(0,20);
+}
 async function fetchStops(lat,lon){
+ // Prefer the local official NaPTAN stop list; no remote API needed.
+ try{const bundled=await findBundledStops(lat,lon);if(bundled.length)return bundled;}
+ catch(e){console.warn('Local NaPTAN bus stops unavailable; attempting online fallback',e.message);}
+
  let hadValidResponse=false,lastError=null;
  for(const radius of [1800,3500,5500]){
   const query='[out:json][timeout:10];(node(around:'+radius+','+lat+','+lon+')[highway=bus_stop];node(around:'+radius+','+lat+','+lon+')[public_transport=platform][bus=yes];way(around:'+radius+','+lat+','+lon+')[public_transport=platform][bus=yes];);out center;';
@@ -62,8 +101,8 @@ async function fetchStops(lat,lon){
  if(hadValidResponse)return [];
  throw lastError||new Error('Unable to load bus stops');
 }
-function publishStops(lat,lon){window.inspectorNearbyStops={stops:currentStops.slice(),lat,lon,updated:Date.now(),formatVersion:9};try{localStorage.setItem(CACHE_KEY,JSON.stringify(window.inspectorNearbyStops));}catch(e){}document.dispatchEvent(new CustomEvent('inspector-nearby-stops',{detail:window.inspectorNearbyStops}));}
-function hydrateCache(){try{const cached=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(cached?.formatVersion===9&&cached?.stops?.length&&Date.now()-cached.updated<600000){currentStops=cached.stops.slice();window.inspectorNearbyStops=cached;}}catch(e){}}
+function publishStops(lat,lon){window.inspectorNearbyStops={stops:currentStops.slice(),lat,lon,updated:Date.now(),formatVersion:10};try{localStorage.setItem(CACHE_KEY,JSON.stringify(window.inspectorNearbyStops));}catch(e){}document.dispatchEvent(new CustomEvent('inspector-nearby-stops',{detail:window.inspectorNearbyStops}));}
+function hydrateCache(){try{const cached=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');if(cached?.formatVersion===10&&cached?.stops?.length&&Date.now()-cached.updated<600000){currentStops=cached.stops.slice();window.inspectorNearbyStops=cached;}}catch(e){}}
 hydrateCache();
 function sharedLookup(force){
  if(activeLookup)return activeLookup;
@@ -73,7 +112,7 @@ function sharedLookup(force){
    try{
     const lat=p.coords.latitude,lon=p.coords.longitude,cached=window.inspectorNearbyStops;
     window.inspectorLastNearbyPosition={lat,lon,updated:Date.now()};
-    const nearbyCache=!force&&cached?.formatVersion===9&&cached?.stops?.length&&Date.now()-cached.updated<600000&&Number.isFinite(Number(cached.lat))&&Number.isFinite(Number(cached.lon))&&distance(lat,lon,Number(cached.lat),Number(cached.lon))<300;
+    const nearbyCache=!force&&cached?.formatVersion===10&&cached?.stops?.length&&Date.now()-cached.updated<600000&&Number.isFinite(Number(cached.lat))&&Number.isFinite(Number(cached.lon))&&distance(lat,lon,Number(cached.lat),Number(cached.lon))<300;
     if(nearbyCache){currentStops=cached.stops.slice();resolve(currentStops);return;}
     currentStops=await fetchStops(lat,lon);
     publishStops(lat,lon);
