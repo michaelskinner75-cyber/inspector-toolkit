@@ -106,7 +106,7 @@ function buildLayout(){
   const boarding=$('csBoarding');
   if(boarding){
     const wrap=document.createElement('div');wrap.className='locationWrap full';
-    const btn=document.createElement('button');btn.type='button';btn.className='geoBtn';btn.id='useCurrentLocationBtn';btn.textContent='Use Location';
+    const btn=document.createElement('button');btn.type='button';btn.className='geoBtn';btn.id='useCurrentLocationBtn';btn.textContent='USE CURRENT LOCATION';
     const status=document.createElement('div');status.className='geoStatus';status.id='geoLocationStatus';status.textContent='';
     wrap.append(boarding,btn,status);journey.grid.appendChild(wrap);
   }
@@ -141,10 +141,13 @@ function readableAddress(address){
 
 async function reverseGeocode(lat,lon){
   const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1&accept-language=en`;
-  const response=await fetch(url,{headers:{'Accept':'application/json'}});
-  if(!response.ok)throw new Error('Location lookup failed');
-  const data=await response.json();
-  return readableAddress(data.address)||(data.display_name||'').split(',').slice(0,3).join(', ');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),7000);
+  try{
+   const response=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});
+   if(!response.ok)throw new Error('Location lookup failed');
+   const data=await response.json();
+   return readableAddress(data.address)||(data.display_name||'').split(',').slice(0,3).join(', ');
+  }finally{clearTimeout(timer);}
 }
 
 function setupGeolocation(){
@@ -156,20 +159,21 @@ function setupGeolocation(){
     btn.disabled=true;btn.textContent='Locating…';if(status)status.textContent='Waiting for location permission…';
     navigator.geolocation.getCurrentPosition(async pos=>{
       const lat=pos.coords.latitude,lon=pos.coords.longitude;
+      if(boarding){boarding.value=lat.toFixed(5)+', '+lon.toFixed(5);boarding.dispatchEvent(new Event('input',{bubbles:true}));boarding.dispatchEvent(new Event('change',{bubbles:true}));}
       try{
         if(status)status.textContent='Finding the nearest street or place…';
         const place=await reverseGeocode(lat,lon);
-        if(boarding)boarding.value=place||`${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+        if(boarding){boarding.value=place||`${lat.toFixed(5)}, ${lon.toFixed(5)}`;boarding.dispatchEvent(new Event('input',{bubbles:true}));boarding.dispatchEvent(new Event('change',{bubbles:true}));}
         if(status)status.textContent=place?'Street/place added. You can edit it if needed.':'Coordinates added because a street name was unavailable.';
       }catch(err){
         if(boarding)boarding.value=`${lat.toFixed(5)}, ${lon.toFixed(5)}`;
         if(status)status.textContent='Coordinates added because the street-name lookup was unavailable.';
       }finally{
-        btn.disabled=false;btn.textContent='Use Location';
+        btn.disabled=false;btn.textContent='USE CURRENT LOCATION';
       }
     },err=>{
       if(status)status.textContent=err.code===1?'Location permission was not allowed.':'Unable to get current location.';
-      btn.disabled=false;btn.textContent='Use Location';
+      btn.disabled=false;btn.textContent='USE CURRENT LOCATION';
     },{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
   });
 }
