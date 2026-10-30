@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const DEPOTS=['Aberhill','Arbroath','Dunfermline','Glenrothes','St Andrews','Perth','Forfar','Blairgowrie','Other'];
+const DEPOTS=['Aberhill','Arbroath','Ardrossan','Ayr','Dunfermline','Glenrothes','Kilmarnock','St Andrews','Perth','Forfar','Blairgowrie','Other'];
 
 function rowsWithoutHeader(sheet){
   const rows=(window.cloud&&cloud[sheet])||[];
