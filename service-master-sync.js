@@ -10,7 +10,7 @@ let pending=null,lastRead=0,loaded=false;
 const $=id=>document.getElementById(id);
 const clean=s=>String(s??'').trim();
 const hash=s=>{let n=2166136261;for(let i=0;i<s.length;i++){n^=s.charCodeAt(i);n=Math.imul(n,16777619);}return'b'+(n>>>0).toString(36);};
-const school=x=>/^(AM|BB|BE|BU|BW|CA|CH|CL|DB|DF|EW|FF|GF|GR|GW|IK|KR|LA|LK|MD|MK|ML|MT|PK|QA|SA|SC|SH|SM|SP|ST|TB|WD)\\d+[A-Z]?$/i.test(clean(x));
+const school=x=>/^(AM|BB|BE|BU|BW|CA|CH|CL|DB|DF|EW|FF|GF|GR|GW|IK|KR|LA|LK|MD|MK|ML|MT|PK|QA|SA|SC|SH|SM|SP|ST|TB|WD)\d+[A-Z]?$/i.test(clean(x));
 const readMasterRows=data=>{
  if(!Array.isArray(data)||data.length<MIN_ROWS)return null;
  const heading=(data[0]||[]).slice(0,4).map(s=>clean(s).toLowerCase());
