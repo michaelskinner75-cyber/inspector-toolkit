@@ -7,19 +7,19 @@ const time=v=>{if(typeof v==='number'&&v>=0&&v<1){const m=Math.round(v*1440)%144
 const rows=s=>{const a=(typeof cloud!=='undefined'&&cloud&&Array.isArray(cloud[s]))?cloud[s]:[];return a.filter(r=>Array.isArray(r)&&r.length>2&&clean(r[0]).toLowerCase()!=='date');};
 const isSchoolService=x=>/^(AM|BB|BW|CH|GF|GR|GW|LA|LK|MD|MK|ML|MT|PK|QA|SA|SH|SM|SP|ST|WD|SC)\d+[A-Z]?$/i.test(clean(x?.code));
 const defs=()=>{let all=[];try{all=typeof serviceDefs!=='undefined'&&Array.isArray(serviceDefs)?serviceDefs:window.INSPECTOR_SERVICES||[];}catch(e){all=window.INSPECTOR_SERVICES||[];}return all.filter(x=>x&&x.code&&!isSchoolService(x)).map(x=>({...x,id:x.id||h((x.code+'|'+(x.route||'')).toLowerCase())}));};
-const codes=x=>[...new Set([x.code,...(x.aliases||[])].flatMap(c=>clean(c).split(/[\/,;&]+/)).map(norm).filter(Boolean))];
+const codes=x=>[...new Set([x.code,...(Array.isArray(x.aliases)?x.aliases:[])].flatMap(c=>clean(c).split(/[\/,;&]+/)).map(norm).filter(Boolean))];
 function region(s){const t=clean(s).toUpperCase();if(/DUNFERMLINE|KIRKCALDY|GLENROTHES|LEVEN|CUPAR|ST ANDREWS|KELTY|COWDENBEATH|LOCHGELLY|HALBEATH|FERRYTOLL|ABERHILL|ROSYTH|DALGETY|TAYPORT|INVERKEITHING|FIFE/.test(t))return'FIFE';if(/PERTH|BLAIRGOWRIE|PITLOCHRY|KINROSS|AUCHTERARDER|CRIEFF|ABERFELDY|DUNKELD|SCONE|BERTHA PARK/.test(t))return'PERTH';if(/ARBROATH|FORFAR|MONTROSE|BRECHIN|KIRRIEMUIR|CARNOUSTIE|MONIFIETH|ANGUS|EDZELL|STRACATHRO|MIDGRIP/.test(t))return'ANGUS';if(/DUNDEE|NINEWELLS|HOSPITALFIELD/.test(t))return'DUNDEE';return'';}
-function matches(code,place,all){const requested=codes({code});if(!requested.length)return[];const found=all.filter(s=>codes(s).some(c=>requested.includes(c)));if(found.length<=1)return found;const exact=found.filter(s=>norm(s.code)===norm(code));if(exact.length===1)return exact;const r=region(place);if(!r)return[];const selected=found.filter(s=>region((s.route||'').split(/\s+(?:-|to)\s+/i)[0])===r);return selected.length===1?selected:[];}
+function matches(code,places,all){const requested=codes({code});if(!requested.length)return[];const found=all.filter(s=>codes(s).some(c=>requested.includes(c)));if(found.length<=1)return found;const exact=found.filter(s=>norm(s.code)===norm(code));if(exact.length===1)return exact;const candidates=Array.isArray(places)?places:[places];for(const r of [...new Set(candidates.map(region).filter(Boolean))]){const selected=found.filter(s=>region((s.route||'').split(/\s+(?:-|to)\s+/i)[0])===r);if(selected.length===1)return selected;}return[];}
 function automatic(all){
  const map=new Map(all.map(s=>[s.id,[]]));
  const add=(service,place,d,t,inspector,kind)=>{const key=date(d);if(!key)return;matches(service,place,all).forEach(s=>map.get(s.id).push({date:key,time:time(t),inspector:clean(inspector),kind}));};
- rows('Inspections').forEach(r=>add(r[5],[r[3],r[8],r[9]].join(' '),r[0],time(r[7])||r[1],r[2],'Inspection'));
- rows('Timing Checks').forEach(r=>{if(r.length>=10)add(r[4],[r[3],r[5]].join(' '),r[0],time(r[9])||r[1],r[2],'Timing check');});
- rows('Early Running').forEach(r=>{if(r.length>=12)add(r[4],[r[3],r[5]].join(' '),r[0],time(r[9])||r[1],r[2],'Timing check');else if(r.length>=9)add(r[5],[r[4],r[6]].join(' '),r[0],r[1],r[2],'Early running');});
+ rows('Inspections').forEach(r=>add(r[5],[r[3],r[8],r[9]],r[0],time(r[7])||r[1],r[2],'Inspection'));
+ rows('Timing Checks').forEach(r=>{if(r.length>=10)add(r[4],[r[3],r[5]],r[0],time(r[9])||r[1],r[2],'Timing check');});
+ rows('Early Running').forEach(r=>{if(r.length>=12)add(r[4],[r[3],r[5]],r[0],time(r[9])||r[1],r[2],'Timing check');else if(r.length>=9)add(r[5],[r[4],r[6]],r[0],r[1],r[2],'Early running');});
  map.forEach(items=>items.sort((a,b)=>(b.date+'T'+b.time).localeCompare(a.date+'T'+a.time)));
  return map;
 }
 function manual(){const map=new Map();rows('Services').forEach(r=>{if(clean(r[1]).toUpperCase()!=='COVERAGE')return;const key=clean(r[2]);if(!key.startsWith('cov:'))return;const s=clean(r[4]).toUpperCase();if(!['CHECKED','NOT_CHECKED','AUTO'].includes(s))return;map.set(key.slice(4),{status:s,date:date(r[5]),time:time(r[6]),inspector:clean(r[7]),by:clean(r[8]),operation:clean(r[9]),kind:'Manual amendment'});});return map;}
-function status(all,from='',to=''){const auto=automatic(all),edits=manual();return all.map(s=>{const override=edits.get(s.id),original=(auto.get(s.id)||[])[0]||null;const item=override&&override.status!=='AUTO'?(override.status==='CHECKED'?{...override}:null):original;return {...s,original,override,item,checked:!!item&&(!from||item.date>=from)&&(!to||item.date<=to)};});}
+function status(all,from='',to=''){const auto=automatic(all),edits=manual();const inRange=item=>!!item&&(!from||item.date>=from)&&(!to||item.date<=to);return all.map(s=>{const override=edits.get(s.id),history=auto.get(s.id)||[],original=history[0]||null;const item=override&&override.status!=='AUTO'?(override.status==='CHECKED'&&inRange(override)?{...override}:null):(history.find(inRange)||null);return {...s,original,override,item,checked:!!item};});}
 window.InspectorCoverageModel={date,time,rows,defs,status,isSchoolService};
 })();
