@@ -78,6 +78,7 @@ function start(){
  search?.addEventListener('input',render);
  window.renderCoverage=render;render();setTimeout(refresh,400);
  document.addEventListener('click',e=>{if(e.target.closest('[data-open="coverage"]'))setTimeout(()=>{if(Date.now()-lastRefresh>20000)refresh();},200);});
+ setInterval(()=>{if(section.classList.contains('active')&&Date.now()-lastRefresh>55000)refresh();},60000);
  return true;
 }
 const style=document.createElement('style');
