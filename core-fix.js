@@ -12,7 +12,19 @@ function rowsWithoutHeader(sheet){
 
 function installDepotSelect(){
   const old=document.getElementById('csDepot');
-  if(!old||old.tagName==='SELECT')return;
+  if(!old)return;
+  if(old.tagName==='SELECT'){
+    // Existing dropdowns can come from a previously cached initialiser.
+    // Add missing depot options without replacing the selected depot or handlers.
+    DEPOTS.forEach(name=>{
+      if([...old.options].some(option=>String(option.value).toLowerCase()===name.toLowerCase()))return;
+      const option=document.createElement('option');
+      option.value=name;option.textContent=name;
+      const other=[...old.options].find(option=>option.value==='Other');
+      if(other&&name!=='Other')old.insertBefore(option,other);else old.appendChild(option);
+    });
+    return;
+  }
   const select=document.createElement('select');
   select.id='csDepot';select.className='field';
   select.innerHTML='<option value="">Select depot</option>'+DEPOTS.map(x=>`<option value="${x}">${x}</option>`).join('');
