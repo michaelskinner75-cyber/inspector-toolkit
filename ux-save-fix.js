@@ -77,6 +77,8 @@ function resetInspectionUI(){
   if(geo)geo.textContent='';
   const service=document.getElementById('csService');
   if(service)service.dispatchEvent(new Event('change',{bubbles:true}));
+  // Notify add-on controls that the inspection is a new blank form.
+  field('checksheet')?.dispatchEvent(new Event('inspector-checksheet-cleared',{bubbles:true}));
   document.getElementById('checksheet')?.dispatchEvent(
     new CustomEvent('inspector-checksheet-cleared',{bubbles:true}));
   // Keep the selected inspection date so inspectors can log another check on that date.
@@ -113,6 +115,9 @@ function syncVisibleService(){
   // The autocomplete is a visible input backed by a hidden value used by cloud saving.
   // Synchronise on every submit, including manually typed (unlisted) services.
   if(canonical&&search)canonical.value=search.value.trim();
+  // Destination also has a separate visible dropdown/manual input.
+  const destination=field('csDestination'),choice=field('csDestinationChoice'),manual=field('csDestinationManual');
+  if(destination&&choice)destination.value=choice.value==='__manual__'?String(manual?.value||'').trim():choice.value;
 }
 
 function resetInspectionFields(){
@@ -128,13 +133,15 @@ function resetInspectionFields(){
   const other=field('csDepotOther');
   if(other){other.value='';other.style.display='none';}
   const driver=field('csDriver');
-  if(driver){driver.value='';delete driver.dataset.employeeNumber;}
+  if(driver){driver.value='';delete driver.dataset.employeeNumber;driver.removeAttribute('aria-invalid');}
   const driverSuggestion=field('driverSuggestions');
   if(driverSuggestion){driverSuggestion.classList.remove('show');driverSuggestion.innerHTML='';}
   const lookup=field('csEmployeeLookupStatus');
-  if(lookup)lookup.textContent='';
-  ['csService','csFleet','csTimeOn','csBoarding','csDestination','csNSANotes','csDriverReason','csNatureOffence','csPassengers','csVehicleIssueNotes'].forEach(id=>{const el=field(id);if(el)el.value='';});
-  const defaults={csNSA:'Yes',csNSAFault:'Fully Working',csDriverReport:'No Driver Report',csVehicleIssue:'No Vehicle Issues',csJourneyStatus:'On Time',csConfirmedEarly:'No'};
+  if(lookup){lookup.textContent='';lookup.classList.remove('found','missing');}
+  const geo=field('geoLocationStatus');if(geo)geo.textContent='';
+  const manual=field('csDestinationManual');if(manual)manual.style.display='none';
+  ['csService','csFleet','csTimeOn','csBoarding','csDestination','csDestinationManual','csNSANotes','csDriverReason','csNatureOffence','csPassengers','csVehicleIssueNotes'].forEach(id=>{const el=field(id);if(el){el.value='';el.removeAttribute('aria-invalid');}});
+  const defaults={csNSA:'Yes',csNSAFault:'Fully Working',csDriverReport:'No Driver Report',csVehicleIssue:'No Vehicle Issues',csJourneyStatus:'On Time',csConfirmedEarly:'No',csDestinationChoice:''};
   Object.entries(defaults).forEach(([id,value])=>{const el=field(id);if(el)el.value=value;});
   const confirm=field('csEarlyConfirmWrap');
   if(confirm)confirm.classList.remove('show');
