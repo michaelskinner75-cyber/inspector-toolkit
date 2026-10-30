@@ -37,6 +37,8 @@ function update(list){
   return next;
 }
 function apply(){
+  // Current master replaces the August 2026 migration patch.
+  if(window.INSPECTOR_SERVICE_LIST_V20261030||window.INSPECTOR_SERVICE_MASTER_LOADED)return false;
   if(!Array.isArray(window.INSPECTOR_SERVICES))return false;
   const next=update(window.INSPECTOR_SERVICES);
   const changed=JSON.stringify(next)!==JSON.stringify(window.INSPECTOR_SERVICES);
