@@ -13,7 +13,9 @@ setupV2Dom();
 let timingFilter=localStorage.getItem('timingFilter')||'today';
 let coverageFilter='all';
 const defaultServices=window.INSPECTOR_SERVICES||[];
-let serviceDefs=JSON.parse(localStorage.getItem('serviceCoverageList')||'null')||defaultServices;
+let serviceDefs=defaultServices;
+// Replace stale on-device catalogues with the reviewed fallback; the Google Sheet then supersedes it.
+try{if(localStorage.getItem('inspectorServiceFallbackV20261030')!=='1'){localStorage.setItem('serviceCoverageList',JSON.stringify(defaultServices));localStorage.setItem('inspectorServiceFallbackV20261030','1');}}catch(e){}
 function saveServices(){localStorage.setItem('serviceCoverageList',JSON.stringify(serviceDefs));}
 function dataRows(sheet){const rows=cloud[sheet]||[];if(!rows.length)return[];const first=rows[0].map(x=>String(x||'').toLowerCase());const isHeader=first.some(x=>['date','inspector','driver','fleet','service','time'].includes(x));return isHeader?rows.slice(1):rows;}
 function minutesDifference(scheduled,actual){if(!scheduled||!actual)return null;const [sh,sm]=scheduled.split(':').map(Number),[ah,am]=actual.split(':').map(Number);let diff=(ah*60+am)-(sh*60+sm);if(diff>720)diff-=1440;if(diff<-720)diff+=1440;return diff;}
