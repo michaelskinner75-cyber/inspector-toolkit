@@ -9,10 +9,31 @@ const isSchoolService=x=>/^(AM|BB|BW|CH|GF|GR|GW|LA|LK|MD|MK|ML|MT|PK|QA|SA|SH|S
 const defs=()=>{let all=[];try{all=typeof serviceDefs!=='undefined'&&Array.isArray(serviceDefs)?serviceDefs:window.INSPECTOR_SERVICES||[];}catch(e){all=window.INSPECTOR_SERVICES||[];}return all.filter(x=>x&&x.code&&!isSchoolService(x)).map(x=>({...x,id:x.id||h((x.code+'|'+(x.route||'')).toLowerCase())}));};
 const codes=x=>[...new Set([x.code,...(Array.isArray(x.aliases)?x.aliases:[])].flatMap(c=>clean(c).split(/[\/,;&]+/)).map(norm).filter(Boolean))];
 function region(s){const t=clean(s).toUpperCase();if(/DUNFERMLINE|KIRKCALDY|GLENROTHES|LEVEN|CUPAR|ST ANDREWS|KELTY|COWDENBEATH|LOCHGELLY|HALBEATH|FERRYTOLL|ABERHILL|CROMBIE|ROSYTH|DALGETY|TAYPORT|INVERKEITHING|FIFE/.test(t))return'FIFE';if(/PERTH|BLAIRGOWRIE|PITLOCHRY|KINROSS|AUCHTERARDER|CRIEFF|ABERFELDY|DUNKELD|BROXDEN|SCONE|BERTHA PARK/.test(t))return'PERTH';if(/ARBROATH|FORFAR|MONTROSE|BRECHIN|KIRRIEMUIR|CARNOUSTIE|MONIFIETH|ANGUS|EDZELL|STRACATHRO|MIDGRIP|HILLHEAD OF HEDDERWICK/.test(t))return'ANGUS';if(/DUNDEE|NINEWELLS|HOSPITALFIELD/.test(t))return'DUNDEE';return'';}
-function matches(code,places,all){const requested=codes({code});if(!requested.length)return[];const found=all.filter(s=>codes(s).some(c=>requested.includes(c)));if(found.length<=1)return found;const exact=found.filter(s=>norm(s.code)===norm(code));if(exact.length===1)return exact;const candidates=Array.isArray(places)?places:[places];for(const r of [...new Set(candidates.map(region).filter(Boolean))]){const selected=found.filter(s=>region((s.route||'').split(/\s+(?:-|to)\s+/i)[0])===r);if(selected.length===1)return selected;}return[];}
+// Inspection forms can record a group such as X24/X24A or 75/75A.
+// Match every explicitly recorded service code independently; the old matcher
+// dropped the entire group whenever more than one directory entry matched.
+// For a *single* code used in different areas, retain the area safeguard.
+function matches(code,places,all){
+ const requested=codes({code});if(!requested.length)return[];
+ const hints=Array.isArray(places)?places:[places];
+ const areas=[...new Set(hints.map(region).filter(Boolean))];
+ const selected=new Map();
+ requested.forEach(requestedCode=>{
+  const found=all.filter(s=>codes(s).includes(requestedCode));
+  if(found.length===1){selected.set(found[0].id,found[0]);return;}
+  if(found.length<2)return;
+  // A number can be used in two areas (e.g. 7 in Perth and Fife).
+  // Never credit both just because an inspector recorded the number.
+  for(const area of areas){
+   const inArea=found.filter(s=>region((s.route||'').split(/\\s+(?:-|to)\\s+/i)[0])===area);
+   if(inArea.length===1){selected.set(inArea[0].id,inArea[0]);break;}
+  }
+ });
+ return [...selected.values()];
+}
 function automatic(all){
  const map=new Map(all.map(s=>[s.id,[]]));
- const add=(service,place,d,t,inspector,kind)=>{const key=date(d);if(!key)return;matches(service,place,all).forEach(s=>map.get(s.id).push({date:key,time:time(t),inspector:clean(inspector),kind}));};
+ const add=(service,place,d,t,inspector,kind)=>{const key=date(d);if(!key)return;matches(service,place,all).forEach(s=>map.get(s.id).push({date:key,time:time(t),inspector:clean(inspector),kind,recordedService:clean(service)}));};
  rows('Inspections').forEach(r=>add(r[5],[r[3],r[8],r[9]],r[0],time(r[7])||r[1],r[2],'Inspection'));
  rows('Timing Checks').forEach(r=>{if(r.length>=10)add(r[4],[r[3],r[5]],r[0],time(r[9])||r[1],r[2],'Timing check');});
  rows('Early Running').forEach(r=>{if(r.length>=12)add(r[4],[r[3],r[5]],r[0],time(r[9])||r[1],r[2],'Timing check');else if(r.length>=9)add(r[5],[r[4],r[6]],r[0],r[1],r[2],'Early running');});
