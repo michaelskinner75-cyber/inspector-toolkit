@@ -11,7 +11,12 @@ function group(s){const c=String(s.code||'').toUpperCase();if(c.startsWith('X'))
 // These are informational labels, never part of the service ID or Google Sheets rows.
 // Timetable annotations only; never alter service codes or cloud records.
 // Show exact departure times only where corroborated by published timetable data.
-const timetableLabels={"3":[["Perth","08:55–14:41"]],"1A":[["Perth","First 18:20"]],"2A":[["Perth","First 18:50"]],"3A":[["Perth","09:55–13:55"]],"4B":[["","First 18:45"]],"4C":[["","Night service · from 22:15"]],"6A":[["","Mon–Sat from 19:06 · Sun from 08:57"]],"14A":[["Kirkcaldy","First 18:40"]],"16B":[["","First 18:35"]],"20C":[["","Sun 11:00–16:27"]],"21B":[["","Weekdays 07:20–15:28"]],"21D":[["","Weekdays 08:05–16:00"]],"22D":[["","Weekdays · 07:33 journey"]],"23A":[["","Sat · 22:45 journey"]],"23X":[["","Sat · 00:14 journey"]]};
+// Coverage-only, source-checked service notes. Do not infer operating windows.
+// 7D: Stagecoach published timetable; 41A: Stagecoach timetable effective 24 Nov 2025.
+const timetableLabels={
+ '7D':[['','Hourly daytime/evening · 07:15 onwards']],
+ '41A':[['','Late journey · Dundee 22:27 (Sunday)']]
+};
 function limitedLabel(s){const choices=timetableLabels[String(s.code||'').toUpperCase().trim()];if(!choices)return '';const route=String(s.route||'').toLowerCase();const hit=choices.find(([match])=>!match||route.includes(match.toLowerCase()));return hit?hit[1]:'';}
 function editBox(s){
  const item=s.override&&s.override.status!=='AUTO'?s.override:(s.item||s.original);
