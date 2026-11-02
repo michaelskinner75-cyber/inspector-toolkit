@@ -6,6 +6,15 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>c==='&'?'&amp;':c==='<'?'&lt;':
 const today=()=>M.date(new Date()),clock=()=>new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
 let filter='all',editing='',lastRefresh=0,refreshing=null;
 function group(s){const c=String(s.code||'').toUpperCase();if(c.startsWith('X'))return'X';if(/^[A-Z]/.test(c))return'OTHER';const n=parseInt(c,10);return Number.isNaN(n)||n>=100?'OTHER':String(Math.floor(n/10)*10);}
+// Coverage-only advisory; service codes and Google Sheets matching remain unchanged.
+const limitedCodes=new Set(["4C","6A","14A","16B","20C","22D","23A","51","60","74B","75A","81","81A","82","82A","83"]);
+function limited(s){
+ const code=String(s.code||'').toUpperCase().trim();
+ if(!limitedCodes.has(code))return false;
+ if(code==='14A')return /KIRKCALDY|TEMPLEHALL|TORBAIN|CHAPEL/i.test(s.route||'');
+ if(code==='51')return /ABERNYTE|INCHTURE|PERTH/i.test(s.route||'');
+ return true;
+}
 function editBox(s){
  const item=s.override&&s.override.status!=='AUTO'?s.override:(s.item||s.original);
  const state=s.override&&s.override.status!=='AUTO'?s.override.status:(s.original?'CHECKED':'NOT_CHECKED');
@@ -24,7 +33,7 @@ function render(){
  list.innerHTML=entries.map(s=>{
   const item=s.item,manually=s.override&&s.override.status!=='AUTO';
   const detail=item?esc(item.date)+' '+esc(item.time||'')+' • '+esc(item.inspector||'Inspector not recorded')+' • '+esc(item.kind||'Inspection')+(manually?' • Manually amended':''):'No check recorded for selected dates'+(manually?' • Manually marked not checked':'');
-  return '<article class="sctCard '+(s.checked?'isChecked':'isPending')+'"><div class="sctMain"><div class="sctInfo"><div class="sctTitle">'+esc(s.code)+' <span class="sctState">'+(s.checked?'Checked':'Not checked')+'</span></div><div class="sctRoute">'+esc(s.route||'')+'</div><div class="sctDetail">'+detail+'</div></div><button type="button" class="btn" data-sct-edit="'+esc(s.id)+'">AMEND</button></div>'+(editing===s.id?editBox(s):'')+'</article>';
+  return '<article class="sctCard '+(s.checked?'isChecked':'isPending')+'"><div class="sctMain"><div class="sctInfo"><div class="sctTitle">'+esc(s.code)+(limited(s)?' <span class="sctLimited" title="Restricted timetable or few scheduled journeys">Limited service</span>':'')+' <span class="sctState">'+(s.checked?'Checked':'Not checked')+'</span></div><div class="sctRoute">'+esc(s.route||'')+'</div><div class="sctDetail">'+detail+'</div></div><button type="button" class="btn" data-sct-edit="'+esc(s.id)+'">AMEND</button></div>'+(editing===s.id?editBox(s):'')+'</article>';
  }).join('')||'<div class="small">No services match this view.</div>';
 }
 async function refresh(){
@@ -82,7 +91,7 @@ function start(){
  return true;
 }
 const style=document.createElement('style');
-style.textContent='#sctControls .sctFilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#sctControls .sctFilters .active{background:#eea83e;color:#091c2b}#sctControls .sctDateFilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}#sctControls label,.sctEdit label{display:block;font-size:12px;font-weight:800;color:#c6d6e1}#sctControls label .field,.sctEdit label .field{display:block;box-sizing:border-box;width:100%;min-width:0;margin-top:5px}#sctControls .sctFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}.sctCard{padding:13px;margin:9px 0;background:#102b40;border-left:6px solid #b46a68;border-radius:12px}.sctCard.isChecked{border-left-color:#459679}.sctMain{display:flex;align-items:center;justify-content:space-between;gap:10px}.sctInfo{min-width:0;flex:1}.sctTitle{font-size:18px;font-weight:900}.sctState{font-size:11px;font-weight:800;color:#c9d6e0;margin-left:6px}.sctRoute{font-size:13px;overflow-wrap:anywhere}.sctDetail{margin-top:5px;font-size:12px;color:#bed0da;overflow-wrap:anywhere}.sctEdit{margin-top:12px;padding-top:12px;border-top:1px solid #386077;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sctEdit .sctActions,.sctEdit .small{grid-column:1/-1}.sctActions{display:flex;gap:9px;flex-wrap:wrap}@media(max-width:620px){#sctControls .sctDateFilters,.sctEdit{grid-template-columns:1fr}#sctControls .sctFilters{grid-template-columns:repeat(2,minmax(0,1fr))}#sctControls .sctFilters button,.sctMain button,.sctActions button{min-height:44px}}';
+style.textContent='#sctControls .sctFilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#sctControls .sctFilters .active{background:#eea83e;color:#091c2b}#sctControls .sctDateFilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}#sctControls label,.sctEdit label{display:block;font-size:12px;font-weight:800;color:#c6d6e1}#sctControls label .field,.sctEdit label .field{display:block;box-sizing:border-box;width:100%;min-width:0;margin-top:5px}#sctControls .sctFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}.sctCard{padding:13px;margin:9px 0;background:#102b40;border-left:6px solid #b46a68;border-radius:12px}.sctCard.isChecked{border-left-color:#459679}.sctMain{display:flex;align-items:center;justify-content:space-between;gap:10px}.sctInfo{min-width:0;flex:1}.sctTitle{font-size:18px;font-weight:900}.sctLimited{display:inline-block;font-size:10px;font-weight:800;border:1px solid #b5a477;border-radius:6px;padding:2px 5px;color:#e8d49e;white-space:nowrap}.sctState{font-size:11px;font-weight:800;color:#c9d6e0;margin-left:6px}.sctRoute{font-size:13px;overflow-wrap:anywhere}.sctDetail{margin-top:5px;font-size:12px;color:#bed0da;overflow-wrap:anywhere}.sctEdit{margin-top:12px;padding-top:12px;border-top:1px solid #386077;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sctEdit .sctActions,.sctEdit .small{grid-column:1/-1}.sctActions{display:flex;gap:9px;flex-wrap:wrap}@media(max-width:620px){#sctControls .sctDateFilters,.sctEdit{grid-template-columns:1fr}#sctControls .sctFilters{grid-template-columns:repeat(2,minmax(0,1fr))}#sctControls .sctFilters button,.sctMain button,.sctActions button{min-height:44px}}';
 document.head.appendChild(style);
 let count=0;const timer=setInterval(()=>{if(start()||++count>80)clearInterval(timer);},200);
 })();
