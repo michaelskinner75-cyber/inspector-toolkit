@@ -9,14 +9,10 @@ function group(s){const c=String(s.code||'').toUpperCase();if(c.startsWith('X'))
 // Coverage-only advisory; service codes and Google Sheets matching remain unchanged.
 // Coverage-only timetable advisory based on published operator timetable summaries.
 // These are informational labels, never part of the service ID or Google Sheets rows.
-const timetableLabels={"3":[["Perth","Limited daytime"]],"27":[["Perth","Saturdays only"]],"36":[["","Morning only"]],"40":[["Arbroath","Morning only"]],"41":[["","After 19:00"]],"42":[["Hospitalfield","Sundays only"]],"51":[["","Tue & Thu only"]],"59":[["Glenrothes","After 20:00"]],"60":[["","Tue & Thu only"]],"70":[["","Early morning only"]],"81":[["","After 18:00"]],"82":[["","After 18:00"]],"83":[["Dunfermline","After 18:00"],["Bruar","Sundays only"]],"395":[["","Weekdays only"]],"815":[["","Weekdays only"]],"857":[["","Weekdays only"]],"1A":[["Perth","After 18:00"]],"2A":[["Perth","After 18:00"]],"3A":[["Perth","Limited daytime"]],"4B":[["","After 18:00"]],"4C":[["","After 22:00"]],"6A":[["","After 19:00"]],"7B":[["Perth","After 18:00"]],"7C":[["Broxden","Sundays only"]],"7D":[["","After 18:00"]],"14A":[["Kirkcaldy","After 18:00"]],"16B":[["","After 18:00"]],"20C":[["","Sundays only"]],"21B":[["","Weekdays only"]],"21D":[["","Weekdays only"]],"22D":[["","Morning only"]],"23A":[["","Saturday night only"]],"23X":[["","Saturday night only"]],"27B":[["","Mon–Thu only"]],"30B":[["","After 18:00"]],"30C":[["","Weekdays only"]],"32A":[["","After 18:00"]],"33A":[["","After 18:00"]],"34B":[["","Morning only"]],"34C":[["","Sundays only"]],"35A":[["","After 17:00"]],"39B":[["","After 19:00"]],"41A":[["","Late evening only"]],"41B":[["","Limited journeys"]],"44A":[["","After 18:00"]],"44B":[["","Weekdays only"]],"47A":[["Leven","After 19:00"],["Hedderwick","Weekdays only"]],"47B":[["","Weekdays only"]],"56A":[["","After 19:00"]],"56B":[["","Sundays only"]],"57U":[["","Weekdays only"]],"74B":[["","After 19:00"]],"75A":[["","After 18:00"]],"81A":[["","After 19:00"]],"82A":[["","After 19:00"]],"90B":[["","Limited timetable"]],"99S":[["","Late night · Mon–Thu"]],"X24A":[["","After 21:00"]]};
-function limitedLabel(s){
- const choices=timetableLabels[String(s.code||'').toUpperCase().trim()];
- if(!choices)return '';
- const route=String(s.route||'');
- const hit=choices.find(([match])=>!match||route.toLowerCase().includes(match.toLowerCase()));
- return hit?hit[1]:'';
-}
+// Timetable annotations only; never alter service codes or cloud records.
+// Show exact departure times only where corroborated by published timetable data.
+const timetableLabels={"3":[["Perth","08:55–14:41"]],"1A":[["Perth","First 18:20"]],"2A":[["Perth","First 18:50"]],"3A":[["Perth","09:55–13:55"]],"4B":[["","First 18:45"]],"4C":[["","Night service · from 22:15"]],"6A":[["","Mon–Sat from 19:06 · Sun from 08:57"]],"14A":[["Kirkcaldy","First 18:40"]],"16B":[["","First 18:35"]],"20C":[["","Sun 11:00–16:27"]],"21B":[["","Weekdays 07:20–15:28"]],"21D":[["","Weekdays 08:05–16:00"]],"22D":[["","Weekdays · 07:33 journey"]],"23A":[["","Sat · 22:45 journey"]],"23X":[["","Sat · 00:14 journey"]]};
+function limitedLabel(s){const choices=timetableLabels[String(s.code||'').toUpperCase().trim()];if(!choices)return '';const route=String(s.route||'').toLowerCase();const hit=choices.find(([match])=>!match||route.includes(match.toLowerCase()));return hit?hit[1]:'';}
 function editBox(s){
  const item=s.override&&s.override.status!=='AUTO'?s.override:(s.item||s.original);
  const state=s.override&&s.override.status!=='AUTO'?s.override.status:(s.original?'CHECKED':'NOT_CHECKED');
