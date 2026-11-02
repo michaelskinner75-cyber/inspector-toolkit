@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 let activeFilter=localStorage.getItem('checkFilter')||'today';
+let sortOrder=localStorage.getItem('previousChecksSortOrder')==='oldest'?'oldest':'newest';
 
 function inspectionRows(){
  const source=(typeof cloud!=='undefined'&&cloud['Inspections'])||[];
@@ -63,27 +64,47 @@ function markButtons(){
  document.querySelectorAll('[data-check-filter]').forEach(b=>b.classList.toggle('active',b.dataset.checkFilter===activeFilter));
 }
 function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function ensureSortControl(){
+ const search=document.getElementById('checkSearch');
+ if(!search||!search.parentElement)return;
+ let select=document.getElementById('checkSortOrder');
+ if(!select){
+  const wrap=document.createElement('div');
+  wrap.id='checkSortControls';
+  wrap.innerHTML='<label for="checkSortOrder">ORDER OF CHECKS</label><select id="checkSortOrder" class="field"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select>';
+  search.insertAdjacentElement('afterend',wrap);
+  select=wrap.querySelector('select');
+  select.addEventListener('change',function(){
+   sortOrder=this.value==='oldest'?'oldest':'newest';
+   try{localStorage.setItem('previousChecksSortOrder',sortOrder);}catch(err){}
+   renderFixedChecks();
+  });
+ }
+ if(select.value!==sortOrder)select.value=sortOrder;
+}
 function renderFixedChecks(){
  const list=document.getElementById('checkList');
  if(!list)return;
+ ensureSortControl();
  const q=(document.getElementById('checkSearch')?.value||'').trim().toLowerCase();
  const filter=selectedFilter();
  // Combine the two shared sheets for display only; do not alter source records.
  let entries=[
   ...inspectionRows().map(row=>({kind:'inspection',row})),
   ...otherWorkRows().map(row=>({kind:'other',row}))
- ].filter(entry=>dateMatches(validDate(entry.row[0]),filter));
+ ].map((entry,index)=>({...entry,index})).filter(entry=>dateMatches(validDate(entry.row[0]),filter));
  if(q)entries=entries.filter(entry=>{
   const searchable=entry.kind==='other'?'Other Work '+entry.row.map(v=>String(v??'')).join(' '):entry.row.map(v=>String(v??'')).join(' ');
   return searchable.toLowerCase().includes(q);
  });
  entries.sort((a,b)=>{
   const ad=validDate(a.row[0]),bd=validDate(b.row[0]);
-  const day=(bd?bd.getTime():0)-(ad?ad.getTime():0);
-  if(day)return day;
+  const day=(ad?ad.getTime():0)-(bd?bd.getTime():0);
   const at=checkTime(a.kind==='other'?a.row[3]:(a.row[7]||a.row[1]));
   const bt=checkTime(b.kind==='other'?b.row[3]:(b.row[7]||b.row[1]));
-  return bt-at;
+  // Preserve the 24-hour time displayed on each card. Reverse this order on demand.
+  const delta=day||at-bt||a.index-b.index;
+  return sortOrder==='oldest'?delta:-delta;
  });
  list.innerHTML=entries.map((entry,i)=>{
   const r=entry.row;
@@ -109,7 +130,7 @@ function renderFixedChecks(){
 // Match the existing expandable Previous Checks cards, with a distinct Other Work accent.
 if(!document.getElementById('pcfOtherWorkStyle')){
  const css=document.createElement('style');css.id='pcfOtherWorkStyle';
- css.textContent='.compactCheck.pcfOtherWork{border-left-color:#aa91e5}.pcfOtherDescription{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px}';
+ css.textContent='.compactCheck.pcfOtherWork{border-left-color:#aa91e5}.pcfOtherDescription{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px}#checkSortControls{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin:10px 0 5px}#checkSortControls label{font-size:12px;font-weight:800;color:#cdd9e4;letter-spacing:.02em}#checkSortOrder{width:auto;min-width:155px;max-width:100%;padding:10px 12px;border:1px solid #48637b;border-radius:8px;background:#123047;color:#fff;font-weight:800;font-size:14px}';
  document.head.appendChild(css);
 }
 
