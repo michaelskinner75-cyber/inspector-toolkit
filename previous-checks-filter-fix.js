@@ -17,7 +17,7 @@ function otherWorkRows(){
  return source.filter(r=>Array.isArray(r)&&r.length>=6&&String(r[0]||'').trim().toLowerCase()!=='date'&&r.some(v=>String(v??'').trim()));
 }
 function checkTime(value){
- const m=String(value??'').trim().match(/^(\\d{1,2}):(\\d{2})/);
+ const m=String(value??'').trim().match(/^(\d{1,2}):(\d{2})/);
  return m&&Number(m[1])<24&&Number(m[2])<60?Number(m[1])*60+Number(m[2]):-1;
 }
 function validDate(v){
