@@ -7,13 +7,15 @@ const today=()=>M.date(new Date()),clock=()=>new Date().toLocaleTimeString('en-G
 let filter='all',editing='',lastRefresh=0,refreshing=null;
 function group(s){const c=String(s.code||'').toUpperCase();if(c.startsWith('X'))return'X';if(/^[A-Z]/.test(c))return'OTHER';const n=parseInt(c,10);return Number.isNaN(n)||n>=100?'OTHER':String(Math.floor(n/10)*10);}
 // Coverage-only advisory; service codes and Google Sheets matching remain unchanged.
-const limitedCodes=new Set(["4C","6A","14A","16B","20C","22D","23A","51","60","74B","75A","81","81A","82","82A","83"]);
-function limited(s){
- const code=String(s.code||'').toUpperCase().trim();
- if(!limitedCodes.has(code))return false;
- if(code==='14A')return /KIRKCALDY|TEMPLEHALL|TORBAIN|CHAPEL/i.test(s.route||'');
- if(code==='51')return /ABERNYTE|INCHTURE|PERTH/i.test(s.route||'');
- return true;
+// Coverage-only timetable advisory based on published operator timetable summaries.
+// These are informational labels, never part of the service ID or Google Sheets rows.
+const timetableLabels={"3":[["Perth","Limited daytime"]],"27":[["Perth","Saturdays only"]],"36":[["","Morning only"]],"40":[["Arbroath","Morning only"]],"41":[["","After 19:00"]],"42":[["Hospitalfield","Sundays only"]],"51":[["","Tue & Thu only"]],"59":[["Glenrothes","After 20:00"]],"60":[["","Tue & Thu only"]],"70":[["","Early morning only"]],"81":[["","After 18:00"]],"82":[["","After 18:00"]],"83":[["Dunfermline","After 18:00"],["Bruar","Sundays only"]],"395":[["","Weekdays only"]],"815":[["","Weekdays only"]],"857":[["","Weekdays only"]],"1A":[["Perth","After 18:00"]],"2A":[["Perth","After 18:00"]],"3A":[["Perth","Limited daytime"]],"4B":[["","After 18:00"]],"4C":[["","After 22:00"]],"6A":[["","After 19:00"]],"7B":[["Perth","After 18:00"]],"7C":[["Broxden","Sundays only"]],"7D":[["","After 18:00"]],"14A":[["Kirkcaldy","After 18:00"]],"16B":[["","After 18:00"]],"20C":[["","Sundays only"]],"21B":[["","Weekdays only"]],"21D":[["","Weekdays only"]],"22D":[["","Morning only"]],"23A":[["","Saturday night only"]],"23X":[["","Saturday night only"]],"27B":[["","Mon–Thu only"]],"30B":[["","After 18:00"]],"30C":[["","Weekdays only"]],"32A":[["","After 18:00"]],"33A":[["","After 18:00"]],"34B":[["","Morning only"]],"34C":[["","Sundays only"]],"35A":[["","After 17:00"]],"39B":[["","After 19:00"]],"41A":[["","Late evening only"]],"41B":[["","Limited journeys"]],"44A":[["","After 18:00"]],"44B":[["","Weekdays only"]],"47A":[["Leven","After 19:00"],["Hedderwick","Weekdays only"]],"47B":[["","Weekdays only"]],"56A":[["","After 19:00"]],"56B":[["","Sundays only"]],"57U":[["","Weekdays only"]],"74B":[["","After 19:00"]],"75A":[["","After 18:00"]],"81A":[["","After 19:00"]],"82A":[["","After 19:00"]],"90B":[["","Limited timetable"]],"99S":[["","Late night · Mon–Thu"]],"X24A":[["","After 21:00"]]};
+function limitedLabel(s){
+ const choices=timetableLabels[String(s.code||'').toUpperCase().trim()];
+ if(!choices)return '';
+ const route=String(s.route||'');
+ const hit=choices.find(([match])=>!match||route.toLowerCase().includes(match.toLowerCase()));
+ return hit?hit[1]:'';
 }
 function editBox(s){
  const item=s.override&&s.override.status!=='AUTO'?s.override:(s.item||s.original);
@@ -33,7 +35,7 @@ function render(){
  list.innerHTML=entries.map(s=>{
   const item=s.item,manually=s.override&&s.override.status!=='AUTO';
   const detail=item?esc(item.date)+' '+esc(item.time||'')+' • '+esc(item.inspector||'Inspector not recorded')+' • '+esc(item.kind||'Inspection')+(manually?' • Manually amended':''):'No check recorded for selected dates'+(manually?' • Manually marked not checked':'');
-  return '<article class="sctCard '+(s.checked?'isChecked':'isPending')+'"><div class="sctMain"><div class="sctInfo"><div class="sctTitle">'+esc(s.code)+(limited(s)?' <span class="sctLimited" title="Restricted timetable or few scheduled journeys">Limited service</span>':'')+' <span class="sctState">'+(s.checked?'Checked':'Not checked')+'</span></div><div class="sctRoute">'+esc(s.route||'')+'</div><div class="sctDetail">'+detail+'</div></div><button type="button" class="btn" data-sct-edit="'+esc(s.id)+'">AMEND</button></div>'+(editing===s.id?editBox(s):'')+'</article>';
+  return '<article class="sctCard '+(s.checked?'isChecked':'isPending')+'"><div class="sctMain"><div class="sctInfo"><div class="sctTitle">'+esc(s.code)+(limitedLabel(s)?' <span class="sctLimited" title="Timetable restriction — check current departures">'+esc(limitedLabel(s))+'</span>':'')+' <span class="sctState">'+(s.checked?'Checked':'Not checked')+'</span></div><div class="sctRoute">'+esc(s.route||'')+'</div><div class="sctDetail">'+detail+'</div></div><button type="button" class="btn" data-sct-edit="'+esc(s.id)+'">AMEND</button></div>'+(editing===s.id?editBox(s):'')+'</article>';
  }).join('')||'<div class="small">No services match this view.</div>';
 }
 async function refresh(){
