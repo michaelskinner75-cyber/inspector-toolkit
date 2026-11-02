@@ -9,6 +9,17 @@ function inspectionRows(){
  const hasHeader=first.some(v=>['date','time','inspector','depot','driver','service','fleet'].includes(v));
  return source.slice(hasHeader?1:0).filter(r=>Array.isArray(r)&&r.some(v=>String(v||'').trim()));
 }
+// Shared Other Work records use [date, recordedAt, inspector, from, until, description].
+// The first row may be a header; this is a read-only addition to Previous Checks.
+function otherWorkRows(){
+ const source=(typeof cloud!=='undefined'&&cloud&&cloud['Other Work'])||[];
+ if(!Array.isArray(source))return[];
+ return source.filter(r=>Array.isArray(r)&&r.length>=6&&String(r[0]||'').trim().toLowerCase()!=='date'&&r.some(v=>String(v??'').trim()));
+}
+function checkTime(value){
+ const m=String(value??'').trim().match(/^(\\d{1,2}):(\\d{2})/);
+ return m&&Number(m[1])<24&&Number(m[2])<60?Number(m[1])*60+Number(m[2]):-1;
+}
 function validDate(v){
  if(v instanceof Date&&!isNaN(v)){const d=new Date(v);d.setHours(0,0,0,0);return d;}
  const s=String(v||'').trim();
@@ -57,24 +68,49 @@ function renderFixedChecks(){
  if(!list)return;
  const q=(document.getElementById('checkSearch')?.value||'').trim().toLowerCase();
  const filter=selectedFilter();
- let rows=inspectionRows().filter(r=>dateMatches(validDate(r[0]),filter));
- if(q)rows=rows.filter(r=>r.map(v=>String(v||'')).join(' ').toLowerCase().includes(q));
- rows.sort((a,b)=>{
-  const ad=validDate(a[0]),bd=validDate(b[0]);
-  const at=ad?ad.getTime():0,bt=bd?bd.getTime():0;
-  if(bt!==at)return bt-at;
-  return String(b[1]||'').localeCompare(String(a[1]||''));
+ // Combine the two shared sheets for display only; do not alter source records.
+ let entries=[
+  ...inspectionRows().map(row=>({kind:'inspection',row})),
+  ...otherWorkRows().map(row=>({kind:'other',row}))
+ ].filter(entry=>dateMatches(validDate(entry.row[0]),filter));
+ if(q)entries=entries.filter(entry=>{
+  const searchable=entry.kind==='other'?'Other Work '+entry.row.map(v=>String(v??'')).join(' '):entry.row.map(v=>String(v??'')).join(' ');
+  return searchable.toLowerCase().includes(q);
  });
- list.innerHTML=rows.map((r,i)=>{
+ entries.sort((a,b)=>{
+  const ad=validDate(a.row[0]),bd=validDate(b.row[0]);
+  const day=(bd?bd.getTime():0)-(ad?ad.getTime():0);
+  if(day)return day;
+  const at=checkTime(a.kind==='other'?a.row[3]:(a.row[7]||a.row[1]));
+  const bt=checkTime(b.kind==='other'?b.row[3]:(b.row[7]||b.row[1]));
+  return bt-at;
+ });
+ list.innerHTML=entries.map((entry,i)=>{
+  const r=entry.row;
   const date=typeof formatDateValue==='function'?formatDateValue(r[0]):r[0]||'-';
+  if(entry.kind==='other'){
+   const from=typeof formatTimeValue==='function'?formatTimeValue(r[3]):r[3]||'-';
+   const until=typeof formatTimeValue==='function'?formatTimeValue(r[4]):r[4]||'-';
+   const note=String(r[5]??'').trim(),snippet=note.length>95?note.slice(0,92)+'…':note;
+   const details='<b>Other Work</b><br>Inspector: '+safe(r[2]||'-')+'<br>Date: '+safe(date)+'<br>Time From: '+safe(from)+'<br>Time Until: '+safe(until)+'<br>Description:<div class="pcfOtherDescription">'+safe(note||'-')+'</div>';
+   return '<div class="compactCheck pcfOtherWork"><div class="compactTop" data-toggle="pcf'+i+'"><div class="compactMain">'+safe(date)+' '+safe(from)+'–'+safe(until)+' | OTHER WORK</div><div class="compactSub">'+safe(r[2]||'Inspector not recorded')+' • '+safe(snippet||'No description')+'</div></div><div class="compactDetails" id="pcf'+i+'">'+details+'</div></div>';
+  }
   const timeOn=typeof formatTimeValue==='function'?formatTimeValue(r[7]):r[7]||'-';
   const ref=r[15]||'';
   const status=typeof statusMark==='function'?statusMark(r):(r[13]||'OK');
   const cls=typeof statusClass==='function'?statusClass(r):'';
   const details=[ref?'<b>Offence Reference: '+safe(ref)+'</b>':'','Inspector: '+safe(r[2]||'-'),'Depot: '+safe(r[3]||'-'),'Driver: '+safe(r[4]||'-'),'Service: '+safe(r[5]||'-'),'Fleet: '+safe(r[6]||'-'),'Time boarded: '+safe(timeOn),'Journey: '+safe((r[8]||'-')+' to '+(r[9]||'-')),'NSA: '+safe(r[10]||'-')+(r[10]==='No'?' - '+safe(r[11]||'-')+' - '+safe(r[12]||'-'):''),'Driver Report: '+safe(r[13]||'-'),safe(r[14]||'-')].filter(Boolean);
   return '<div class="compactCheck '+safe(cls)+'"><div class="compactTop" data-toggle="pcf'+i+'"><div class="compactMain">'+safe(date)+' '+safe(timeOn)+' | '+safe(r[5]||'-')+' | '+safe(r[6]||'-')+' | '+safe(r[4]||'-')+' | '+safe(status)+(ref?' | '+safe(ref):'')+'</div><div class="compactSub">'+safe(r[3]||'-')+' • '+safe(r[8]||'-')+' → '+safe(r[9]||'-')+' • '+safe(r[2]||'-')+'</div></div><div class="compactDetails" id="pcf'+i+'">'+details.join('<br>')+'</div></div>';
- }).join('')||'No checks for this view.';
+ }).join('')||'No checks or other work for this view.';
  markButtons();
+}
+
+
+// Match the existing expandable Previous Checks cards, with a distinct Other Work accent.
+if(!document.getElementById('pcfOtherWorkStyle')){
+ const css=document.createElement('style');css.id='pcfOtherWorkStyle';
+ css.textContent='.compactCheck.pcfOtherWork{border-left-color:#aa91e5}.pcfOtherDescription{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px}';
+ document.head.appendChild(css);
 }
 
 window.renderChecks=renderFixedChecks;
