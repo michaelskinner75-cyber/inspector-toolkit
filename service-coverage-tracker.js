@@ -9,7 +9,6 @@ const coverageSortKey='inspectorCoverageSortOrderV1';
 let sortOrder='recent';
 try{const stored=localStorage.getItem(coverageSortKey);if(['recent','oldest','service'].includes(stored))sortOrder=stored;}catch(e){}
 
-function group(s){const c=String(s.code||'').toUpperCase();if(c.startsWith('X'))return'X';if(/^[A-Z]/.test(c))return'OTHER';const n=parseInt(c,10);return Number.isNaN(n)||n>=100?'OTHER':String(Math.floor(n/10)*10);}
 // Coverage-only advisory; service codes and Google Sheets matching remain unchanged.
 // Coverage-only timetable advisory based on published operator timetable summaries.
 // These are informational labels, never part of the service ID or Google Sheets rows.
@@ -83,8 +82,7 @@ function render(){
  const all=M.status(M.defs(),$('sctFrom')?.value||'',$('sctTo')?.value||'');
  const checked=all.filter(x=>x.checked).length;
  summary.innerHTML='<div class="coverageStat"><b>'+all.length+'</b>Total services</div><div class="coverageStat"><b>'+checked+'</b>Checked</div><div class="coverageStat"><b>'+(all.length-checked)+'</b>Still to check</div>';
- const q=String($('coverageSearch')?.value||'').toLowerCase(),g=$('sctGroup')?.value||'ALL';
- const entries=all.filter(s=>(filter==='all'||(filter==='checked'?s.checked:!s.checked))&&(g==='ALL'||group(s)===g)&&(!q||(s.code+' '+(s.route||'')).toLowerCase().includes(q))).sort(sortCoverage);
+ const entries=all.filter(s=>filter==='all'||(filter==='checked'?s.checked:!s.checked)).sort(sortCoverage);
  if($('sctCount'))$('sctCount').textContent=entries.length+' service'+(entries.length===1?'':'s')+' shown';
  document.querySelectorAll('[data-sct-filter]').forEach(b=>{b.classList.toggle('active',b.dataset.sctFilter===filter);b.setAttribute('aria-pressed',String(b.dataset.sctFilter===filter));});
  list.innerHTML=entries.map(s=>{
@@ -135,10 +133,24 @@ function start(){
  const section=$('coverage');
  section.querySelector('.filterBar')?.remove();$('toggleServiceEditBtn')?.remove();$('serviceEditPanel')?.remove();
  const box=document.createElement('div');box.id='sctControls';box.className='panel';
- box.innerHTML='<div class="sctFilters"><button class="btn active" type="button" data-sct-filter="all">ALL SERVICES</button><button class="btn" type="button" data-sct-filter="checked">CHECKED</button><button class="btn" type="button" data-sct-filter="pending">NOT CHECKED</button></div><div class="sctDateFilters"><label>Checked from<input class="field" id="sctFrom" type="date"></label><label>Checked until<input class="field" id="sctTo" type="date"></label><label>Service group<select class="field" id="sctGroup"><option value="ALL">All services</option><option value="0">1–9</option><option value="10">10–19</option><option value="20">20–29</option><option value="30">30–39</option><option value="40">40–49</option><option value="50">50–59</option><option value="60">60–69</option><option value="70">70–79</option><option value="80">80–89</option><option value="90">90–99</option><option value="X">X Services</option><option value="OTHER">Other services</option></select></label><label>Order services<select class="field" id="sctSort"><option value="recent">Most recently checked</option><option value="oldest">Least recently checked</option><option value="service">Service number</option></select></label></div><div class="sctFooter"><span class="small" id="sctCount"></span><button class="btn" type="button" id="sctRefresh">REFRESH SHARED CHECKS</button></div><div class="small" role="status" id="sctStatus">First departures are indicative, not stop-specific. Use VIEW TIMETABLE for current days, directions and stops. Times and route links are display-only; inspection records remain separate.</div>';
- const search=$('coverageSearch');if(search){search.placeholder='Search service or route';search.insertAdjacentElement('afterend',box);}else section.insertBefore(box,$('coverageList'));
+ box.innerHTML='<div class="sctFilters"><button class="btn active" type="button" data-sct-filter="all">ALL SERVICES</button><button class="btn" type="button" data-sct-filter="checked">CHECKED</button><button class="btn" type="button" data-sct-filter="pending">NOT CHECKED</button></div><div class="sctDateFilters"><label>Checked from<input class="field" id="sctFrom" type="date"></label><label>Checked until<input class="field" id="sctTo" type="date"></label><label>Order services<select class="field" id="sctSort"><option value="recent">Most recently checked</option><option value="oldest">Least recently checked</option><option value="service">Service number</option></select></label></div><div class="sctFooter"><span class="small" id="sctCount"></span><button class="btn" type="button" id="sctRefresh">REFRESH SHARED CHECKS</button></div><div class="small" role="status" id="sctStatus">First departures are indicative, not stop-specific. Use VIEW TIMETABLE for current days, directions and stops. Times and route links are display-only; inspection records remain separate.</div>';
+ // Preserve the legacy search input for compatibility with older scripts, but remove it from the UI.
+ const search=$('coverageSearch');
+ if(search){search.value='';search.hidden=true;search.setAttribute('aria-hidden','true');search.style.display='none';search.insertAdjacentElement('afterend',box);}
+ else section.insertBefore(box,$('coverageList'));
+ // A direct in-app shortcut, accessible to every inspector from the Check Sheet.
+ const checkSheet=$('checksheet');
+ if(checkSheet&&!$('sctChecksheetQuickLink')){
+  const link=document.createElement('button');
+  link.id='sctChecksheetQuickLink';link.type='button';link.className='btn sctQuickLink';
+  link.dataset.open='coverage';link.textContent='🗺 SERVICE COVERAGE';
+  const chooser=$('checkTypeChooser'),heading=checkSheet.querySelector('h2');
+  if(chooser)chooser.insertAdjacentElement('afterend',link);
+  else if(heading)heading.insertAdjacentElement('afterend',link);
+  else checkSheet.insertBefore(link,checkSheet.firstChild);
+ }
  section.querySelectorAll('[data-sct-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.sctFilter;render();}));
- ['sctFrom','sctTo','sctGroup'].forEach(id=>$(id).addEventListener('change',render));
+ ['sctFrom','sctTo'].forEach(id=>$(id).addEventListener('change',render));
  $('sctSort').value=sortOrder;
  $('sctSort').addEventListener('change',e=>{
   sortOrder=['recent','oldest','service'].includes(e.target.value)?e.target.value:'recent';
@@ -148,14 +160,13 @@ function start(){
  $('sctRefresh').addEventListener('click',refresh);
  section.addEventListener('click',e=>{const b=e.target.closest('[data-sct-edit]');if(b){editing=editing===b.dataset.sctEdit?'':b.dataset.sctEdit;render();}if(e.target.closest('[data-sct-cancel]')){editing='';render();}});
  section.addEventListener('submit',e=>{if(e.target.matches('[data-sct-form]'))save(e);});
- search?.addEventListener('input',render);
  window.renderCoverage=render;render();setTimeout(refresh,400);
  document.addEventListener('click',e=>{if(e.target.closest('[data-open="coverage"]'))setTimeout(refresh,200);});
  setInterval(()=>{if(section.classList.contains('active')&&Date.now()-lastRefresh>55000)refresh();},60000);
  return true;
 }
 const style=document.createElement('style');
-style.textContent='#sctControls .sctFilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#sctControls .sctFilters .active{background:#eea83e;color:#091c2b}#sctControls .sctDateFilters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}#sctControls label,.sctEdit label{display:block;font-size:12px;font-weight:800;color:#c6d6e1}#sctControls label .field,.sctEdit label .field{display:block;box-sizing:border-box;width:100%;min-width:0;margin-top:5px}#sctControls .sctFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}.sctCard{padding:13px;margin:9px 0;background:#102b40;border-left:6px solid #b46a68;border-radius:12px}.sctCard.isChecked{border-left-color:#459679}.sctMain{display:flex;align-items:center;justify-content:space-between;gap:10px}.sctInfo{min-width:0;flex:1}.sctTitle{font-size:18px;font-weight:900}.sctTimetable{margin-top:6px}.sctTimetableLink{display:inline-flex;align-items:center;min-height:32px;padding:4px 9px;border-radius:7px;border:1px solid #427a9a;background:#163c55;color:#ecf8ff;font-size:11px;font-weight:900;text-decoration:none}.sctTimetableLink:hover,.sctTimetableLink:focus-visible{background:#276180;text-decoration:underline}.sctNoTimetable{font-size:11px;color:#e4c894}.sctLimited{display:inline-block;vertical-align:middle;font-size:11px;font-weight:800;border:1px solid #b5a477;border-radius:6px;padding:2px 6px;color:#e8d49e;white-space:normal;line-height:1.4}.sctState{font-size:11px;font-weight:800;color:#c9d6e0;margin-left:6px}.sctRoute{font-size:13px;overflow-wrap:anywhere}.sctDetail{margin-top:5px;font-size:12px;color:#bed0da;overflow-wrap:anywhere}.sctEdit{margin-top:12px;padding-top:12px;border-top:1px solid #386077;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sctEdit .sctActions,.sctEdit .small{grid-column:1/-1}.sctActions{display:flex;gap:9px;flex-wrap:wrap}@media(max-width:620px){#sctControls .sctDateFilters,.sctEdit{grid-template-columns:1fr}#sctControls .sctFilters{grid-template-columns:repeat(2,minmax(0,1fr))}#sctControls .sctFilters button,.sctMain button,.sctActions button{min-height:44px}}';
+style.textContent='.sctQuickLink{display:inline-flex;align-items:center;justify-content:center;margin:8px 0 12px;min-height:44px;font-size:13px;font-weight:900}#coverageSearch{display:none!important}#sctControls .sctFilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#sctControls .sctFilters .active{background:#eea83e;color:#091c2b}#sctControls .sctDateFilters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}#sctControls label,.sctEdit label{display:block;font-size:12px;font-weight:800;color:#c6d6e1}#sctControls label .field,.sctEdit label .field{display:block;box-sizing:border-box;width:100%;min-width:0;margin-top:5px}#sctControls .sctFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}.sctCard{padding:13px;margin:9px 0;background:#102b40;border-left:6px solid #b46a68;border-radius:12px}.sctCard.isChecked{border-left-color:#459679}.sctMain{display:flex;align-items:center;justify-content:space-between;gap:10px}.sctInfo{min-width:0;flex:1}.sctTitle{font-size:18px;font-weight:900}.sctTimetable{margin-top:6px}.sctTimetableLink{display:inline-flex;align-items:center;min-height:32px;padding:4px 9px;border-radius:7px;border:1px solid #427a9a;background:#163c55;color:#ecf8ff;font-size:11px;font-weight:900;text-decoration:none}.sctTimetableLink:hover,.sctTimetableLink:focus-visible{background:#276180;text-decoration:underline}.sctNoTimetable{font-size:11px;color:#e4c894}.sctLimited{display:inline-block;vertical-align:middle;font-size:11px;font-weight:800;border:1px solid #b5a477;border-radius:6px;padding:2px 6px;color:#e8d49e;white-space:normal;line-height:1.4}.sctState{font-size:11px;font-weight:800;color:#c9d6e0;margin-left:6px}.sctRoute{font-size:13px;overflow-wrap:anywhere}.sctDetail{margin-top:5px;font-size:12px;color:#bed0da;overflow-wrap:anywhere}.sctEdit{margin-top:12px;padding-top:12px;border-top:1px solid #386077;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sctEdit .sctActions,.sctEdit .small{grid-column:1/-1}.sctActions{display:flex;gap:9px;flex-wrap:wrap}@media(max-width:620px){#sctControls .sctDateFilters,.sctEdit{grid-template-columns:1fr}#sctControls .sctFilters{grid-template-columns:repeat(2,minmax(0,1fr))}#sctControls .sctFilters button,.sctMain button,.sctActions button{min-height:44px}}';
 document.head.appendChild(style);
 let count=0;const timer=setInterval(()=>{if(start()||++count>80)clearInterval(timer);},200);
 })();
