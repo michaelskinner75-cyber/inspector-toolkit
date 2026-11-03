@@ -67,8 +67,9 @@ function timetableUrl(s){
 function sortCoverage(a,b){
  const byCode=String(a.code).localeCompare(String(b.code),undefined,{numeric:true})||String(a.route||'').localeCompare(String(b.route||''));
  if(sortOrder==='service')return byCode;
- // Unchecked services are always below checked services for both recency views.
- if(a.checked!==b.checked)return a.checked?-1:1;
+ // Oldest first starts with never-checked services, then the oldest recorded checks.
+ // Newest first keeps unchecked services at the bottom.
+ if(a.checked!==b.checked)return sortOrder==='oldest'?(a.checked?1:-1):(a.checked?-1:1);
  if(!a.checked)return byCode;
  const stamp=s=>String(s.item?.date||'')+'T'+String(s.item?.time||'00:00');
  const comparison=stamp(a).localeCompare(stamp(b));
