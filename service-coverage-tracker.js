@@ -92,6 +92,7 @@ function timetableUrl(s){
 }
 // Expose only the exact, route-specific links already used by Service Coverage.
 window.InspectorCoverageTimetableUrl=timetableUrl;
+window.InspectorCoverageFirstDeparture=timetableFirst;
 function sortCoverage(a,b){
  const byCode=String(a.code).localeCompare(String(b.code),undefined,{numeric:true})||String(a.route||'').localeCompare(String(b.route||''));
  if(sortOrder==='service')return byCode;
