@@ -289,6 +289,7 @@ function capture(id,note){
 function visibility(){
  if(!allowed()){
   if($('michaelServiceTimes')?.classList.contains('active')&&typeof openSection==='function')openSection('home');
+  expanded.clear();editing.clear();
   $('michaelServiceTimes')?.remove();$('michaelServiceTimesNav')?.remove();return false;
  }
  return build();
