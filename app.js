@@ -14,7 +14,66 @@ function formatDateValue(v){if(v===undefined||v===null||v==='')return'-';const s
 function formatTimeValue(v){if(v===undefined||v===null||v==='')return'-';const s=String(v);const d=new Date(s);if(!isNaN(d))return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});if(/^\d{1,2}:\d{2}/.test(s))return s.slice(0,5);return s;}
 function normaliseDateForSave(v){if(!v)return new Date().toLocaleDateString('en-GB');const d=new Date(v+'T00:00:00');return isNaN(d)?v:d.toLocaleDateString('en-GB');}
 function normaliseTimeForSave(v){if(!v)return new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});return String(v).slice(0,5);}
-function setStatus(t){$('syncStatus').textContent=t;}
+// Visual cloud progress replaces the old text-only cloud-status messages.
+// A percentage is shown only for successful sheet reads, never for an opaque POST.
+let cloudReadProgress={active:false,total:0,done:0,failed:0};
+let cloudProgressMessage='Cloud ready.';
+function ensureCloudProgress(){
+ const status=$('syncStatus');if(!status)return null;
+ if(status.dataset.cloudProgressReady!=='1'){
+  status.dataset.cloudProgressReady='1';
+  status.classList.add('hubCloudProgress');
+  status.setAttribute('role','region');status.setAttribute('aria-label','Google Sheets connection progress');
+  const style=document.createElement('style');style.id='hubCloudProgressStyle';
+  if(!document.getElementById(style.id)){
+   style.textContent=[
+    '#home #syncStatus.hubCloudProgress{display:block;box-sizing:border-box;background:#102a3d;border:1px solid #426b86;border-radius:10px;padding:9px 11px;margin:9px 0;color:#ecf4fa}',
+    '#home .hubCloudProgressHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;font-size:11px;font-weight:900}',
+    '#home .hubCloudProgressLabel{color:#dce7ef}',
+    '#home .hubCloudProgressState{color:#edc17b;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:10px}',
+    '#home .hubCloudProgressTrack{position:relative;width:100%;height:10px;border:1px solid #466681;background:#20394d;box-sizing:border-box;border-radius:99px;overflow:hidden}',
+    '#home .hubCloudProgressFill{width:0;height:100%;border-radius:99px;background:#e9b458;transition:width .2s ease}',
+    '#home .hubCloudProgressTrack.isComplete .hubCloudProgressFill{background:#45b682}',
+    '#home .hubCloudProgressTrack.isBusy::after{content:"";position:absolute;inset:0 auto 0 -30%;width:28%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);animation:hubCloudScan 1.5s linear infinite}',
+    '@keyframes hubCloudScan{to{transform:translateX(480%)}}',
+    '@media(prefers-reduced-motion:reduce){#home .hubCloudProgressTrack.isBusy::after{animation:none}}'
+   ].join('');
+   document.head.appendChild(style);
+  }
+  status.innerHTML='<div class="hubCloudProgressHead"><strong class="hubCloudProgressLabel">GOOGLE SHEETS</strong><span class="hubCloudProgressState" id="hubCloudProgressState">READY</span></div><div class="hubCloudProgressTrack" id="hubCloudProgressTrack" role="progressbar" aria-label="Shared cloud data synchronisation" aria-valuemin="0" aria-valuemax="100"><div class="hubCloudProgressFill" id="hubCloudProgressFill"></div></div>';
+ }
+ return status;
+}
+function renderCloudProgress(){
+ const status=ensureCloudProgress();if(!status)return;
+ const indicator=$('hubCloudProgressState'),track=$('hubCloudProgressTrack'),fill=$('hubCloudProgressFill');
+ if(!indicator||!track||!fill)return;
+ const message=String(cloudProgressMessage||'').toLowerCase();
+ const loading=cloudReadProgress.active;
+ const sending=/saving|submitting|syncing|upload/i.test(message);
+ const delayed=/failed|delayed|unavailable|not submitted|not saved/i.test(message);
+ const sent=/saved to cloud|inspection submitted|protected locally/i.test(message);
+ let percentage=null,state='READY',complete=false,busy=false;
+ if(loading||/cloud data loaded|cloud updated/i.test(message)){
+  const {total,done,failed}=cloudReadProgress;
+  percentage=total?Math.round((done-failed)/total*100):null;
+  busy=loading;
+  state=loading?'LOADING '+(done)+' / '+total:(failed?'PARTIAL · '+percentage+'%':'COMPLETE');
+  complete=!loading&&failed===0;
+ }else if(delayed){state='SYNC DELAYED';}
+ else if(sending){state='SYNCING';busy=true;}
+ else if(sent){state='SENT · NOT VERIFIED';}
+ else if(/confirmed in google sheets/i.test(message)){state='CONFIRMED';percentage=100;complete=true;}
+ indicator.textContent=state;
+ track.classList.toggle('isBusy',busy);
+ track.classList.toggle('isComplete',complete);
+ fill.style.width=percentage===null?'0%':percentage+'%';
+ if(percentage===null)track.removeAttribute('aria-valuenow');
+ else track.setAttribute('aria-valuenow',String(percentage));
+ status.setAttribute('aria-description',cloudProgressMessage);
+}
+function setStatus(t){cloudProgressMessage=String(t||'');renderCloudProgress();}
+
 function download(name,text){const b=new Blob([text],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function openSection(id){const target=$(id);if(!target)return;document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));target.classList.add('active');window.scrollTo(0,0);}
 let pendingInspector='';
@@ -199,8 +258,14 @@ async function fetchCloudSheet(sheet){
 async function loadCloud(force=false){
  if(cloudLoadPromise)return force?cloudLoadPromise.then(()=>loadCloud(),()=>loadCloud()):cloudLoadPromise;
  const hadCache=hydrateCloudCache();
+ cloudReadProgress={active:true,total:sheets.length,done:0,failed:0};
  setStatus(hadCache?'Refreshing cloud data...':'Loading cloud data...');
- cloudLoadPromise=Promise.allSettled(sheets.map(fetchCloudSheet)).then(results=>{
+ const checked=sheets.map(sheet=>Promise.resolve().then(()=>fetchCloudSheet(sheet)).then(
+  value=>{cloudReadProgress.done++;renderCloudProgress();return value;},
+  error=>{cloudReadProgress.done++;cloudReadProgress.failed++;renderCloudProgress();throw error;}
+ ));
+ cloudLoadPromise=Promise.allSettled(checked).then(results=>{
+  cloudReadProgress.active=false;
   const failed=results.filter(r=>r.status==='rejected').length;
   setStatus(failed?('Cloud updated • '+failed+' source'+(failed===1?'':'s')+' delayed'):'Cloud data loaded.');
   renderAll();
