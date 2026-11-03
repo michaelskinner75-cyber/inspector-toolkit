@@ -22,7 +22,7 @@ let plans={},selectedDate='',selectedId='',editingId='',viewFilter='due',query='
 function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function dateFrom(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(text(s)))return null;const p=s.split('-').map(Number);const d=new Date(p[0],p[1]-1,p[2]);return d.getFullYear()===p[0]&&d.getMonth()===p[1]-1&&d.getDate()===p[2]?d:null;}
 function displayDate(s){const d=dateFrom(s);return d?d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):s;}
-function minute(s){const m=/^(\d{2}):(\d{2})$/.exec(text(s));return m?+m[1]*60+ +m[2]:NaN;}
+function minute(s){const m=/^(\d{2}):(\d{2})$/.exec(text(s));return m&&+m[1]<24&&+m[2]<60?+m[1]*60+ +m[2]:NaN;}
 function hhmm(n){const t=Math.max(0,Math.min(1439,Math.round(n)));return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');}
 function michael(){let name='';try{name=typeof getInspector==='function'?getInspector():localStorage.getItem('activeInspector')||'';}catch(e){}return /^(?:m\.?\s*skinner|michael\s+skinner)$/i.test(text(name))&&Number(localStorage.getItem('michaelLoginExpiresAt')||0)>Date.now();}
 function safeLink(s){const url=text(window.InspectorCoverageTimetableUrl?.(s)||'');return /^https:\/\/(?:www\.)?bustimes\.org\/services\/[a-z0-9/_-]+(?:\?[a-z0-9=&_%.-]*)?$/i.test(url)?url:'';}
@@ -38,8 +38,9 @@ function status(s,ref){
  if(s.override?.status==='NOT_CHECKED'||!s.checked||days>14)return {rank:1,flag:'OVERDUE',cls:'overdue',days,last};
  return {rank:2,flag:'RECENT',cls:'recent',days,last};
 }
+function coverageReady(){const model=window.InspectorCoverageModel;return !!model&&(model.rows('Inspections').length>0||model.rows('Timing Checks').length>0||model.rows('Early Running').length>0);}
 function services(){
- const model=window.InspectorCoverageModel;if(!model)return[];
+ const model=window.InspectorCoverageModel;if(!model||!coverageReady())return[];
  const now=new Date();
  return model.status(model.defs()).filter(model.fifeService).map(s=>({...s,urgency:status(s,now)}))
   .sort((a,b)=>a.urgency.rank-b.urgency.rank||
@@ -144,7 +145,7 @@ function build(){
    '<div class="dpTwoCol"><div class="dpPanel" id="dpPriorityPanel"><h3 class="dpH3">Services needing attention</h3>',
    '<div class="dpGrid"><label class="dpField">Find service or location<input id="dpSearch" placeholder="e.g. 7, Kirkcaldy, Leven"></label>',
    '<label class="dpField">Show<select id="dpFilter"><option value="due">Never checked &amp; overdue</option><option value="never">Never checked only</option><option value="all">All services</option></select></label></div>',
-   '<p class="dpNotes">Priorities update from shared inspections, timing checks and manual coverage amendments. Timetables open the correct published route.</p>',
+   '<p class="dpNotes">Priorities update from shared inspections, timing checks and manual coverage amendments. Timetables open the correct published route.</p><div class="dpActions"><button type="button" id="dpRefreshHistory" class="dpButton">REFRESH CHECK HISTORY</button></div>',
    '<div class="dpPriority" id="dpPriorityList"></div></div>',
    '<div class="dpPanel" id="dpEditorPanel"><h3 class="dpH3" id="dpEditorHeading">Add a check to your plan</h3>',
    '<div class="dpSelected" id="dpChosenService">Select a service from the priority list.</div>',
@@ -286,7 +287,7 @@ function renderPriority(){
   '<span class="dpChip recent">'+all.filter(s=>s.urgency.rank===2).length+' recent</span>',
   '<span class="dpChip">'+all.length+' Fife services</span>'
  ].join('');
- box.innerHTML=filtered.length?filtered.map(s=>{
+ box.innerHTML=!coverageReady()?'<p class="dpEmpty">Loading shared inspection history. Wait for Google Sheets before planning from priorities.</p>':filtered.length?filtered.map(s=>{
   const u=s.urgency,url=safeLink(s),count=scheduled.get(s.id)||0;
   const meta=u.rank===0?'No recorded inspection / timing check':u.last?'Last checked '+u.last+(Number.isFinite(u.days)?' · '+u.days+' days ago':''):'No valid last-check date';
   return '<article class="dpService"><div class="dpServiceInfo"><strong>'+esc(s.code)+'</strong><span class="dpPill '+u.cls+'">'+u.flag+'</span>'+
@@ -418,6 +419,12 @@ function init(){
   if(target.closest?.('#dpPrint')){window.print();return;}
   if(target.closest?.('#dpExportCsv')){exportCsv();return;}
   if(target.closest?.('#dpExportBackup')){exportBackup();return;}
+  if(target.closest?.('#dpRefreshHistory')){
+   const b=$('dpRefreshHistory');b.disabled=true;b.textContent='REFRESHING…';
+   const names=['Inspections','Timing Checks','Early Running','Services'];
+   Promise.allSettled(names.map(name=>typeof fetchCloudSheet==='function'?fetchCloudSheet(name):Promise.reject(new Error('Cloud not available')))).then(()=>{render();}).finally(()=>{b.disabled=false;b.textContent='REFRESH CHECK HISTORY';});
+   return;
+  }
  });
  document.addEventListener('input',e=>{
   if(!michael())return;
