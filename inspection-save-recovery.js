@@ -37,26 +37,45 @@ function restoreDraft(){
  }finally{restoring=false;}
  feedback('An unfinished inspection was restored from this device.');
 }
+
 function canonDate(v){
- const s=String(v||'').trim();
- let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return [m[1],m[2].padStart(2,'0'),m[3].padStart(2,'0')].join('-');
- m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);if(m)return [(m[3].length===2?'20':'')+m[3],m[2].padStart(2,'0'),m[1].padStart(2,'0')].join('-');
- const d=new Date(s);return isNaN(d)?s:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ if(typeof v==='number'&&v>20000&&v<90000)return new Date(Date.UTC(1899,11,30)+Math.floor(v)*86400000).toISOString().slice(0,10);
+ const s=String(v??'').trim();
+ let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+ if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+ m=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/);
+ if(m)return (m[3].length===2?'20':'')+m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+ const d=new Date(s);
+ return isNaN(d)?s:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function canonTime(v){
- const s=String(v||'').trim();let m=s.match(/^(\d{1,2}):(\d{2})/);
- if(m)return String(Number(m[1])).padStart(2,'0')+':'+m[2];
- const d=new Date(s);return isNaN(d)?s:d.toISOString().slice(11,16);
+ if(typeof v==='number'&&v>=0&&v<1){const minutes=Math.round(v*1440)%1440;return String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');}
+ const s=String(v??'').trim();
+ let m=s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?$/i);
+ if(m){let hour=+m[1];if(m[3])hour=hour%12+(m[3].toLowerCase()==='pm'?12:0);return String(hour).padStart(2,'0')+':'+m[2];}
+ m=s.match(/T(\d{2}):(\d{2})(?::\d{2})?/);
+ if(m)return m[1]+':'+m[2];
+ const d=new Date(s);
+ return isNaN(d)?s:String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 }
+function cleanCell(v){return String(v??'').normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();}
 function sameRow(sheet,a,b){
  if(!Array.isArray(a)||!Array.isArray(b))return false;
  const ids=sheet==='Inspections'?[2,3,4,5,6,7,8,9,13,14]:sheet==='Driver Reports'?[2,3,4,5,6,7,8,9]:[2,3,4,5,6,7,8,9,10,11];
- return canonDate(a[0])===canonDate(b[0])&&canonTime(a[1])===canonTime(b[1])&&ids.every(i=>String(a[i]??'').trim()===String(b[i]??'').trim());
+ return canonDate(a[0])===canonDate(b[0])&&canonTime(a[1])===canonTime(b[1])
+  &&ids.every(i=>cleanCell(a[i])===cleanCell(b[i]));
 }
+
 function label(){
- const pending=queue.filter(e=>e.items.some(i=>!i.confirmed)).length;
- if(pending)return pending+' inspection'+(pending===1?'':'s')+' stored on this device, awaiting Google Sheets confirmation. Keep this device until synced.';
- return 'All queued inspections have been confirmed in Google Sheets.';
+ const incomplete=queue.filter(e=>e.items.some(i=>!i.confirmed));
+ if(!incomplete.length)return 'All queued checks have been confirmed in Google Sheets.';
+ const inspections=incomplete.filter(e=>e.items.some(i=>i.sheet==='Inspections'&&!i.confirmed)).length;
+ const associated=incomplete.filter(e=>e.items.some(i=>i.sheet!=='Inspections'&&!i.confirmed)).length;
+ const confirmed=incomplete.filter(e=>e.items.some(i=>i.sheet==='Inspections'&&i.confirmed)).length;
+ let message=inspections+' inspection'+(inspections===1?'':'s')+' awaiting Google Sheets confirmation.';
+ if(confirmed)message+=' '+confirmed+' inspection'+(confirmed===1?' is':'s are')+' confirmed; associated logs still pending.';
+ if(associated)message+=' '+associated+' check'+(associated===1?' has':'s have')+' related records still awaiting confirmation.';
+ return message+' Your details remain saved on this device.';
 }
 function feedback(message){
  let box=$('inspectionSaveRecoveryStatus');
@@ -66,13 +85,33 @@ function feedback(message){
   box.style.cssText='margin:10px 0;padding:10px 12px;border:1px solid #496980;border-radius:10px;background:#102a3d;color:#fff;font-size:13px;line-height:1.5;';
   const parent=btn.parentElement||btn;parent.insertAdjacentElement('afterend',box);
  }
- const pending=queue.some(e=>e.items.some(i=>!i.confirmed));
  box.textContent=message||label();
- if(pending){
-  const retry=document.createElement('button');retry.type='button';retry.textContent='RETRY SYNC';
-  retry.style.cssText='display:block;margin-top:8px;padding:7px 12px;border:1px solid #deb56c;border-radius:7px;background:#4a3417;color:white;font-weight:700;';
-  retry.addEventListener('click',()=>{queue.forEach(e=>e.items.forEach(i=>{if(!i.confirmed)i.sentAt=0;}));try{persist();}catch(e){}sync();});
-  box.appendChild(retry);
+ const outstanding=queue.flatMap(e=>e.items.filter(i=>!i.confirmed));
+ if(!outstanding.length)return;
+ const issues=[...new Set(outstanding.map(i=>i.sheet+': '+(i.lastError||'Waiting for confirmation')))];
+ const lines=document.createElement('div');
+ lines.style.cssText='margin:8px 0;font-size:12px;line-height:1.45;color:#c7d9e7;';
+ lines.textContent=issues.join(' • ');
+ box.appendChild(lines);
+ const recheck=document.createElement('button');
+ recheck.type='button';recheck.textContent='CHECK SYNC STATUS';
+ recheck.style.cssText='display:inline-block;margin:6px 7px 0 0;padding:8px 11px;border:1px solid #deb56c;border-radius:7px;background:#4a3417;color:white;font-weight:800;';
+ recheck.addEventListener('click',()=>sync());
+ box.appendChild(recheck);
+ // Sending twice after an opaque response can create duplicate offences.
+ // Only offer an explicit recovery action after the user checks the Sheet.
+ if(outstanding.some(i=>i.sentAt&&Date.now()-i.sentAt>300000)){
+  const resend=document.createElement('button');
+  resend.type='button';resend.textContent='RESEND AFTER CHECKING SHEET';
+  resend.style.cssText='display:inline-block;margin-top:6px;padding:8px 11px;border:1px solid #7e92a6;border-radius:7px;background:#294358;color:white;font-weight:700;';
+  resend.addEventListener('click',()=>{
+   if(!confirm('First check the Google Sheet for this inspection and its related logs. Only resend if they are MISSING. Resending an already saved record can create duplicates. Continue?'))return;
+   const due=Date.now()-300000;
+   queue.forEach(e=>e.items.forEach(i=>{if(!i.confirmed&&i.sentAt&&i.sentAt<due){i.sentAt=0;i.lastError='Manually authorised resend';}}));
+   try{persist();}catch(err){}
+   sync();
+  });
+  box.appendChild(resend);
  }
 }
 function nextOffenceRef(date,inspector){
@@ -144,29 +183,52 @@ async function timeoutFetch(url,options,ms){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);
  try{return await fetch(url,{...options,signal:controller.signal});}finally{clearTimeout(timer);}
 }
+
 async function remoteRows(sheet){
  const url=WEB_APP_URL+(WEB_APP_URL.includes('?')?'&':'?')+'sheet='+encodeURIComponent(sheet)+'&_='+Date.now();
- const response=await timeoutFetch(url,{cache:'no-store'},9000);
- if(!response.ok)throw new Error('Read failed: '+response.status);
+ // The inspection sheet is growing; nine seconds is too short on mobile data.
+ const response=await timeoutFetch(url,{cache:'no-store'},22000);
+ if(!response.ok)throw new Error('Google Sheets read failed (HTTP '+response.status+')');
  const json=await response.json();
- if(!json||!Array.isArray(json.data))throw new Error('Unexpected Google Sheets reply');
+ if(!json||!Array.isArray(json.data))throw new Error('Unexpected Google Sheets response');
  return json.data;
 }
 async function syncItem(item){
- // Read before every upload, including recovery after an uncertain network timeout.
- let rows=await remoteRows(item.sheet);
- if(rows.some(r=>sameRow(item.sheet,r,item.row))){item.confirmed=true;return;}
- // A previous opaque POST might still complete: do not fire another one immediately.
- if(item.sentAt&&Date.now()-item.sentAt<120000)return;
- item.sentAt=Date.now();persist();
- await timeoutFetch(WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({sheet:item.sheet,row:item.row})},12000);
- await wait(850);
- rows=await remoteRows(item.sheet);
- if(!rows.some(r=>sameRow(item.sheet,r,item.row))){
-  await wait(1800);
+ let rows=null;
+ try{
   rows=await remoteRows(item.sheet);
+  if(rows.some(row=>sameRow(item.sheet,row,item.row))){
+   item.confirmed=true;item.lastError='';return;
+  }
+ }catch(err){
+  item.lastError='Cannot check Google Sheets yet ('+String(err?.message||err).slice(0,80)+')';
  }
- if(rows.some(r=>sameRow(item.sheet,r,item.row)))item.confirmed=true;
+ // A no-cors POST response is opaque. Never automatically send the same
+ // transaction twice when the first upload might already have been committed.
+ if(item.sentAt){
+  if(rows)item.lastError='Previously sent; not yet found on read-back. Recheck before resending.';
+  return;
+ }
+ item.sentAt=Date.now();
+ item.lastError='Submitted to Google Sheets; checking confirmation';
+ persist();
+ try{
+  await timeoutFetch(WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({sheet:item.sheet,row:item.row})},18000);
+ }catch(err){
+  // The POST may have reached Apps Script before the browser timed out.
+  item.lastError='Upload result uncertain ('+String(err?.message||err).slice(0,80)+'). Do not resend until checked.';
+  return;
+ }
+ await wait(1300);
+ try{
+  rows=await remoteRows(item.sheet);
+  if(rows.some(row=>sameRow(item.sheet,row,item.row))){
+   item.confirmed=true;item.lastError='';return;
+  }
+  item.lastError='Upload sent; waiting for Google Sheets to display the record.';
+ }catch(err){
+  item.lastError='Upload sent; Google Sheets confirmation unavailable ('+String(err?.message||err).slice(0,80)+')';
+ }
 }
 async function sync(){
  if(working||!queue.some(e=>e.items.some(i=>!i.confirmed)))return;
