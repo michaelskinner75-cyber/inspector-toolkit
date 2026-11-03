@@ -220,9 +220,11 @@ function closeDetails(){
  returnFocus=null;
 }
 function card(item,index,duplicate){
- const description=[item.action==='ADVISED'?'Driver advised':'Driver reported',item.driver,item.date,item.service&&'Service '+item.service,item.inspector&&'Inspector '+item.inspector,item.note].filter(Boolean).join(' • ').slice(0,900);
- const date=item.date.slice(8,10)+'/'+item.date.slice(5,7)+'/'+item.date.slice(0,4);
- return '<button type="button" class="homeDriverActionCard '+(item.action==='ADVISED'?'advised':'reported')+'" data-driver-action-index="'+index+'" '+(duplicate?'tabindex="-1" ':'')+'title="'+esc(description)+'" aria-label="'+esc('View details: '+item.driver+', '+item.action.toLowerCase()+', '+date)+'"><span class="homeDriverActionTag">'+item.action+'</span><strong class="homeDriverActionName">'+esc(item.driver)+'</strong><span class="homeDriverActionMeta">'+esc(date)+(item.time?' '+esc(item.time):'')+'</span>'+(item.service?'<span class="homeDriverActionMeta">SERVICE '+esc(item.service)+'</span>':'')+(item.inspector?'<span class="homeDriverActionMeta">• '+esc(item.inspector)+'</span>':'')+'</button>';
+ // The scrolling bar shows only the driver and their action.
+ // Other report details remain available when the entry is tapped.
+ const label=item.action==='ADVISED'?'ADVISED':'REPORTED';
+ const description=item.driver+' • '+label;
+ return '<button type="button" class="homeDriverActionCard '+(item.action==='ADVISED'?'advised':'reported')+'" data-driver-action-index="'+index+'" '+(duplicate?'tabindex="-1" ':'')+'title="'+esc(description)+'" aria-label="'+esc('View details: '+item.driver+', '+label.toLowerCase())+'"><strong class="homeDriverActionName">'+esc(item.driver)+'</strong><span class="homeDriverActionTag">'+label+'</span></button>';
 }
 function paint(){
  const viewport=$('homeDriverActionViewport');
