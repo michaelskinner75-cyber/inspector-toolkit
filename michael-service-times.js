@@ -65,7 +65,7 @@ function readCloudRows(raw){
     if(!Array.isArray(part))continue;
     const key=id+'|'+base;
     if(!chunks.has(key))chunks.set(key,[]);
-    chunks.get(key)[Number(match[1])]={entries:part,total:Number(match[2])};
+    chunks.get(key)[Number(match[1])-1]={entries:part,total:Number(match[2])};
    }catch(e){}
    revisions.set(id+'|'+rev,true);
    continue;
