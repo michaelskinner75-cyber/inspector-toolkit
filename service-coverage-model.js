@@ -42,5 +42,26 @@ function automatic(all){
 }
 function manual(){const map=new Map();rows('Services').forEach(r=>{if(clean(r[1]).toUpperCase()!=='COVERAGE')return;const key=clean(r[2]);if(!key.startsWith('cov:'))return;const s=clean(r[4]).toUpperCase();if(!['CHECKED','NOT_CHECKED','AUTO'].includes(s))return;map.set(key.slice(4),{status:s,date:date(r[5]),time:time(r[6]),inspector:clean(r[7]),by:clean(r[8]),operation:clean(r[9]),kind:'Manual amendment'});});return map;}
 function status(all,from='',to=''){const auto=automatic(all),edits=manual();const inRange=item=>!!item&&(!from||item.date>=from)&&(!to||item.date<=to);return all.map(s=>{const override=edits.get(s.id),history=auto.get(s.id)||[],original=history[0]||null;const item=override&&override.status!=='AUTO'?(override.status==='CHECKED'&&inRange(override)?{...override}:null):(history.find(inRange)||null);return {...s,original,override,item,checked:!!item,checkCount:history.length};});}
-window.InspectorCoverageModel={date,time,rows,defs,status,isSchoolService};
+// Shared service-area allocation for Service Coverage and Suggested Checks.
+// Service codes reused in Perth and Fife are disambiguated by their route.
+// 56, 56B and 65 intentionally belong to both inspector areas.
+const fifeServiceCodes=new Set(('1 1A 2 2A 3 4 4A 4B 4C 6 6A 7 7A 7B 7C 7D 8 8A 14A 19 28 32 32A 33 33A 34 34A 34B 35 35A 36 37 37A 38 39 39A 39B 40 41 41A 41B 43 43A 44 44A 44B 46 47A 48 49 56 56B 59 65 81 81A 82 82A 83 87 88 88A 90 90A 90B 90C 91 91A 95 99 99S 201 395 747 787 X22 X24 X24A X27 X51 X55 X57 X58 X59 X59A X61').split(' '));
+const fifeDuplicateRoute={
+ '1':/DUNFERMLINE/i,'1A':/DUNFERMLINE/i,'2':/DUNFERMLINE/i,'2A':/DUNFERMLINE/i,
+ '3':/DUNFERMLINE/i,'4':/DUNFERMLINE/i,'6':/CROMBIE/i,
+ '7':/DUNFERMLINE/i,'7A':/DUNFERMLINE/i,'7B':/KELTY/i,'7C':/KELTY/i,
+ '8':/DUNFERMLINE/i,'14A':/KIRKCALDY/i,'33':/KIRKCALDY/i,
+ '34':/KIRKCALDY/i,'34A':/KIRKCALDY/i,'40':/GLENROTHES/i,
+ '47A':/LEVEN/i,'59':/GLENROTHES/i,'83':/DUNFERMLINE/i
+};
+const sharedServiceCodes=new Set(['56','56B','65']);
+function fifeService(s){
+ const code=clean(s?.code).toUpperCase();
+ if(!fifeServiceCodes.has(code))return false;
+ return !fifeDuplicateRoute[code]||fifeDuplicateRoute[code].test(clean(s?.route));
+}
+function strathtayService(s){
+ return sharedServiceCodes.has(clean(s?.code).toUpperCase())||!fifeService(s);
+}
+window.InspectorCoverageModel={date,time,rows,defs,status,isSchoolService,fifeService,strathtayService};
 })();
