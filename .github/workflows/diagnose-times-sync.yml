@@ -7,24 +7,29 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 4
     steps:
-      - name: Check Apps Script sheet read support (without exposing data)
+      - name: Test sending a temporary row and reading it back
         env:
           APP_URL: https://script.google.com/macros/s/AKfycbz3LPrQ7Y1b7Suq7OvYSyoqoW4iYrAzNjBq6Li7t4SbtrfriBjH16e5iGG2ZRTKyjzk0A/exec
         run: |
           python3 - <<'PY'
           import os,urllib.request,urllib.parse,json,time
           url=os.environ['APP_URL']
-          for sheet in ['Other Work','Fife Service Times']:
-              uri=url+'?'+urllib.parse.urlencode({'sheet':sheet,'_':int(time.time())})
-              req=urllib.request.Request(uri,headers={'User-Agent':'InspectorHubSyncCheck/1.0'})
-              try:
-                  with urllib.request.urlopen(req,timeout=22) as r:
-                      body=r.read()
-                      try:
-                          obj=json.loads(body)
-                          print(sheet,'HTTP',r.status,'JSON',isinstance(obj,dict),'data-array',isinstance(obj.get('data'),list) if isinstance(obj,dict) else False,'count',len(obj.get('data',[])) if isinstance(obj,dict) and isinstance(obj.get('data'),list) else 'n/a','error-key',str(obj.get('error',''))[:120] if isinstance(obj,dict) else 'n/a')
-                      except Exception as e: print(sheet,'HTTP',r.status,'non-json','length',len(body),'type',r.headers.get('content-type',''))
-              except Exception as e: print(sheet,'Request failed:',type(e).__name__,str(e)[:110])
+          record=['2026-11-03T23:57:00Z','__TIMES_SYNC_DIAGNOSTIC__','TEST','Temporary connection test','M Skinner','1','Temporary test — remove','', 'DIAG-20261103-2357','TIMES','']
+          body=json.dumps({'sheet':'Fife Service Times','row':record}).encode()
+          try:
+              request=urllib.request.Request(url,data=body,headers={'Content-Type':'text/plain;charset=utf-8'},method='POST')
+              with urllib.request.urlopen(request,timeout=25) as r:
+                  print('POST: HTTP',r.status,'responseType',r.headers.get('content-type',''))
+          except Exception as e: print('POST failed:',type(e).__name__,str(e)[:130])
+          time.sleep(3)
+          u=url+'?'+urllib.parse.urlencode({'sheet':'Fife Service Times','_':int(time.time())})
+          try:
+              with urllib.request.urlopen(u,timeout=25) as r:
+                  j=json.loads(r.read())
+                  rows=j.get('data') or []
+                  found=any(isinstance(x,list) and len(x)>8 and x[1]=='__TIMES_SYNC_DIAGNOSTIC__' and x[8]=='DIAG-20261103-2357' for x in rows)
+                  print('Readback: rows',len(rows),'TEST RECORD FOUND:',found)
+          except Exception as e: print('Readback failed:',type(e).__name__,str(e)[:130])
           PY
