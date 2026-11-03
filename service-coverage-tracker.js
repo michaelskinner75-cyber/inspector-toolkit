@@ -90,6 +90,8 @@ function timetableUrl(s){
  if(options.length===1)return timetableLinks.get(options[0][0])||'';
  return '';
 }
+// Expose only the exact, route-specific links already used by Service Coverage.
+window.InspectorCoverageTimetableUrl=timetableUrl;
 function sortCoverage(a,b){
  const byCode=String(a.code).localeCompare(String(b.code),undefined,{numeric:true})||String(a.route||'').localeCompare(String(b.route||''));
  if(sortOrder==='service')return byCode;
