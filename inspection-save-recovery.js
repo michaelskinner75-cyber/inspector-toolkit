@@ -35,7 +35,8 @@ function restoreDraft(){
   if($('csDestinationManual'))$('csDestinationManual').style.display=val('csDestinationChoice')==='__manual__'?'block':'none';
   $('csJourneyStatus')?.dispatchEvent(new Event('change',{bubbles:true}));
  }finally{restoring=false;}
- feedback('An unfinished inspection was restored from this device.');
+ // Restored draft remains in the form; syncing progress appears only for queued records.
+ if(queue.length)feedback();
 }
 
 function canonDate(v){
@@ -66,44 +67,72 @@ function sameRow(sheet,a,b){
   &&ids.every(i=>cleanCell(a[i])===cleanCell(b[i]));
 }
 
-function label(){
- const incomplete=queue.filter(e=>e.items.some(i=>!i.confirmed));
- if(!incomplete.length)return 'All queued checks have been confirmed in Google Sheets.';
- const inspections=incomplete.filter(e=>e.items.some(i=>i.sheet==='Inspections'&&!i.confirmed)).length;
- const associated=incomplete.filter(e=>e.items.some(i=>i.sheet!=='Inspections'&&!i.confirmed)).length;
- const confirmed=incomplete.filter(e=>e.items.some(i=>i.sheet==='Inspections'&&i.confirmed)).length;
- let message=inspections+' inspection'+(inspections===1?'':'s')+' awaiting Google Sheets confirmation.';
- if(confirmed)message+=' '+confirmed+' inspection'+(confirmed===1?' is':'s are')+' confirmed; associated logs still pending.';
- if(associated)message+=' '+associated+' check'+(associated===1?' has':'s have')+' related records still awaiting confirmation.';
- return message+' Your details remain saved on this device.';
+
+function progressStyles(){
+ if($('inspectionSyncProgressStyles'))return;
+ const style=document.createElement('style');style.id='inspectionSyncProgressStyles';
+ style.textContent=[
+  '#inspectionSaveRecoveryStatus{margin:10px 0 12px;padding:12px;border:1px solid #476e87;border-radius:11px;background:#102a3d;color:#fff;font-family:inherit}',
+  '.inspectionSyncTop{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;font-weight:850;margin:0 0 8px}',
+  '.inspectionSyncTitle{color:#e8eff5}.inspectionSyncCount{color:#edc17b;font-variant-numeric:tabular-nums;white-space:nowrap}',
+  '.inspectionSyncTrack{height:13px;width:100%;background:#263e51;border-radius:999px;overflow:hidden;position:relative;border:1px solid #456277;box-sizing:border-box}',
+  '.inspectionSyncFill{height:100%;width:0%;background:#eeaf4f;border-radius:999px;transition:width .3s ease;position:relative}',
+  '.inspectionSyncTrack.isChecking::after{content:"";position:absolute;top:0;bottom:0;width:25%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.24),transparent);animation:inspectionSyncSweep 1.6s linear infinite;pointer-events:none}',
+  '.inspectionSyncTrack.isComplete .inspectionSyncFill{background:#48b981}',
+  '.inspectionSyncTrack.isWaiting .inspectionSyncFill{background:#efb54c}',
+  '.inspectionSyncSummary{font-size:11px;color:#ccdae4;margin:6px 0 0;line-height:1.4}',
+  '.inspectionSyncWarning{font-size:11px;color:#ffd092;margin:9px 0 0;line-height:1.45}',
+  '.inspectionSyncButtons{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}',
+  '.inspectionSyncAction{font-family:inherit;min-height:36px;border:1px solid #b99353;border-radius:7px;background:#3b3440;color:white;padding:7px 11px;font-size:11px;font-weight:800;cursor:pointer}',
+  '@keyframes inspectionSyncSweep{from{transform:translateX(-100%)}to{transform:translateX(500%)}}',
+  '@media(prefers-reduced-motion:reduce){.inspectionSyncTrack.isChecking::after{animation:none}}'
+ ].join('');
+ document.head.appendChild(style);
 }
-function feedback(message){
+function feedback(){
  let box=$('inspectionSaveRecoveryStatus');
+ if(!box&&!queue.length)return;
+ progressStyles();
  if(!box){
   const btn=$('saveCheckSheetBtn');if(!btn)return;
-  box=document.createElement('div');box.id='inspectionSaveRecoveryStatus';box.setAttribute('role','status');
-  box.style.cssText='margin:10px 0;padding:10px 12px;border:1px solid #496980;border-radius:10px;background:#102a3d;color:#fff;font-size:13px;line-height:1.5;';
-  const parent=btn.parentElement||btn;parent.insertAdjacentElement('afterend',box);
+  box=document.createElement('div');box.id='inspectionSaveRecoveryStatus';box.setAttribute('role','region');
+  box.setAttribute('aria-label','Inspection save and Google Sheets confirmation progress');
+  const parent=btn.parentElement||btn;
+  parent.insertAdjacentElement('afterend',box);
  }
- box.textContent=message||label();
- const outstanding=queue.flatMap(e=>e.items.filter(i=>!i.confirmed));
- if(!outstanding.length)return;
- const issues=[...new Set(outstanding.map(i=>i.sheet+': '+(i.lastError||'Waiting for confirmation')))];
- const lines=document.createElement('div');
- lines.style.cssText='margin:8px 0;font-size:12px;line-height:1.45;color:#c7d9e7;';
- lines.textContent=issues.join(' • ');
- box.appendChild(lines);
- const recheck=document.createElement('button');
- recheck.type='button';recheck.textContent='CHECK SYNC STATUS';
- recheck.style.cssText='display:inline-block;margin:6px 7px 0 0;padding:8px 11px;border:1px solid #deb56c;border-radius:7px;background:#4a3417;color:white;font-weight:800;';
- recheck.addEventListener('click',()=>sync());
- box.appendChild(recheck);
- // Sending twice after an opaque response can create duplicate offences.
- // Only offer an explicit recovery action after the user checks the Sheet.
- if(outstanding.some(i=>i.sentAt&&Date.now()-i.sentAt>300000)){
-  const resend=document.createElement('button');
+ const all=queue.flatMap(e=>e.items),total=all.length,done=all.filter(i=>i.confirmed).length;
+ const remaining=all.filter(i=>!i.confirmed);
+ const pct=total?Math.round(100*done/total):100;
+ const complete=!remaining.length,checking=working&&!complete;
+ const heading=complete?'SAVED & CONFIRMED':checking?'CHECKING GOOGLE SHEETS':'WAITING FOR CONFIRMATION';
+ const top=document.createElement('div');top.className='inspectionSyncTop';
+ const title=document.createElement('strong');title.className='inspectionSyncTitle';title.textContent=heading;
+ const count=document.createElement('span');count.className='inspectionSyncCount';count.textContent=pct+'%';
+ top.append(title,count);
+ const track=document.createElement('div');track.className='inspectionSyncTrack'+(complete?' isComplete':checking?' isChecking':' isWaiting');
+ track.setAttribute('role','progressbar');track.setAttribute('aria-label','Google Sheets records confirmed');
+ track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');track.setAttribute('aria-valuenow',String(pct));
+ const fill=document.createElement('div');fill.className='inspectionSyncFill';fill.style.width=pct+'%';
+ track.appendChild(fill);
+ const summary=document.createElement('div');summary.className='inspectionSyncSummary';
+ summary.textContent=complete?'All inspection records confirmed in Google Sheets.':done+' of '+total+' records confirmed in Google Sheets. Pending records are protected on this device.';
+ box.replaceChildren(top,track,summary);
+ if(!remaining.length)return;
+ // Keep problem information available without filling the screen with sync messages.
+ const errors=[...new Set(remaining.filter(i=>i.lastError&&
+  !/^(Submitted to Google Sheets|Manually authorised resend)/.test(i.lastError))
+  .map(i=>i.sheet+': '+i.lastError))];
+ if(errors.length){
+  const warning=document.createElement('div');warning.className='inspectionSyncWarning';
+  warning.textContent=errors.join(' • ');box.appendChild(warning);
+ }
+ const buttons=document.createElement('div');buttons.className='inspectionSyncButtons';
+ const recheck=document.createElement('button');recheck.className='inspectionSyncAction';recheck.type='button';
+ recheck.textContent=checking?'CHECKING…':'CHECK SYNC STATUS';recheck.disabled=working;
+ recheck.addEventListener('click',()=>sync());buttons.appendChild(recheck);
+ if(remaining.some(i=>i.sentAt&&Date.now()-i.sentAt>300000)){
+  const resend=document.createElement('button');resend.className='inspectionSyncAction';
   resend.type='button';resend.textContent='RESEND AFTER CHECKING SHEET';
-  resend.style.cssText='display:inline-block;margin-top:6px;padding:8px 11px;border:1px solid #7e92a6;border-radius:7px;background:#294358;color:white;font-weight:700;';
   resend.addEventListener('click',()=>{
    if(!confirm('First check the Google Sheet for this inspection and its related logs. Only resend if they are MISSING. Resending an already saved record can create duplicates. Continue?'))return;
    const due=Date.now()-300000;
@@ -111,8 +140,9 @@ function feedback(message){
    try{persist();}catch(err){}
    sync();
   });
-  box.appendChild(resend);
+  buttons.appendChild(resend);
  }
+ box.appendChild(buttons);
 }
 function nextOffenceRef(date,inspector){
  const parts=String(inspector).trim().split(/\s+/).filter(Boolean);
@@ -174,8 +204,8 @@ function submit(){
  try{persist();}catch(e){queue.pop();alert('This device could not store the inspection. Your completed form has NOT been cleared. Check available device storage and try again.');return;}
  storeLocal(built.items[0].row);
  resetForm();
- feedback('Inspection protected on this device. '+label());
- if(typeof setStatus==='function')setStatus('Inspection protected locally. Syncing to Google Sheets…');
+ feedback();
+ if(typeof setStatus==='function')setStatus('Syncing inspection to Google Sheets…');
  if(built.ref)alert('Offence reference allocated: '+built.ref);
  sync();
 }
@@ -233,13 +263,15 @@ async function syncItem(item){
 async function sync(){
  if(working||!queue.some(e=>e.items.some(i=>!i.confirmed)))return;
  working=true;
+ feedback();
  try{
   for(const entry of queue.slice()){
    for(const item of entry.items){
     if(item.confirmed)continue;
     try{await syncItem(item);}
-    catch(err){console.warn('Inspection sync deferred:',item.sheet,err);}
+    catch(err){item.lastError='Confirmation delayed ('+String(err?.message||err).slice(0,80)+')';console.warn('Inspection sync deferred:',item.sheet,err);}
     try{persist();}catch(e){}
+    feedback();
    }
   }
   const completed=queue.filter(e=>e.items.every(i=>i.confirmed));
@@ -251,6 +283,7 @@ async function sync(){
   feedback();
  }finally{
   working=false;
+  feedback();
   clearTimeout(recoveryTimer);
   if(queue.some(e=>e.items.some(i=>!i.confirmed)))recoveryTimer=setTimeout(sync,18000);
  }
