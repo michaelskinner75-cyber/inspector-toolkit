@@ -98,7 +98,7 @@ function createBar(info){
   if(anchor)anchor.insertAdjacentElement('afterend',bar);else section.insertBefore(bar,section.firstChild);
  }else{
   const box=section.querySelector('.panel');
-  const anchor=box?.querySelector('.homeDriverActionShell,.ledShell,.loggedInBox');
+  const anchor=box?.querySelector('.homeDriverActionShell')||box?.querySelector('.ledShell')||box?.querySelector('.loggedInBox');
   if(anchor)anchor.insertAdjacentElement('afterend',bar);
   else if(box)box.insertBefore(bar,el('syncStatus')||box.firstChild);
   else section.insertBefore(bar,section.firstChild);
