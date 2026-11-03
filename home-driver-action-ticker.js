@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id);
 const str=v=>String(v??'').trim();
 const esc=v=>str(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=v=>str(v).toLowerCase().replace(/\s+/g,' ');
-let previousSignature='',lastRender=0,scheduled=false;
+let previousSignature=null,lastRender=0,scheduled=false;
 function data(sheet){
  try{
   const rows=(typeof cloud!=='undefined'&&Array.isArray(cloud[sheet]))?cloud[sheet]:[];
@@ -36,7 +36,8 @@ function actionOf(value){
 }
 function records(){
  const today=new Date();today.setHours(0,0,0,0);
- const from=new Date(today.getFullYear(),today.getMonth()-6,today.getDate());
+ const targetMonthLastDay=new Date(today.getFullYear(),today.getMonth()-5,0).getDate();
+ const from=new Date(today.getFullYear(),today.getMonth()-6,Math.min(today.getDate(),targetMonthLastDay));
  const within=d=>!!d&&d>=from&&d<=today;
  const list=[],reports=[];
  const collect=(r,kind)=>{
@@ -113,7 +114,7 @@ function render(){
  if(!ensure())return;
  const viewport=$('homeDriverActionViewport');
  const items=records();
- const signature=items.map(x=>[x.action,x.driver,x.date,x.time,x.service,x.fleet,x.inspector].join('|')).join('::');
+ const signature=items.map(x=>[x.action,x.driver,x.date,x.time,x.service,x.fleet,x.inspector,x.note].join('|')).join('::');
  if(signature===previousSignature)return;
  previousSignature=signature;lastRender=Date.now();
  if(!items.length){
