@@ -8,23 +8,9 @@ let last='',pending=false,loading=null,lastFetch=Date.now();
 // A Duncan receives its complement (Strathtay / Perth). This affects ONLY
 // the Suggested Checks ticker, not check-sheet services or saved records.
 // 39A is the Kirkcaldy service referred to as "29A" in the supplied list.
-const fifeServiceCodes=new Set(('1 1A 2 2A 3 4 4A 4B 4C 6 6A 7 7A 7B 7C 7D 8 8A 14A 19 28 32 32A 33 33A 34 34A 34B 35 35A 36 37 37A 38 39 39A 39B 40 41 41A 41B 43 43A 44 44A 44B 46 47A 48 49 56 56B 59 65 81 81A 82 82A 83 87 88 88A 90 90A 90B 90C 91 91A 95 99 99S 201 395 747 787 X22 X24 X24A X27 X51 X55 X57 X58 X59 X59A X61').split(' '));
-const fifeDuplicateRoute={
- '1':/DUNFERMLINE/i,'1A':/DUNFERMLINE/i,'2':/DUNFERMLINE/i,'2A':/DUNFERMLINE/i,
- '3':/DUNFERMLINE/i,'4':/DUNFERMLINE/i,'6':/CROMBIE/i,
- '7':/DUNFERMLINE/i,'7A':/DUNFERMLINE/i,'7B':/KELTY/i,'7C':/KELTY/i,
- '8':/DUNFERMLINE/i,'14A':/KIRKCALDY/i,'33':/KIRKCALDY/i,
- '34':/KIRKCALDY/i,'34A':/KIRKCALDY/i,'40':/GLENROTHES/i,
- '47A':/LEVEN/i,'59':/GLENROTHES/i,'83':/DUNFERMLINE/i
-};
-function fifeService(s){
- const code=clean(s.code).trim().toUpperCase();
- if(!fifeServiceCodes.has(code))return false;
- return !fifeDuplicateRoute[code]||fifeDuplicateRoute[code].test(clean(s.route));
-}
-// Shared services appear in BOTH inspector areas, but are still matched by their route identity.
-const sharedServiceCodes=new Set(['56','56B','65']);
-function strathtayService(s){return sharedServiceCodes.has(clean(s.code).trim().toUpperCase())||!fifeService(s);}
+// Reuse the exact same route allocation as the Service Coverage area buttons.
+function fifeService(s){return window.InspectorCoverageModel.fifeService(s);}
+function strathtayService(s){return window.InspectorCoverageModel.strathtayService(s);}
 function inspectorScope(){
  let name='';try{name=typeof getInspector==='function'?getInspector():localStorage.getItem('activeInspector')||'';}catch(err){}
  const norm=clean(name).trim().toLowerCase().replace(/\./g,'').replace(/\s+/g,' ');
