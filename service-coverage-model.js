@@ -41,6 +41,6 @@ function automatic(all){
  return map;
 }
 function manual(){const map=new Map();rows('Services').forEach(r=>{if(clean(r[1]).toUpperCase()!=='COVERAGE')return;const key=clean(r[2]);if(!key.startsWith('cov:'))return;const s=clean(r[4]).toUpperCase();if(!['CHECKED','NOT_CHECKED','AUTO'].includes(s))return;map.set(key.slice(4),{status:s,date:date(r[5]),time:time(r[6]),inspector:clean(r[7]),by:clean(r[8]),operation:clean(r[9]),kind:'Manual amendment'});});return map;}
-function status(all,from='',to=''){const auto=automatic(all),edits=manual();const inRange=item=>!!item&&(!from||item.date>=from)&&(!to||item.date<=to);return all.map(s=>{const override=edits.get(s.id),history=auto.get(s.id)||[],original=history[0]||null;const item=override&&override.status!=='AUTO'?(override.status==='CHECKED'&&inRange(override)?{...override}:null):(history.find(inRange)||null);return {...s,original,override,item,checked:!!item};});}
+function status(all,from='',to=''){const auto=automatic(all),edits=manual();const inRange=item=>!!item&&(!from||item.date>=from)&&(!to||item.date<=to);return all.map(s=>{const override=edits.get(s.id),history=auto.get(s.id)||[],original=history[0]||null;const item=override&&override.status!=='AUTO'?(override.status==='CHECKED'&&inRange(override)?{...override}:null):(history.find(inRange)||null);return {...s,original,override,item,checked:!!item,checkCount:history.length};});}
 window.InspectorCoverageModel={date,time,rows,defs,status,isSchoolService};
 })();
