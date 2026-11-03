@@ -65,6 +65,24 @@ async function cloud(){
 }
 function top(t){const x=$('ftTopStatus');if(x)x.textContent=t;}
 function note(id){return Object.prototype.hasOwnProperty.call(drafts,id)?drafts[id]:str(saved[id]?.text);}
+function isOriginalBlank(id,record){
+ return (!record?.revision||record.revision==='SEED-'+id)&&!str(record?.text).length;
+}
+function reconcileCloud(next){
+ // Fresh devices could capture a draft before the first sheet read.
+ // Repair the draft revision only while the remote entry is still the blank seed.
+ for(const id of Object.keys(drafts)){
+  const remote=next[id]||{revision:'',text:''};
+  if(drafts[id]===str(remote.text))clearDraft(id);
+  else if(!bases[id]&&isOriginalBlank(id,remote)){
+   bases[id]=remote.revision||'';
+   saveDraft(id);
+  }
+ }
+ saved=next;loaded=true;
+ try{localStorage.setItem(CACHE,JSON.stringify(saved));}catch(e){}
+}
+function isTimesVisible(){return !!$('michaelServiceTimes')?.classList.contains('active');}
 function state(id,t,color){
  const label=$('ftStatus-'+id);if(label){label.textContent=t;label.dataset.kind=color||'';}
  const b=$('ftSave-'+id);if(b)b.disabled=pending(id)||syncing||!allowed();
@@ -99,7 +117,7 @@ function build(){
  if(!$('michaelServiceTimes')){
   const section=document.createElement('section');section.id='michaelServiceTimes';section.className='section';
   section.innerHTML='<button class="backBtn" data-open="home">← Back</button><div class="ftPanel"><h2>🕒 Fife &amp; Surrounding Times</h2>'+
-   '<p class="ftHelp">Every service has one editable <b>Times</b> notes box. Type or paste stops and times however you like, then press SAVE TIMES for that service.</p>'+
+   '<p class="ftHelp">Every service has one editable <b>Times</b> notes box. Type or paste stops and times however you like, then press SAVE TIMES. Wait for <b>Saved to Google Sheets ✓</b> before checking another device.</p>'+
    '<div class="ftTools"><a class="ftBtn" href="'+TAB+'" target="_blank" rel="noopener noreferrer">OPEN GOOGLE SHEET ↗</a>'+
    '<button id="ftRefresh" class="ftBtn" type="button">REFRESH FROM SHEETS</button><span id="ftTotal" class="ftHelp"></span></div>'+
    '<input id="ftSearch" class="ftInput" type="search" placeholder="Search service number or route" aria-label="Search services">'+
@@ -120,21 +138,23 @@ function render(){
    '<label class="ftLabel" for="ftText-'+id+'">Times</label>'+
    '<textarea id="ftText-'+id+'" data-ft-text="'+id+'" rows="4" placeholder="Enter stops and times in any format…">'+esc(note(s.id))+'</textarea>'+
    '<div class="ftTools"><button id="ftSave-'+id+'" data-ft-save="'+id+'" type="button" class="ftBtn primary" '+(pending(s.id)?'disabled':'')+'>SAVE TIMES</button>'+
-   '<span class="ftStatus" id="ftStatus-'+id+'" role="status">'+(pending(s.id)?'Save pending — check Google Sheets':Object.prototype.hasOwnProperty.call(drafts,s.id)?'Unsaved changes':saved[s.id]?.updated?'Saved to Google Sheets':'No times entered')+'</span></div></article>';
+   '<span class="ftStatus" id="ftStatus-'+id+'" role="status">'+(pending(s.id)?'NOT SHARED YET — check save status':Object.prototype.hasOwnProperty.call(drafts,s.id)?'UNSAVED — ONLY ON THIS DEVICE':saved[s.id]?.updated?'Saved to Google Sheets ✓':'No times entered')+'</span></div></article>';
  }).join('')||'<p class="ftHelp">No services found.</p>';
 }
 function refreshFields(){
  for(const field of $('ftServices')?.querySelectorAll('[data-ft-text]')||[]){
   const id=field.dataset.ftText;
   if(!Object.prototype.hasOwnProperty.call(drafts,id)&&document.activeElement!==field)field.value=note(id);
-  state(id,pending(id)?'Waiting for Google Sheets confirmation':Object.prototype.hasOwnProperty.call(drafts,id)?'Unsaved changes':saved[id]?.updated?'Saved to Google Sheets':'No times entered',pending(id)?'warning':saved[id]?.updated?'success':'');
+  state(id,pending(id)?'NOT SHARED YET — Google Sheets confirmation pending':Object.prototype.hasOwnProperty.call(drafts,id)?'UNSAVED — ONLY ON THIS DEVICE':saved[id]?.updated?'Saved to Google Sheets ✓':'No times entered',pending(id)?'warning':Object.prototype.hasOwnProperty.call(drafts,id)?'warning':saved[id]?.updated?'success':'');
  }
 }
 async function refresh(){
  if(!allowed()||loading)return;
  loading=true;top('Loading Times from Google Sheets…');
- try{saved=decode(await cloud());loaded=true;try{localStorage.setItem(CACHE,JSON.stringify(saved));}catch(e){}
-  top('Times loaded from Google Sheets.');refreshFields();
+ try{
+  reconcileCloud(decode(await cloud()));
+  top('Latest Times loaded from Google Sheets — ready to view on all devices.');
+  refreshFields();
  }catch(e){top('Google Sheets unavailable. Your unsaved Times are kept on this device.');}
  finally{loading=false;}
 }
@@ -185,9 +205,23 @@ async function save(id){
  drafts[id]=note;saveDraft(id);
  if(pending(id)){state(id,'Already waiting for confirmation','warning');return;}
  if(!loaded){state(id,'Connecting to Google Sheets…','warning');await refresh();if(!loaded)return;}
- try{const latest=decode(await cloud())[id]?.revision||'';
-  if(latest!==(bases[id]??saved[id]?.revision??'')){state(id,'Changed elsewhere — refresh and review before saving','warning');return;}
- }catch(e){state(id,'Could not verify Google Sheets. Notes kept on this device.','warning');return;}
+ try{
+  const remote=decode(await cloud())[id]||{revision:'',text:''};
+  const latest=remote.revision||'';
+  let base=bases[id]??saved[id]?.revision??'';
+  if(!base&&isOriginalBlank(id,remote)){
+   base=latest;bases[id]=latest;saveDraft(id);
+  }
+  if(latest!==base){
+   if(str(remote.text)===note){
+    reconcileCloud({...saved,[id]:remote});refreshFields();
+    state(id,'Already saved in Google Sheets ✓','success');
+    return;
+   }
+   state(id,'NOT UPLOADED: newer Times exist on another device. Your notes are preserved here. Copy them before reloading the latest version.','warning');
+   return;
+  }
+ }catch(e){state(id,'NOT UPLOADED: cannot verify Google Sheets. Your Times remain on this device.','warning');return;}
  const rev='T-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);
  const tx={id:rev,serviceId:id,note,parts:rowsFor(s,note,rev).map(row=>({row,sentAt:0,confirmed:false,error:''}))};
  queue.push(tx);if(!persist()){queue=queue.filter(q=>q.id!==rev);return;}
@@ -214,14 +248,22 @@ function init(){
   const x=e.target?.closest?.('[data-ft-text]');if(x)capture(x.dataset.ftText,x.value);
  });
  document.addEventListener('click',e=>{
-  if(e.target.closest?.('[data-open="michaelServiceTimes"]')){if(!allowed()){e.preventDefault();e.stopImmediatePropagation();visibility();return;}if(!loaded)refresh();else refreshFields();}
+  if(e.target.closest?.('[data-open="michaelServiceTimes"]')){if(!allowed()){e.preventDefault();e.stopImmediatePropagation();visibility();return;}refresh().then(()=>{if(queue.length)sync();});}
   if(!allowed())return;
   const b=e.target.closest?.('[data-ft-save]');if(b){save(b.dataset.ftSave);return;}
   if(e.target.closest?.('#ftRefresh')){refresh().then(sync);return;}
  });
  window.addEventListener('online',()=>{if(allowed())refresh().then(sync);});
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)visibility();});
- setInterval(()=>{visibility();if(allowed()&&$('michaelServiceTimes')?.classList.contains('active')){if(queue.length)sync();else refresh();}},120000);
+ document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){
+   visibility();
+   if(allowed()&&isTimesVisible())refresh().then(()=>{if(queue.length)sync();});
+  }
+ });
+ window.addEventListener('pageshow',()=>{
+  if(allowed()&&isTimesVisible())refresh().then(()=>{if(queue.length)sync();});
+ });
+ setInterval(()=>{visibility();if(allowed()&&isTimesVisible()){if(queue.length)sync();else refresh();}},60000);
  if(queue.length)sync();
 }
 let tries=0;const timer=setInterval(()=>{
