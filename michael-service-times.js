@@ -5,6 +5,7 @@ const SHEET='Fife Service Times',TAB='https://docs.google.com/spreadsheets/d/110
 const CACHE='inspectorTimesPlainCache',OUTBOX='inspectorTimesPlainOutbox',DRAFT='inspectorTimesPlainDraft:', $=id=>document.getElementById(id);
 const str=v=>String(v??''),clean=v=>str(v).trim(),esc=v=>str(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let saved={},drafts={},bases={},queue=[],loaded=false,loading=false,syncing=false,search='',ready=false;
+const expanded=new Set(),editing=new Set();
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function allowed(){let n='';try{n=typeof getInspector==='function'?getInspector():localStorage.getItem('activeInspector')||'';}catch(e){}return /^(m\.?\s*skinner|michael\s+skinner)$/i.test(clean(n))&&Number(localStorage.getItem('michaelLoginExpiresAt')||0)>Date.now();}
 function services(){const m=window.InspectorCoverageModel;return m?m.defs().filter(m.fifeService).sort((a,b)=>clean(a.code).localeCompare(clean(b.code),undefined,{numeric:true})||clean(a.route).localeCompare(clean(b.route))):[];}
@@ -101,7 +102,13 @@ function css(){
   '#michaelServiceTimes .ftCardHead{display:flex;align-items:start;justify-content:space-between;gap:8px}#michaelServiceTimes .ftCode{font-size:18px;font-weight:950}',
   '#michaelServiceTimes .ftRoute{font-size:11px;color:#c6d8e4;margin:4px 0 10px;line-height:1.4}',
   '#michaelServiceTimes .ftLabel{font-size:13px;color:#f3bf6a;font-weight:900;display:block;margin:8px 0 5px}',
-  '#michaelServiceTimes textarea{display:block;min-height:105px;width:100%;box-sizing:border-box;resize:vertical;background:#0b2537;color:white;border:1px solid #6486a0;border-radius:8px;font:14px/1.5 inherit;padding:10px}',
+  '#michaelServiceTimes textarea{display:block;min-height:110px;width:100%;box-sizing:border-box;resize:vertical;background:#0b2537;color:white;border:1px solid #6486a0;border-radius:8px;font-family:inherit;font-size:14px;line-height:1.5;padding:10px}',
+  '#michaelServiceTimes .ftReadOnly{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-family:inherit;font-size:13px;line-height:1.55;background:#0a2335;color:#e1eff7;border:1px solid #426882;border-radius:8px;padding:12px;min-height:48px;margin:4px 0 9px;user-select:text}',
+  '#michaelServiceTimes .ftReadOnly.empty{color:#b8ccd9;font-style:italic}',
+  '#michaelServiceTimes .ftDetails{border-top:1px solid #375c75;margin-top:9px;padding-top:8px}',
+  '#michaelServiceTimes .ftCardHead .ftBtn{white-space:nowrap}',
+  '#michaelServiceTimes .ftControls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}',
+  '#michaelServiceTimes .ftStatus{display:inline-block;margin:5px 0 0}',
   '#michaelServiceTimes .ftStatus[data-kind="success"]{color:#7de0ad}#michaelServiceTimes .ftStatus[data-kind="warning"]{color:#f6c77e}',
   '#michaelServiceTimes [hidden]{display:none!important}@media(max-width:550px){#michaelServiceTimes .ftPanel,#michaelServiceTimes .ftCard{padding:10px}}'
  ].join('');document.head.appendChild(n);
@@ -117,7 +124,7 @@ function build(){
  if(!$('michaelServiceTimes')){
   const section=document.createElement('section');section.id='michaelServiceTimes';section.className='section';
   section.innerHTML='<button class="backBtn" data-open="home">← Back</button><div class="ftPanel"><h2>🕒 Fife &amp; Surrounding Times</h2>'+
-   '<p class="ftHelp">Every service has one editable <b>Times</b> notes box. Type or paste stops and times however you like, then press SAVE TIMES. Wait for <b>Saved to Google Sheets ✓</b> before checking another device.</p>'+
+   '<p class="ftHelp">Tap <b>SHOW TIMES</b> to read the notes. Press <b>EDIT TIMES</b> to make changes, then <b>SAVE TIMES</b> to share them to Google Sheets and your other devices.</p>'+
    '<div class="ftTools"><a class="ftBtn" href="'+TAB+'" target="_blank" rel="noopener noreferrer">OPEN GOOGLE SHEET ↗</a>'+
    '<button id="ftRefresh" class="ftBtn" type="button">REFRESH FROM SHEETS</button><span id="ftTotal" class="ftHelp"></span></div>'+
    '<input id="ftSearch" class="ftInput" type="search" placeholder="Search service number or route" aria-label="Search services">'+
@@ -126,26 +133,70 @@ function build(){
  }
  return true;
 }
+function statusText(id){
+ return pending(id)?'NOT SHARED YET — check Google Sheets sync':
+  Object.prototype.hasOwnProperty.call(drafts,id)?'UNSAVED — ONLY ON THIS DEVICE':
+  saved[id]?.updated?'Saved to Google Sheets ✓':'No times entered';
+}
+function statusKind(id){
+ return pending(id)||Object.prototype.hasOwnProperty.call(drafts,id)?'warning':
+  saved[id]?.updated?'success':'';
+}
+function card(s){
+ const id=esc(s.id),url=link(s),open=expanded.has(s.id),edit=editing.has(s.id);
+ const value=note(s.id),hasNotes=!!clean(value);
+ return '<article class="ftCard" id="ftCard-'+id+'" data-ft-service="'+id+'">'+
+  '<div class="ftCardHead"><div><div class="ftCode">'+esc(s.code)+'</div>'+
+  '<div class="ftRoute">'+esc(s.route)+'</div></div>'+
+  '<button class="ftBtn" type="button" data-ft-toggle="'+id+'" aria-expanded="'+open+'" aria-controls="ftDetails-'+id+'">'+(open?'HIDE TIMES':'SHOW TIMES')+'</button></div>'+
+  '<div class="ftStatus" id="ftStatus-'+id+'" role="status" data-kind="'+statusKind(s.id)+'">'+esc(statusText(s.id))+'</div>'+
+  '<div class="ftDetails" id="ftDetails-'+id+'" '+(open?'':'hidden')+'>'+
+  '<div class="ftLabel">Times</div>'+
+  (edit?
+    '<textarea id="ftText-'+id+'" data-ft-text="'+id+'" rows="6" aria-label="Edit times for service '+esc(s.code)+'" placeholder="Paste or type stops and times however you like…">'+esc(value)+'</textarea>'+
+    '<div class="ftControls"><button id="ftSave-'+id+'" data-ft-save="'+id+'" type="button" class="ftBtn primary" '+(pending(s.id)?'disabled':'')+'>SAVE TIMES</button>'+
+    '<button type="button" class="ftBtn" data-ft-end-edit="'+id+'">STOP EDITING</button></div>':
+    '<div id="ftView-'+id+'" class="ftReadOnly'+(hasNotes?'':' empty')+'">'+(hasNotes?esc(value):'No times entered yet.')+'</div>'+
+    '<div class="ftControls"><button class="ftBtn primary" type="button" data-ft-edit="'+id+'">EDIT TIMES</button></div>')+
+  (url?'<a class="ftBtn" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">BUSTIMES ↗</a>':'')+
+  '</div></article>';
+}
 function render(){
  const root=$('ftServices');if(!root)return;
  const all=services(),list=all.filter(s=>(s.code+' '+s.route).toLowerCase().includes(search));
  const total=$('ftTotal');if(total)total.textContent=all.length+' services';
- root.innerHTML=list.map(s=>{
-  const id=esc(s.id),url=link(s);
-  return '<article class="ftCard"><div class="ftCardHead"><div><div class="ftCode">'+esc(s.code)+'</div>'+
-   '<div class="ftRoute">'+esc(s.route)+'</div></div>'+
-   (url?'<a class="ftBtn" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">BUSTIMES ↗</a>':'')+'</div>'+
-   '<label class="ftLabel" for="ftText-'+id+'">Times</label>'+
-   '<textarea id="ftText-'+id+'" data-ft-text="'+id+'" rows="4" placeholder="Enter stops and times in any format…">'+esc(note(s.id))+'</textarea>'+
-   '<div class="ftTools"><button id="ftSave-'+id+'" data-ft-save="'+id+'" type="button" class="ftBtn primary" '+(pending(s.id)?'disabled':'')+'>SAVE TIMES</button>'+
-   '<span class="ftStatus" id="ftStatus-'+id+'" role="status">'+(pending(s.id)?'NOT SHARED YET — check save status':Object.prototype.hasOwnProperty.call(drafts,s.id)?'UNSAVED — ONLY ON THIS DEVICE':saved[s.id]?.updated?'Saved to Google Sheets ✓':'No times entered')+'</span></div></article>';
- }).join('')||'<p class="ftHelp">No services found.</p>';
+ root.innerHTML=list.map(card).join('')||'<p class="ftHelp">No services found.</p>';
+}
+function updateCard(id){
+ const s=services().find(s=>s.id===id),el=$('ftCard-'+id);
+ if(s&&el)el.outerHTML=card(s);
+}
+function toggleTimes(id){
+ if(expanded.has(id)){expanded.delete(id);editing.delete(id);}
+ else expanded.add(id);
+ updateCard(id);
+}
+function startEdit(id){
+ if(!services().some(s=>s.id===id))return;
+ expanded.add(id);editing.add(id);updateCard(id);
+ $('ftText-'+id)?.focus();
+}
+function stopEdit(id){
+ editing.delete(id);updateCard(id);
 }
 function refreshFields(){
- for(const field of $('ftServices')?.querySelectorAll('[data-ft-text]')||[]){
-  const id=field.dataset.ftText;
-  if(!Object.prototype.hasOwnProperty.call(drafts,id)&&document.activeElement!==field)field.value=note(id);
-  state(id,pending(id)?'NOT SHARED YET — Google Sheets confirmation pending':Object.prototype.hasOwnProperty.call(drafts,id)?'UNSAVED — ONLY ON THIS DEVICE':saved[id]?.updated?'Saved to Google Sheets ✓':'No times entered',pending(id)?'warning':Object.prototype.hasOwnProperty.call(drafts,id)?'warning':saved[id]?.updated?'success':'');
+ for(const box of $('ftServices')?.querySelectorAll('[data-ft-service]')||[]){
+  const id=box.dataset.ftService;
+  const view=$('ftView-'+id);
+  if(view){
+   const value=note(id),hasValue=!!clean(value);
+   view.textContent=hasValue?value:'No times entered yet.';
+   view.classList.toggle('empty',!hasValue);
+  }
+  const field=$('ftText-'+id);
+  if(field&&!Object.prototype.hasOwnProperty.call(drafts,id)&&document.activeElement!==field)
+   field.value=note(id);
+  state(id,statusText(id),statusKind(id));
  }
 }
 async function refresh(){
@@ -192,8 +243,12 @@ async function sync(){
    if(tx.parts.every(p=>p.confirmed)){
     queue=queue.filter(q=>q.id!==tx.id);persist();
     try{saved=decode(await cloud());loaded=true;localStorage.setItem(CACHE,JSON.stringify(saved));}catch(e){}
-    if(Object.prototype.hasOwnProperty.call(drafts,tx.serviceId)&&drafts[tx.serviceId]===tx.note)clearDraft(tx.serviceId);
-    state(tx.serviceId,'Saved to Google Sheets','success');
+    if(Object.prototype.hasOwnProperty.call(drafts,tx.serviceId)&&drafts[tx.serviceId]===tx.note){
+     clearDraft(tx.serviceId);
+     editing.delete(tx.serviceId);
+     updateCard(tx.serviceId);
+    }
+    state(tx.serviceId,'Saved to Google Sheets ✓','success');
    }else state(tx.serviceId,'Not confirmed — your Times are kept on this device','warning');
   }
  }finally{syncing=false;top(queue.length?'Some Times saves are awaiting confirmation. Use REFRESH FROM SHEETS to recheck.':'Times ready.');refreshFields();}
@@ -250,6 +305,9 @@ function init(){
  document.addEventListener('click',e=>{
   if(e.target.closest?.('[data-open="michaelServiceTimes"]')){if(!allowed()){e.preventDefault();e.stopImmediatePropagation();visibility();return;}refresh().then(()=>{if(queue.length)sync();});}
   if(!allowed())return;
+  const toggle=e.target.closest?.('[data-ft-toggle]');if(toggle){toggleTimes(toggle.dataset.ftToggle);return;}
+  const edit=e.target.closest?.('[data-ft-edit]');if(edit){startEdit(edit.dataset.ftEdit);return;}
+  const end=e.target.closest?.('[data-ft-end-edit]');if(end){stopEdit(end.dataset.ftEndEdit);return;}
   const b=e.target.closest?.('[data-ft-save]');if(b){save(b.dataset.ftSave);return;}
   if(e.target.closest?.('#ftRefresh')){refresh().then(sync);return;}
  });
