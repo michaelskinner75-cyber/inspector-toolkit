@@ -1,0 +1,30 @@
+name: Diagnose Times sync endpoint
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnose-times-sync.yml'
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check Apps Script sheet read support (without exposing data)
+        env:
+          APP_URL: https://script.google.com/macros/s/AKfycbz3LPrQ7Y1b7Suq7OvYSyoqoW4iYrAzNjBq6Li7t4SbtrfriBjH16e5iGG2ZRTKyjzk0A/exec
+        run: |
+          python3 - <<'PY'
+          import os,urllib.request,urllib.parse,json,time
+          url=os.environ['APP_URL']
+          for sheet in ['Other Work','Fife Service Times']:
+              uri=url+'?'+urllib.parse.urlencode({'sheet':sheet,'_':int(time.time())})
+              req=urllib.request.Request(uri,headers={'User-Agent':'InspectorHubSyncCheck/1.0'})
+              try:
+                  with urllib.request.urlopen(req,timeout=22) as r:
+                      body=r.read()
+                      try:
+                          obj=json.loads(body)
+                          print(sheet,'HTTP',r.status,'JSON',isinstance(obj,dict),'data-array',isinstance(obj.get('data'),list) if isinstance(obj,dict) else False,'count',len(obj.get('data',[])) if isinstance(obj,dict) and isinstance(obj.get('data'),list) else 'n/a','error-key',str(obj.get('error',''))[:120] if isinstance(obj,dict) else 'n/a')
+                      except Exception as e: print(sheet,'HTTP',r.status,'non-json','length',len(body),'type',r.headers.get('content-type',''))
+              except Exception as e: print(sheet,'Request failed:',type(e).__name__,str(e)[:110])
+          PY
