@@ -337,7 +337,7 @@ function renderEditor(){
 function loadEditor(id,keepDraft=true){
  if(!michael())return;
  const s=services().find(x=>x.id===id);if(!s)return;
- if(current&&current!==id&&dirty)readEditor();
+ if(current&&current!==id){readEditor();saveDraft();}
  current=id;originalRevision=saved[id]?.revision||'';
  rows=(saved[id]?.stops||[]).map(x=>({...x}));dirty=false;
  if(keepDraft){
@@ -453,7 +453,7 @@ function build(){
 }
 function visibility(){
  if(!michael()){
-  if($('michaelServiceTimes')?.classList.contains('active'))openSection?.('home');
+  if($('michaelServiceTimes')?.classList.contains('active')&&typeof openSection==='function')openSection('home');
   $('michaelServiceTimesNav')?.remove();
   $('michaelServiceTimes')?.remove();
   current='';rows=[];dirty=false;
