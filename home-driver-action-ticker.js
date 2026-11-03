@@ -88,7 +88,7 @@ function styles(){
  // A dedicated Home Screen strip, not the old LED clock container.
  // The old .ledShell selectors forced the title and cards into a 38-54px box.
  style.textContent=[
-  '#home .homeDriverActionShell{order:1!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:center!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;height:auto!important;min-height:100px!important;margin:0!important;padding:10px 12px!important;gap:9px!important;position:relative!important;overflow:hidden!important;background:#0e293e!important;border:1px solid #426783!important;border-radius:11px!important;box-shadow:none!important}',
+  '#home .homeDriverActionShell{order:1!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:center!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;height:auto!important;min-height:132px!important;margin:0!important;padding:10px 12px!important;gap:9px!important;position:relative!important;overflow:hidden!important;background:#0e293e!important;border:1px solid #426783!important;border-radius:11px!important;box-shadow:none!important}',
   '#home .homeDriverClockCompat{display:none!important}',
   '#home .homeDriverActionHeader{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;width:100%!important;min-width:0!important;flex:none!important;line-height:1.25!important}',
   '#home .homeDriverActionTitle{font-family:Arial,sans-serif!important;color:#f5be64!important;font-size:12px!important;letter-spacing:.02em!important;font-weight:900!important;white-space:nowrap!important}',
@@ -96,7 +96,7 @@ function styles(){
   '#home .homeDriverActionViewport{display:block!important;position:relative!important;width:100%!important;min-width:0!important;height:46px!important;min-height:46px!important;max-height:46px!important;flex:none!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin;scrollbar-color:#567890 transparent;touch-action:pan-x;overscroll-behavior-inline:contain}',
   '#home .homeDriverActionTrack{position:relative!important;display:flex!important;align-items:center!important;width:max-content!important;height:46px!important;min-height:46px!important;animation:homeDriverActionScroll var(--homeDriverActionSpeed,480s) linear infinite!important}',
   '#home .homeDriverActionSet{display:flex!important;align-items:center!important;gap:9px!important;padding-right:9px!important;flex:0 0 auto!important;height:46px!important}',
-  '#home .homeDriverActionCard{position:relative!important;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;white-space:nowrap!important;box-sizing:border-box!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:5px 11px!important;margin:0!important;background:#163b52!important;border-radius:8px!important;border:1px solid #4b6d83!important;color:#eff7fb!important;font-family:Arial,sans-serif!important;font-size:12px!important;line-height:1.25!important;transform:none!important}',
+  '#home .homeDriverActionCard{cursor:pointer!important;appearance:none!important;position:relative!important;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;white-space:nowrap!important;box-sizing:border-box!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:5px 11px!important;margin:0!important;background:#163b52!important;border-radius:8px!important;border:1px solid #4b6d83!important;color:#eff7fb!important;font-family:Arial,sans-serif!important;font-size:12px!important;line-height:1.25!important;transform:none!important}',
   '#home .homeDriverActionCard.advised{border-left:4px solid #eea83e!important}',
   '#home .homeDriverActionCard.reported{border-left:4px solid #d4545e!important}',
   '#home .homeDriverActionTag{font-size:10px!important;font-weight:900!important;letter-spacing:.015em!important;color:#ffda93!important}',
@@ -104,9 +104,31 @@ function styles(){
   '#home .homeDriverActionName{font-weight:900!important;font-size:13px!important;color:#fff!important}',
   '#home .homeDriverActionMeta{color:#cbd9e5!important;font-size:11px!important}',
   '#home .homeDriverActionEmpty{display:flex!important;align-items:center!important;height:46px!important;padding:0 9px!important;color:#c7d9e7!important;font-size:12px!important}',
-  '#home .homeDriverActionViewport:hover .homeDriverActionTrack,#home .homeDriverActionViewport:focus-within .homeDriverActionTrack,#home .homeDriverActionViewport:active .homeDriverActionTrack{animation-play-state:paused!important}',
+  '#home .homeDriverActionViewport:hover .homeDriverActionTrack,#home .homeDriverActionViewport:focus-within .homeDriverActionTrack,#home .homeDriverActionViewport:active .homeDriverActionTrack,#home .homeDriverActionShell.isPaused .homeDriverActionTrack{animation-play-state:paused!important}',
+  '#home .homeDriverActionCard:focus-visible,#home .homeDriverActionControl:focus-visible{outline:2px solid #f5be64!important;outline-offset:2px!important}',
+  '#home .homeDriverActionToolbar{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:8px!important;min-height:28px!important;width:100%!important}',
+  '#home .homeDriverActionHint{font-size:10px!important;color:#b8cbd9!important;white-space:nowrap!important}',
+  '#home .homeDriverActionButtons{display:flex!important;gap:6px!important;align-items:center!important;flex:0 0 auto!important}',
+  '#home .homeDriverActionControl{font-family:Arial,sans-serif!important;display:inline-flex!important;justify-content:center!important;align-items:center!important;gap:4px!important;min-height:30px!important;border-radius:7px!important;padding:5px 10px!important;background:#24506c!important;color:#fff!important;border:1px solid #62859f!important;font-size:11px!important;font-weight:800!important;cursor:pointer!important}',
+  '#home .homeDriverActionControl[aria-pressed="true"]{background:#f0b752!important;color:#112639!important;border-color:#f0b752!important}',
+  '.homeDriverActionOverlay[hidden]{display:none!important}',
+  '.homeDriverActionOverlay{position:fixed!important;inset:0!important;z-index:30000!important;display:flex!important;justify-content:center!important;align-items:center!important;background:rgba(0,10,20,.84)!important;padding:14px!important;box-sizing:border-box!important}',
+  '.homeDriverActionDialog{position:relative!important;width:min(570px,100%)!important;max-height:min(88dvh,850px)!important;overflow-y:auto!important;overscroll-behavior:contain!important;background:#102a3e!important;color:#fff!important;border:1px solid #527993!important;border-radius:15px!important;padding:18px!important;box-shadow:0 20px 65px rgba(0,0,0,.5)!important;box-sizing:border-box!important}',
+  '.homeDriverActionDialogTop{display:flex!important;justify-content:space-between!important;align-items:start!important;gap:12px!important}',
+  '.homeDriverActionDialog h3{font-size:20px!important;line-height:1.2!important;margin:0 0 8px!important;color:#fff!important}',
+  '.homeDriverActionDialog .homeDriverActionKind{font-size:12px!important;font-weight:900!important;color:#ffc974!important;margin-bottom:8px!important}',
+  '.homeDriverActionDialog .homeDriverActionKind.reported{color:#ff989d!important}',
+  '.homeDriverActionDialogClose{background:#224c69!important;color:#fff!important;border:1px solid #5d879f!important;border-radius:8px!important;min-width:40px!important;min-height:40px!important;font-weight:900!important;cursor:pointer!important;font-size:20px!important}',
+  '.homeDriverActionDetails{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin:10px 0 15px!important}',
+  '.homeDriverActionDetail{padding:9px!important;background:#193b52!important;border-radius:8px!important;min-width:0!important;overflow-wrap:anywhere!important;font-size:13px!important}',
+  '.homeDriverActionDetail b{display:block!important;color:#abc4d7!important;font-size:10px!important;text-transform:uppercase!important;letter-spacing:.04em!important;margin-bottom:4px!important}',
+  '.homeDriverActionNotes{margin-top:12px!important;padding:12px!important;background:#091e2f!important;border:1px solid #345872!important;border-radius:10px!important}',
+  '.homeDriverActionNotes b{display:block!important;color:#f4bb60!important;font-size:12px!important;margin-bottom:8px!important}',
+  '.homeDriverActionNotes p{white-space:pre-wrap!important;overflow-wrap:anywhere!important;font-size:13px!important;line-height:1.5!important;margin:0!important}',
+  '.homeDriverActionDialogFoot{color:#bbcfde!important;font-size:11px!important;margin:14px 0 0!important}',
   '@keyframes homeDriverActionScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}',
-  '@media(max-width:540px){#home .homeDriverActionShell{min-height:94px!important;padding:9px 8px!important;gap:7px!important}#home .homeDriverActionTitle{font-size:11px!important}#home .homeDriverActionCount{font-size:9px!important}#home .homeDriverActionCard{gap:6px!important;padding:5px 8px!important}#home .homeDriverActionName{font-size:12px!important}#home .homeDriverActionMeta{font-size:10px!important}}',
+  '@media(max-width:540px){#home .homeDriverActionShell{min-height:124px!important;padding:9px 8px!important;gap:7px!important}#home .homeDriverActionTitle{font-size:11px!important}#home .homeDriverActionCount{font-size:9px!important}#home .homeDriverActionCard{gap:6px!important;padding:5px 8px!important}#home .homeDriverActionName{font-size:12px!important}#home .homeDriverActionMeta{font-size:10px!important}}',
+  '@media(max-width:540px){#home .homeDriverActionHint{font-size:9px!important}#home .homeDriverActionControl{padding:5px 7px!important;font-size:10px!important}.homeDriverActionDetails{grid-template-columns:1fr 1fr!important}.homeDriverActionDialog{padding:14px!important}}',
   '@media(prefers-reduced-motion:reduce){#home .homeDriverActionTrack{animation:none!important}}'
  ].join('');
  document.head.appendChild(style);
@@ -121,7 +143,7 @@ function ensure(){
  shell.classList.add('homeDriverActionShell');
  if(!$('homeDriverActionViewport')){
   // Retain the hidden ID so old app clock intervals cannot throw on updates.
-  shell.innerHTML='<div id="homeClock" class="homeDriverClockCompat" aria-hidden="true"></div><div class="homeDriverActionHeader"><strong class="homeDriverActionTitle">DRIVERS ADVISED / REPORTED</strong><span class="homeDriverActionCount" id="homeDriverActionCount">LAST 6 MONTHS</span></div><div class="homeDriverActionViewport" id="homeDriverActionViewport" role="region" tabindex="0" aria-label="Drivers advised or reported during the last six months">Loading driver reports…</div>';
+  shell.innerHTML='<div id="homeClock" class="homeDriverClockCompat" aria-hidden="true"></div><div class="homeDriverActionHeader"><strong class="homeDriverActionTitle">DRIVERS ADVISED / REPORTED</strong><span class="homeDriverActionCount" id="homeDriverActionCount">LAST 6 MONTHS</span></div><div class="homeDriverActionToolbar"><span class="homeDriverActionHint">SWIPE • TAP FOR DETAILS</span><div class="homeDriverActionButtons"><button type="button" class="homeDriverActionControl" id="homeDriverActionPause" aria-pressed="false">⏸ PAUSE</button><button type="button" class="homeDriverActionControl" id="homeDriverActionShuffle">⤨ SHUFFLE</button></div></div><div class="homeDriverActionViewport" id="homeDriverActionViewport" role="region" tabindex="0" aria-label="Drivers advised or reported during the last six months">Loading driver reports…</div>';
  }
  return true;
 }
