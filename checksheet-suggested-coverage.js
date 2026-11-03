@@ -161,7 +161,7 @@ function paint(){
  updateControls();
 }
 function setPaused(next){paused=!!next;updateControls();}
-window.InspectorUnifiedTicker={setPaused};
+window.InspectorUnifiedTicker={setPaused,isPaused:()=>paused};
 function shuffleNow(){
  if(items.length<2)return;
  items=shuffled(items);
