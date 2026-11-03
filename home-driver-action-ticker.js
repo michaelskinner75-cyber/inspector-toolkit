@@ -99,6 +99,8 @@ function styles(){
   '#home .homeDriverActionCard{cursor:pointer!important;appearance:none!important;position:relative!important;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;white-space:nowrap!important;box-sizing:border-box!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:5px 11px!important;margin:0!important;background:#163b52!important;border-radius:8px!important;border:1px solid #4b6d83!important;color:#eff7fb!important;font-family:Arial,sans-serif!important;font-size:12px!important;line-height:1.25!important;transform:none!important}',
   '#home .homeDriverActionCard.advised{border-left:4px solid #eea83e!important}',
   '#home .homeDriverActionCard.reported{border-left:4px solid #d4545e!important}',
+  '#home .homeDriverActionCard.recent{background:#20475e!important;border-top:2px solid #ffc76b!important;border-right:2px solid #ffc76b!important;border-bottom:2px solid #ffc76b!important;box-shadow:0 0 0 1px rgba(255,199,107,.15),0 0 12px rgba(255,199,107,.22)!important}',
+  '#home .homeDriverRecentBadge{display:inline-flex!important;align-items:center!important;border-radius:5px!important;background:#ffc76b!important;color:#162a3b!important;font-size:9px!important;font-weight:950!important;letter-spacing:.04em!important;padding:3px 5px!important;line-height:1!important}',
   '#home .homeDriverActionTag{font-size:10px!important;font-weight:900!important;letter-spacing:.015em!important;color:#ffda93!important}',
   '#home .homeDriverActionCard.reported .homeDriverActionTag{color:#ff9ca5!important}',
   '#home .homeDriverActionName{font-weight:900!important;font-size:13px!important;color:#fff!important}',
@@ -223,8 +225,8 @@ function card(item,index,duplicate){
  // The scrolling bar shows only the driver and their action.
  // Other report details remain available when the entry is tapped.
  const label=item.action==='ADVISED'?'ADVISED':'REPORTED';
- const description=item.driver+' • '+label;
- return '<button type="button" class="homeDriverActionCard '+(item.action==='ADVISED'?'advised':'reported')+'" data-driver-action-index="'+index+'" '+(duplicate?'tabindex="-1" ':'')+'title="'+esc(description)+'" aria-label="'+esc('View details: '+item.driver+', '+label.toLowerCase())+'"><strong class="homeDriverActionName">'+esc(item.driver)+'</strong><span class="homeDriverActionTag">'+label+'</span></button>';
+ const description=item.driver+' • '+label+(item.isRecent?' • RECENT':'');
+ return '<button type="button" class="homeDriverActionCard '+(item.action==='ADVISED'?'advised':'reported')+(item.isRecent?' recent':'')+'" data-driver-action-index="'+index+'" '+(duplicate?'tabindex="-1" ':'')+'title="'+esc(description)+'" aria-label="'+esc('View details: '+item.driver+', '+label.toLowerCase()+(item.isRecent?', recent':'') )+'"><strong class="homeDriverActionName">'+esc(item.driver)+'</strong><span class="homeDriverActionTag">'+label+'</span>'+(item.isRecent?'<span class="homeDriverRecentBadge">RECENT</span>':'')+'</button>';
 }
 function paint(){
  const viewport=$('homeDriverActionViewport');
@@ -253,6 +255,9 @@ function render(){
  const signature=items.map(x=>[x.action,x.driver,x.date,x.time,x.service,x.fleet,x.inspector,x.note,x.inspectionNote,x.reference,x.location].join('|')).join('::');
  if(signature===previousSignature)return;
  previousSignature=signature;lastRender=Date.now();
+ // The records are sorted newest-first. Identify the newest five BEFORE
+ // randomising the visual order, so Shuffle never changes who is highlighted.
+ items.forEach((item,index)=>{item.isRecent=index<5;});
  orderedItems=shuffled(items);
  paint();
 }
