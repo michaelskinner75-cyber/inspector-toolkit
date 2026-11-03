@@ -18,7 +18,7 @@ const readMasterRows=data=>{
  const seen=new Set(),out=[];
  for(const row of data.slice(1)){
   const code=clean(row?.[0]).toUpperCase(),route=clean(row?.[1]),status=clean(row?.[2]).toUpperCase();
-  if(!code||!route||status!=='ACTIVE'||school(code))continue;
+  if(!code||!route||status!=='ACTIVE'||school(code)||code==='73B')continue;
   const id=clean(row?.[3])||hash((code+'|'+route).toLowerCase());
   if(seen.has(id))continue;
   seen.add(id);out.push({code,route,id});
@@ -44,6 +44,8 @@ function notice(message){
  const text=$('inspectorMasterSyncText');if(text)text.textContent=message;
 }
 function publish(list,fromCache){
+ // Never restore withdrawn service 73B from a previously cached master list.
+ list=list.filter(s=>clean(s.code).toUpperCase()!=='73B');
  const current=JSON.stringify((window.INSPECTOR_SERVICES||[]).map(x=>[x.id,x.code,x.route]));
  const next=JSON.stringify(list.map(x=>[x.id,x.code,x.route]));
  window.INSPECTOR_SERVICE_MASTER_LOADED=true;
