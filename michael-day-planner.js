@@ -129,7 +129,8 @@ function build(){
   button.innerHTML='<span class="navIcon">🗓️</span>My Day Planner';
   nav.insertBefore(button,nav.firstChild?.nextSibling||null);
  }
- if(!$('michaelDayPlanner')){
+ const newSection=!$('michaelDayPlanner');
+ if(newSection){
   const sec=document.createElement('section');sec.id='michaelDayPlanner';sec.className='section';
   sec.innerHTML=[
    '<button class="backBtn" data-open="home">← Back</button>',
@@ -167,11 +168,12 @@ function build(){
   ].join('');
   host.appendChild(sec);
  }
- const first=!selectedDate;
- if(first){readStorage();selectedDate=iso(new Date());}
- $('dpDate').value=selectedDate;
- restoreDayMeta();
- render();
+ if(newSection){
+  if(!selectedDate){readStorage();selectedDate=iso(new Date());}
+  $('dpDate').value=selectedDate;
+  restoreDayMeta();
+  render();
+ }
  return true;
 }
 function visibility(){
@@ -401,6 +403,7 @@ function init(){
   if(e.key===STORE){readStorage();schedule();}
  });
  document.addEventListener('inspector-service-master-updated',schedule);
+ window.addEventListener('inspector-service-master-updated',schedule);
  document.addEventListener('click',e=>{
   const target=e.target;
   if(target.closest?.('[data-open="michaelDayPlanner"]')){if(!michael()){e.preventDefault();e.stopImmediatePropagation();visibility();return;}setTimeout(activate,50);}
