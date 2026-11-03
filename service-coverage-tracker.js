@@ -12,6 +12,32 @@ const coverageSortKey='inspectorCoverageSortOrderV1';
 let sortOrder='recent';
 try{const stored=localStorage.getItem(coverageSortKey);if(['recent','oldest','service'].includes(stored))sortOrder=stored;}catch(e){}
 
+function coverageInspectorArea(){
+ let name='';
+ try{name=typeof getInspector==='function'?getInspector():localStorage.getItem('activeInspector')||'';}catch(err){}
+ const norm=String(name||'').toLowerCase().trim().replace(/\./g,'').replace(/\s+/g,' ');
+ if(['m skinner','michael skinner','a fairbairn','drew fairbairn'].includes(norm))return 'fife';
+ if(['a duncan','ali duncan','alan duncan'].includes(norm))return 'strathtay';
+ return 'all';
+}
+// Apply this when opening Service Coverage and when the inspector changes.
+// Manual filtering remains available until the next visit.
+function applyInspectorCoverageDefaults(){
+ areaFilter=coverageInspectorArea();
+ sortOrder='oldest';
+ filter='all';
+ const from=$('sctFrom'),to=$('sctTo'),sort=$('sctSort');
+ if(from)from.value='';
+ if(to)to.value='';
+ if(sort)sort.value=sortOrder;
+ try{
+  localStorage.setItem(coverageAreaKey,areaFilter);
+  localStorage.setItem(coverageSortKey,sortOrder);
+ }catch(err){}
+ render();
+}
+
+
 // Coverage-only advisory; service codes and Google Sheets matching remain unchanged.
 // Coverage-only timetable advisory based on published operator timetable summaries.
 // These are informational labels, never part of the service ID or Google Sheets rows.
@@ -167,8 +193,17 @@ function start(){
  $('sctRefresh').addEventListener('click',refresh);
  section.addEventListener('click',e=>{const b=e.target.closest('[data-sct-edit]');if(b){editing=editing===b.dataset.sctEdit?'':b.dataset.sctEdit;render();}if(e.target.closest('[data-sct-cancel]')){editing='';render();}});
  section.addEventListener('submit',e=>{if(e.target.matches('[data-sct-form]'))save(e);});
- window.renderCoverage=render;render();setTimeout(refresh,400);
- document.addEventListener('click',e=>{if(e.target.closest('[data-open="coverage"]'))setTimeout(refresh,200);});
+ window.renderCoverage=render;
+ applyInspectorCoverageDefaults();
+ setTimeout(refresh,400);
+ document.addEventListener('click',e=>{
+  if(e.target.closest('[data-open="coverage"]')){
+   applyInspectorCoverageDefaults();
+   setTimeout(refresh,200);
+  }
+ });
+ document.addEventListener('inspector-hub-login-change',applyInspectorCoverageDefaults);
+ window.addEventListener('storage',e=>{if(e.key==='activeInspector')applyInspectorCoverageDefaults();});
  setInterval(()=>{if(section.classList.contains('active')&&Date.now()-lastRefresh>55000)refresh();},60000);
  return true;
 }
