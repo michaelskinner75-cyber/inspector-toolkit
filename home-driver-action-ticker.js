@@ -6,6 +6,7 @@ const str=v=>String(v??'').trim();
 const esc=v=>str(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=v=>str(v).toLowerCase().replace(/\s+/g,' ');
 let previousSignature=null,lastRender=0,scheduled=false;
+let orderedItems=[],paused=false,dialogPreviousPaused=false,activeIndex=-1,returnFocus=null;
 function data(sheet){
  try{
   const rows=(typeof cloud!=='undefined'&&Array.isArray(cloud[sheet]))?cloud[sheet]:[];
@@ -49,6 +50,11 @@ function records(){
    inspector:str(r[2]),service:str(r[kind==='report'?7:5]),
    fleet:str(r[kind==='report'?8:6]),
    note:str(r[kind==='report'?6:14]),
+   depot:str(r[kind==='report'?4:3]),
+   location:str(r[kind==='report'?10:8]),
+   destination:kind==='inspection'?str(r[9]):'',
+   reference:str(r[kind==='report'?9:15]),
+   inspectionNote:'',
    source:kind};
   return item;
  };
@@ -58,7 +64,14 @@ function records(){
    &&(!a.time||!b.time||Math.abs((+a.time.slice(0,2)*60 + +a.time.slice(3))-(+b.time.slice(0,2)*60 + +b.time.slice(3)))<=60);
  for(const r of data('Inspections')){
   const item=collect(r,'inspection');
-  if(item&&!reports.some(rep=>same(rep,item)))list.push(item);
+  if(!item)continue;
+  const matched=reports.find(rep=>same(rep,item));
+  if(matched){
+   if(item.note&&norm(item.note)!==norm(matched.note))matched.inspectionNote=item.note;
+   if(!matched.reference)matched.reference=item.reference;
+   if(!matched.location)matched.location=item.location;
+   if(!matched.destination)matched.destination=item.destination;
+  }else list.push(item);
  }
  const seen=new Set();
  return list.filter(item=>{
