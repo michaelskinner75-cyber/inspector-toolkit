@@ -68,40 +68,47 @@ function records(){
  }).sort((a,b)=>(b.date+'T'+b.time).localeCompare(a.date+'T'+a.time)||
   a.driver.localeCompare(b.driver));
 }
+
 function styles(){
  if($('homeDriverActionStyle'))return;
  const style=document.createElement('style');style.id='homeDriverActionStyle';
+ // A dedicated Home Screen strip, not the old LED clock container.
+ // The old .ledShell selectors forced the title and cards into a 38-54px box.
  style.textContent=[
-  '#home .ledShell.homeDriverActionShell{height:56px!important;min-height:56px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:9px!important;padding:0 9px!important;box-sizing:border-box!important;overflow:hidden!important}',
-  '#home .homeDriverClockCompat,#home .ledShell #staticBusClock,#home .ledShell #homeClock{display:none!important}',
-  '#home .homeDriverActionLabel{display:flex;flex-direction:column;gap:2px;flex:0 0 auto;width:105px;font-size:11px;line-height:1.2;font-weight:900;letter-spacing:.02em;color:#f5be64}',
-  '#home .homeDriverActionLabel small{font-size:9px;letter-spacing:.03em;color:#c7d9e7}',
-  '#home .homeDriverActionViewport{min-width:0;flex:1;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#42647c transparent;touch-action:pan-x;overscroll-behavior-inline:contain}',
-  '#home .homeDriverActionTrack{display:flex;width:max-content;animation:homeDriverActionScroll var(--homeDriverActionSpeed,480s) linear infinite}',
-  '#home .homeDriverActionSet{display:flex;gap:9px;padding-right:9px;flex:0 0 auto}',
-  '#home .homeDriverActionCard{display:flex;align-items:center;gap:8px;white-space:nowrap;box-sizing:border-box;min-height:39px;padding:5px 11px;background:#132e43;border-radius:8px;border:1px solid #375b72;color:#eff7fb;font-size:12px}',
-  '#home .homeDriverActionCard.advised{border-left:4px solid #eea83e}',
-  '#home .homeDriverActionCard.reported{border-left:4px solid #d4545e}',
-  '#home .homeDriverActionTag{font-size:10px;font-weight:900;letter-spacing:.015em;color:#ffda93}',
-  '#home .homeDriverActionCard.reported .homeDriverActionTag{color:#ff9ca5}',
-  '#home .homeDriverActionName{font-weight:900;font-size:13px}',
-  '#home .homeDriverActionMeta{color:#c4d4df;font-size:11px}',
-  '#home .homeDriverActionEmpty{padding:9px;color:#c7d9e7;font-size:12px}',
-  '#home .homeDriverActionViewport:hover .homeDriverActionTrack,#home .homeDriverActionViewport:focus-within .homeDriverActionTrack,#home .homeDriverActionViewport:active .homeDriverActionTrack{animation-play-state:paused}',
+  '#home .homeDriverActionShell{order:1!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:center!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;height:auto!important;min-height:100px!important;margin:0!important;padding:10px 12px!important;gap:9px!important;position:relative!important;overflow:hidden!important;background:#0e293e!important;border:1px solid #426783!important;border-radius:11px!important;box-shadow:none!important}',
+  '#home .homeDriverClockCompat{display:none!important}',
+  '#home .homeDriverActionHeader{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;width:100%!important;min-width:0!important;flex:none!important;line-height:1.25!important}',
+  '#home .homeDriverActionTitle{font-family:Arial,sans-serif!important;color:#f5be64!important;font-size:12px!important;letter-spacing:.02em!important;font-weight:900!important;white-space:nowrap!important}',
+  '#home .homeDriverActionCount{font-family:Arial,sans-serif!important;font-size:10px!important;font-weight:700!important;color:#d1dce6!important;white-space:nowrap!important;text-align:right!important}',
+  '#home .homeDriverActionViewport{display:block!important;position:relative!important;width:100%!important;min-width:0!important;height:46px!important;min-height:46px!important;max-height:46px!important;flex:none!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin;scrollbar-color:#567890 transparent;touch-action:pan-x;overscroll-behavior-inline:contain}',
+  '#home .homeDriverActionTrack{position:relative!important;display:flex!important;align-items:center!important;width:max-content!important;height:46px!important;min-height:46px!important;animation:homeDriverActionScroll var(--homeDriverActionSpeed,480s) linear infinite!important}',
+  '#home .homeDriverActionSet{display:flex!important;align-items:center!important;gap:9px!important;padding-right:9px!important;flex:0 0 auto!important;height:46px!important}',
+  '#home .homeDriverActionCard{position:relative!important;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;white-space:nowrap!important;box-sizing:border-box!important;height:42px!important;min-height:42px!important;max-height:42px!important;padding:5px 11px!important;margin:0!important;background:#163b52!important;border-radius:8px!important;border:1px solid #4b6d83!important;color:#eff7fb!important;font-family:Arial,sans-serif!important;font-size:12px!important;line-height:1.25!important;transform:none!important}',
+  '#home .homeDriverActionCard.advised{border-left:4px solid #eea83e!important}',
+  '#home .homeDriverActionCard.reported{border-left:4px solid #d4545e!important}',
+  '#home .homeDriverActionTag{font-size:10px!important;font-weight:900!important;letter-spacing:.015em!important;color:#ffda93!important}',
+  '#home .homeDriverActionCard.reported .homeDriverActionTag{color:#ff9ca5!important}',
+  '#home .homeDriverActionName{font-weight:900!important;font-size:13px!important;color:#fff!important}',
+  '#home .homeDriverActionMeta{color:#cbd9e5!important;font-size:11px!important}',
+  '#home .homeDriverActionEmpty{display:flex!important;align-items:center!important;height:46px!important;padding:0 9px!important;color:#c7d9e7!important;font-size:12px!important}',
+  '#home .homeDriverActionViewport:hover .homeDriverActionTrack,#home .homeDriverActionViewport:focus-within .homeDriverActionTrack,#home .homeDriverActionViewport:active .homeDriverActionTrack{animation-play-state:paused!important}',
   '@keyframes homeDriverActionScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}',
-  '@media(max-width:540px){#home .ledShell.homeDriverActionShell{height:54px!important;min-height:54px!important;padding:0 6px!important;gap:6px!important}#home .homeDriverActionLabel{width:74px;font-size:9px}#home .homeDriverActionLabel small{font-size:8px}#home .homeDriverActionCard{gap:6px;padding:5px 8px;font-size:11px}#home .homeDriverActionName{font-size:12px}#home .homeDriverActionMeta{font-size:10px}}',
-  '@media(prefers-reduced-motion:reduce){#home .homeDriverActionTrack{animation:none}}'
+  '@media(max-width:540px){#home .homeDriverActionShell{min-height:94px!important;padding:9px 8px!important;gap:7px!important}#home .homeDriverActionTitle{font-size:11px!important}#home .homeDriverActionCount{font-size:9px!important}#home .homeDriverActionCard{gap:6px!important;padding:5px 8px!important}#home .homeDriverActionName{font-size:12px!important}#home .homeDriverActionMeta{font-size:10px!important}}',
+  '@media(prefers-reduced-motion:reduce){#home .homeDriverActionTrack{animation:none!important}}'
  ].join('');
  document.head.appendChild(style);
 }
 function ensure(){
- const shell=document.querySelector('#home .ledShell');
+ const shell=document.querySelector('#home .homeDriverActionShell')||document.querySelector('#home .ledShell');
  if(!shell)return false;
  styles();
+ // Remove the legacy LED class entirely: its absolute positioning and
+ // device-specific fixed heights caused driver cards to clip on iPhones.
+ shell.classList.remove('ledShell');
  shell.classList.add('homeDriverActionShell');
  if(!$('homeDriverActionViewport')){
-  // The legacy clock ID stays hidden: older display scripts still update it.
-  shell.innerHTML='<div id="homeClock" class="homeDriverClockCompat" aria-hidden="true"></div><div class="homeDriverActionLabel">DRIVER ACTIONS<small>LAST 6 MONTHS</small></div><div class="homeDriverActionViewport" id="homeDriverActionViewport" role="region" tabindex="0" aria-label="Drivers advised or reported during the last six months">Loading driver reports…</div>';
+  // Retain the hidden ID so old app clock intervals cannot throw on updates.
+  shell.innerHTML='<div id="homeClock" class="homeDriverClockCompat" aria-hidden="true"></div><div class="homeDriverActionHeader"><strong class="homeDriverActionTitle">DRIVERS ADVISED / REPORTED</strong><span class="homeDriverActionCount" id="homeDriverActionCount">LAST 6 MONTHS</span></div><div class="homeDriverActionViewport" id="homeDriverActionViewport" role="region" tabindex="0" aria-label="Drivers advised or reported during the last six months">Loading driver reports…</div>';
  }
  return true;
 }
@@ -114,6 +121,7 @@ function render(){
  if(!ensure())return;
  const viewport=$('homeDriverActionViewport');
  const items=records();
+ const count=$('homeDriverActionCount');if(count)count.textContent=items.length?items.length+' ENTRIES • 6 MONTHS':'LAST 6 MONTHS';
  const signature=items.map(x=>[x.action,x.driver,x.date,x.time,x.service,x.fleet,x.inspector,x.note].join('|')).join('::');
  if(signature===previousSignature)return;
  previousSignature=signature;lastRender=Date.now();
