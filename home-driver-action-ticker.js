@@ -147,27 +147,112 @@ function ensure(){
  }
  return true;
 }
-function card(item){
+
+function shuffled(items){
+ const list=items.slice();
+ for(let i=list.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [list[i],list[j]]=[list[j],list[i]];
+ }
+ // Prevent an unchanged shuffle even on very short lists.
+ if(list.length>1&&list.every((item,i)=>item===items[i]))list.push(list.shift());
+ return list;
+}
+function setPaused(next){
+ paused=!!next;
+ const shell=document.querySelector('#home .homeDriverActionShell');
+ shell?.classList.toggle('isPaused',paused);
+ const button=$('homeDriverActionPause');
+ if(button){
+  button.textContent=paused?'▶ RESUME':'⏸ PAUSE';
+  button.setAttribute('aria-pressed',String(paused));
+  button.setAttribute('aria-label',paused?'Resume scrolling driver actions':'Pause scrolling driver actions');
+ }
+}
+function ensureDialog(){
+ let layer=$('homeDriverActionOverlay');
+ if(layer)return layer;
+ layer=document.createElement('div');
+ layer.id='homeDriverActionOverlay';
+ layer.className='homeDriverActionOverlay';
+ layer.hidden=true;
+ document.body.appendChild(layer);
+ return layer;
+}
+function details(item){
+ const fields=[
+  ['Action',item.action==='ADVISED'?'Driver advised':'Offence report submitted'],
+  ['Date',item.date.slice(8,10)+'/'+item.date.slice(5,7)+'/'+item.date.slice(0,4)],
+  ['Time',item.time],
+  ['Inspector',item.inspector],
+  ['Depot',item.depot],
+  ['Service',item.service],
+  ['Fleet number',item.fleet],
+  ['Location checked',item.location],
+  ['Destination',item.destination],
+  ['Report reference',item.reference]
+ ].filter(pair=>str(pair[1]));
+ const row=([label,value])=>'<div class="homeDriverActionDetail"><b>'+esc(label)+'</b>'+esc(value)+'</div>';
+ const notes=item.note?'<div class="homeDriverActionNotes"><b>REASON / REPORT DETAILS</b><p>'+esc(item.note)+'</p></div>':'';
+ const inspection=item.inspectionNote?'<div class="homeDriverActionNotes"><b>INSPECTION NOTES</b><p>'+esc(item.inspectionNote)+'</p></div>':'';
+ return '<div class="homeDriverActionDialog" role="dialog" aria-modal="true" aria-labelledby="homeDriverActionDialogName"><div class="homeDriverActionDialogTop"><div><div class="homeDriverActionKind '+(item.action==='REPORTED'?'reported':'')+'">'+esc(item.action==='ADVISED'?'DRIVER ADVISED':'DRIVER REPORTED')+'</div><h3 id="homeDriverActionDialogName">'+esc(item.driver)+'</h3></div><button type="button" id="homeDriverActionClose" class="homeDriverActionDialogClose" aria-label="Close driver details">×</button></div><div class="homeDriverActionDetails">'+fields.map(row).join('')+'</div>'+notes+inspection+'<p class="homeDriverActionDialogFoot">Source: '+(item.source==='report'?'Driver Reports':'Inspection Checks')+' • Recorded information only</p></div>';
+}
+function openDetails(index,trigger){
+ const item=orderedItems[index];
+ if(!item)return;
+ const layer=ensureDialog();
+ dialogPreviousPaused=paused;
+ returnFocus=trigger||null;
+ setPaused(true);
+ activeIndex=index;
+ layer.innerHTML=details(item);
+ layer.hidden=false;
+ $('homeDriverActionClose')?.focus();
+}
+function closeDetails(){
+ const layer=$('homeDriverActionOverlay');
+ if(!layer||layer.hidden)return;
+ layer.hidden=true;
+ layer.innerHTML='';
+ activeIndex=-1;
+ setPaused(dialogPreviousPaused);
+ if(returnFocus&&returnFocus.isConnected&&typeof returnFocus.focus==='function')returnFocus.focus();
+ returnFocus=null;
+}
+function card(item,index,duplicate){
  const description=[item.action==='ADVISED'?'Driver advised':'Driver reported',item.driver,item.date,item.service&&'Service '+item.service,item.inspector&&'Inspector '+item.inspector,item.note].filter(Boolean).join(' • ').slice(0,900);
  const date=item.date.slice(8,10)+'/'+item.date.slice(5,7)+'/'+item.date.slice(0,4);
- return '<div class="homeDriverActionCard '+(item.action==='ADVISED'?'advised':'reported')+'" title="'+esc(description)+'"><span class="homeDriverActionTag">'+item.action+'</span><strong class="homeDriverActionName">'+esc(item.driver)+'</strong><span class="homeDriverActionMeta">'+esc(date)+(item.time?' '+esc(item.time):'')+'</span>'+(item.service?'<span class="homeDriverActionMeta">SERVICE '+esc(item.service)+'</span>':'')+(item.inspector?'<span class="homeDriverActionMeta">• '+esc(item.inspector)+'</span>':'')+'</div>';
+ return '<button type="button" class="homeDriverActionCard '+(item.action==='ADVISED'?'advised':'reported')+'" data-driver-action-index="'+index+'" '+(duplicate?'tabindex="-1" ':'')+'title="'+esc(description)+'" aria-label="'+esc('View details: '+item.driver+', '+item.action.toLowerCase()+', '+date)+'"><span class="homeDriverActionTag">'+item.action+'</span><strong class="homeDriverActionName">'+esc(item.driver)+'</strong><span class="homeDriverActionMeta">'+esc(date)+(item.time?' '+esc(item.time):'')+'</span>'+(item.service?'<span class="homeDriverActionMeta">SERVICE '+esc(item.service)+'</span>':'')+(item.inspector?'<span class="homeDriverActionMeta">• '+esc(item.inspector)+'</span>':'')+'</button>';
 }
-function render(){
- if(!ensure())return;
+function paint(){
  const viewport=$('homeDriverActionViewport');
- const items=records();
- const count=$('homeDriverActionCount');if(count)count.textContent=items.length?items.length+' ENTRIES • 6 MONTHS':'LAST 6 MONTHS';
- const signature=items.map(x=>[x.action,x.driver,x.date,x.time,x.service,x.fleet,x.inspector,x.note].join('|')).join('::');
- if(signature===previousSignature)return;
- previousSignature=signature;lastRender=Date.now();
- if(!items.length){
+ if(!viewport)return;
+ if(!orderedItems.length){
   const hasRows=data('Driver Reports').length>0||data('Inspections').length>0;
   viewport.innerHTML='<div class="homeDriverActionEmpty">'+(hasRows?'No driver advice or reports recorded in the last six months.':'Loading shared driver reports…')+'</div>';
   return;
  }
- const group=items.map(card).join('');
- viewport.style.setProperty('--homeDriverActionSpeed',Math.max(70,items.length*5)+'s');
- viewport.innerHTML='<div class="homeDriverActionTrack"><div class="homeDriverActionSet">'+group+'</div><div class="homeDriverActionSet" aria-hidden="true">'+group+'</div></div>';
+ const group=orderedItems.map((item,i)=>card(item,i,false)).join('');
+ const cloned=orderedItems.map((item,i)=>card(item,i,true)).join('');
+ viewport.style.setProperty('--homeDriverActionSpeed',Math.max(70,orderedItems.length*5)+'s');
+ viewport.innerHTML='<div class="homeDriverActionTrack"><div class="homeDriverActionSet">'+group+'</div><div class="homeDriverActionSet" aria-hidden="true">'+cloned+'</div></div>';
+ viewport.scrollLeft=0;
+ setPaused(paused);
+}
+function shuffleNow(){
+ if(orderedItems.length<2)return;
+ orderedItems=shuffled(orderedItems);
+ paint();
+}
+function render(){
+ if(!ensure())return;
+ const items=records();
+ const count=$('homeDriverActionCount');if(count)count.textContent=items.length?items.length+' ENTRIES • 6 MONTHS':'LAST 6 MONTHS';
+ const signature=items.map(x=>[x.action,x.driver,x.date,x.time,x.service,x.fleet,x.inspector,x.note,x.inspectionNote,x.reference,x.location].join('|')).join('::');
+ if(signature===previousSignature)return;
+ previousSignature=signature;lastRender=Date.now();
+ orderedItems=shuffled(items);
+ paint();
 }
 function schedule(){
  if(scheduled)return;
@@ -183,7 +268,22 @@ function init(){
   wrapper.homeDriverActionsWrapped=true;
   window.renderAll=wrapper;
  }
- document.addEventListener('click',e=>{if(e.target.closest('[data-open="home"],.refreshCloud'))setTimeout(schedule,100);});
+ document.addEventListener('click',e=>{
+  if(e.target.closest('[data-open="home"],.refreshCloud'))setTimeout(schedule,100);
+  if(e.target.closest('#homeDriverActionPause')){setPaused(!paused);return;}
+  if(e.target.closest('#homeDriverActionShuffle')){shuffleNow();return;}
+  const selected=e.target.closest('[data-driver-action-index]');
+  if(selected?.closest('#homeDriverActionViewport')){
+   openDetails(Number(selected.dataset.driverActionIndex),selected);return;
+  }
+  if(e.target.closest('#homeDriverActionClose')||e.target.id==='homeDriverActionOverlay')closeDetails();
+ });
+ document.addEventListener('pointerdown',e=>{
+  if(e.target.closest('#homeDriverActionViewport'))setPaused(true);
+ },{passive:true});
+ document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!$('homeDriverActionOverlay')?.hidden)closeDetails();
+ });
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule();});
  setInterval(()=>{if(document.querySelector('#home.section.active')&&!document.hidden)schedule();},60000);
  return true;
