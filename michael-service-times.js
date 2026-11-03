@@ -184,7 +184,7 @@ async function save(id){
  if(!Object.prototype.hasOwnProperty.call(drafts,id))bases[id]=saved[id]?.revision||'';
  drafts[id]=note;saveDraft(id);
  if(pending(id)){state(id,'Already waiting for confirmation','warning');return;}
- if(!loaded){state(id,'Connect to Google Sheets before saving','warning');await refresh();return;}
+ if(!loaded){state(id,'Connecting to Google Sheets…','warning');await refresh();if(!loaded)return;}
  try{const latest=decode(await cloud())[id]?.revision||'';
   if(latest!==(bases[id]??saved[id]?.revision??'')){state(id,'Changed elsewhere — refresh and review before saving','warning');return;}
  }catch(e){state(id,'Could not verify Google Sheets. Notes kept on this device.','warning');return;}
