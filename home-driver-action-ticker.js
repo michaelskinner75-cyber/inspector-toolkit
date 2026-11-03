@@ -139,7 +139,7 @@ function openDetails(index,trigger){
  const item=orderedItems[index];
  if(!item)return;
  const layer=ensureDialog();
- dialogPreviousPaused=paused;
+ dialogPreviousPaused=window.InspectorUnifiedTicker?.isPaused?.()??paused;
  returnFocus=trigger||null;
  setPaused(true);
  activeIndex=index;
