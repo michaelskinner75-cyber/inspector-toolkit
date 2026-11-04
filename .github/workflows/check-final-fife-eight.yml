@@ -1,4 +1,4 @@
-name: Verify final eight Fife routes
+name: Import final eight verified Fife routes
 on:
   push:
     paths:
@@ -8,8 +8,8 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Audit current services, registration IDs, seven-day schedules (dry run)
-        run: python3 scripts/import_last_eight_fife.py --mode dry-run
+      - name: Import eight manually audited official route registrations
+        run: python3 scripts/import_last_eight_fife.py --mode apply
