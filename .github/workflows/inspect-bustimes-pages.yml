@@ -1,0 +1,40 @@
+name: Check public route timetable page structure
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-bustimes-pages.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read three route pages for consistency (no changes)
+        run: |
+          python3 -m pip install -q beautifulsoup4
+          python3 - <<'PY'
+          import urllib.request,urllib.parse
+          from bs4 import BeautifulSoup
+          base='https://bustimes.org/services/4a-dunfermline-blairhall'
+          for suffix in ['','?date=2026-11-04','?date=2026-11-07']:
+            url=base+suffix
+            req=urllib.request.Request(url,headers={'User-Agent':'InspectorHubTimetableVerifier/1.0'})
+            with urllib.request.urlopen(req,timeout=24) as r:
+              html=r.read(550000).decode('utf-8','replace')
+            soup=BeautifulSoup(html,'html.parser')
+            print('URL',suffix or '/', 'TITLE',soup.title.get_text(' ',strip=True) if soup.title else '',flush=True)
+            for form in soup.find_all('form')[:4]:
+              print('FORM',form.get('action'),form.get('method'),[(x.get('name'),x.get('value')) for x in form.find_all(['input','select'])[:8]],flush=True)
+            print('TABLES',len(soup.select('table')),'HEADINGS',[x.get_text(' ',strip=True)[:120] for x in soup.select('h2')[:5]],flush=True)
+            for table in soup.select('table')[:2]:
+              rows=table.select('tr')
+              print('TABLE',table.get('class'),'rows',len(rows),'caption',table.caption.get_text(' ',strip=True) if table.caption else '')
+              for row in rows[:3]:
+                print(' ROW',[(x.name,x.get_text(' ',strip=True)[:55],x.get('class')) for x in row.select(':scope > th,:scope > td')[:6]],flush=True)
+          try:
+            with urllib.request.urlopen('https://bustimes.org/robots.txt',timeout=10) as r:
+              body=r.read(20000).decode('utf8','replace')
+              print('ROBOTS lines concerning /services:',[x for x in body.splitlines() if 'services' in x.lower()][:10])
+          except Exception as e:
+            print('ROBOTS not available',type(e).__name__)
+          PY
