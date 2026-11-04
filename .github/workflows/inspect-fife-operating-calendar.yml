@@ -1,0 +1,45 @@
+name: Inspect official Stagecoach school and holiday calendar exceptions
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-fife-operating-calendar.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect TXC profiles that fail strict calendar validation (no writes)
+        run: |
+          python3 - <<'PY'
+          import sys,xml.etree.ElementTree as ET,collections
+          sys.path.insert(0,'scripts')
+          import import_official_fife_times as f
+          targets=[('PM0000004-374','747'),('PM0000004-101','19'),('PM0000004-440','X24'),
+                   ('PM0000004-103','7A'),('PM0000004-969','34'),('PM0000004-451','X58')]
+          with f.download() as z:
+            for prefix,code in targets:
+              names=[n for n in z.namelist() if n.startswith(prefix) and '20261026' in n]
+              if not names: continue
+              root=ET.fromstring(z.read(names[0]))
+              lines={x.get('id'):f.txt(x,'t:LineName') for x in root.findall('.//t:Lines/t:Line',f.NS)}
+              unknown=[],counts=collections.Counter()
+              for j in root.findall('./t:VehicleJourneys/t:VehicleJourney',f.NS):
+                if lines.get(f.txt(j,'t:LineRef'))!=code:continue
+                p=j.find('t:OperatingProfile',f.NS)
+                res=f.runs(p,f.REF_DATE)
+                counts[str(res)]+=1
+                if res is None: unknown.append(p)
+              print('ROUTE',code,'CALENDAR',dict(counts),'UNKNOWN',len(unknown),flush=True)
+              seen=set()
+              for profile in unknown:
+                if profile is None:
+                  print(' NO PROFILE');continue
+                kinds=[f.local(c.tag) for c in profile]
+                marker=str(kinds)
+                if marker not in seen:
+                  seen.add(marker)
+                  xml=ET.tostring(profile,encoding='unicode').replace('ns0:','').replace(' xmlns:ns0="http://www.transxchange.org.uk/"','')
+                  print(' UNKNOWN TYPE',kinds,'SAMPLE',xml[:1700].replace('\\n',' '),flush=True)
+          PY
