@@ -34,7 +34,7 @@ function style(){
  #importantUpdatesBar .iuHeading strong{font-size:12px;letter-spacing:.04em;color:#ffcc79}
  #importantUpdatesBar button{border:1px solid #b57c2c;background:#3b2c20;color:#fff;border-radius:8px;padding:7px 12px;min-height:34px;font-size:12px;font-weight:800;cursor:pointer}
  #importantUpdatesBar .iuTrack{width:100%;overflow:hidden;white-space:nowrap;background:#071a29;border:1px solid #3c5669;border-radius:7px;padding:9px 0}
- #importantUpdatesBar .iuScroll{display:inline-block;min-width:100%;white-space:pre;will-change:transform;animation:iuMarquee 22s linear infinite;font-size:15px;font-weight:800;color:#fff}
+ #importantUpdatesBar .iuScroll{display:inline-block;width:max-content;min-width:100%;white-space:pre;will-change:transform;animation:iuMarquee var(--iu-duration,22s) linear infinite;font-size:15px;font-weight:800;color:#fff}
  #importantUpdatesBar .iuScroll button{background:transparent!important;border:0!important;color:#fff!important;font-size:15px!important;text-decoration:underline;padding:0 35px!important;min-height:0!important;cursor:pointer}
  #importantUpdatesBar .iuTrack:hover .iuScroll,#importantUpdatesBar .iuTrack:focus-within .iuScroll,#importantUpdatesBar.iuPaused .iuScroll{animation-play-state:paused!important}
  #importantUpdatesBar .iuManageItem{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #345066;flex-wrap:wrap}\n #importantUpdatesBar .iuManageItem span{flex:1;min-width:130px;overflow-wrap:anywhere}\n #importantUpdatesBar .iuEmpty{padding:0 12px;color:#b8c8d4;font-size:13px}
@@ -49,7 +49,7 @@ function style(){
  #iuDetailsDialog .iuDetailsBody{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:12px 0 18px}
  #iuDetailsDialog .iuClose{background:#284c68;border:1px solid #67869c;color:white;border-radius:8px;padding:10px 15px;min-height:42px;font-weight:800}
  #importantUpdatesBar .iuStatus{margin-top:8px;color:#bdd0dc;font-size:12px;overflow-wrap:anywhere}
- @keyframes iuMarquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+ @keyframes iuMarquee{0%{transform:translateX(var(--iu-start,100%))}100%{transform:translateX(-100%)}}
  @media(prefers-reduced-motion:reduce){#importantUpdatesBar .iuScroll{animation:none;transform:none;white-space:normal}}
  `;document.head.appendChild(s);
 }
@@ -91,6 +91,9 @@ function render(){
  const t=$('importantUpdatesText'),empty=$('importantUpdatesEmpty');if(!t)return;
  t.hidden=!current.length;empty.hidden=!!current.length;
  t.innerHTML=current.map(x=>'<button type="button" data-details="'+safe(x.id)+'" title="View full details">'+safe(x.title)+'</button>').join(' <span aria-hidden="true"> • </span> ');
+ const viewport=t.parentElement.clientWidth||320;
+ t.style.setProperty('--iu-start',viewport+'px');
+ t.style.setProperty('--iu-duration',Math.max(15,Math.ceil((viewport+t.scrollWidth)/65))+'s');
  el.classList.toggle('iuPaused',paused);
  const p=$('importantUpdatesPause');if(p){p.textContent=paused?'▶ PLAY':'⏸ PAUSE';p.setAttribute('aria-pressed',String(paused));}
  if(editing)fillEditor();
