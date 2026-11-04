@@ -1,4 +1,4 @@
-name: Verify additional official Fife timetables
+name: Import additional verified official Fife timetables
 on:
   push:
     paths:
@@ -8,8 +8,8 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
-      - name: Check duplicate service numbers against Fife termini (dry run)
-        run: python3 scripts/resolve_official_fife_routes.py --mode dry-run
+      - name: Import verified normal-day Fife routes without touching existing notes
+        run: python3 scripts/resolve_official_fife_routes.py --mode apply
