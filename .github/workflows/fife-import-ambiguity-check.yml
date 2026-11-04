@@ -1,0 +1,37 @@
+name: Inspect Fife duplicate service registrations
+on:
+  push:
+    paths:
+      - '.github/workflows/fife-import-ambiguity-check.yml'
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect official duplicate Stagecoach route registrations without writing data
+        run: |
+          python3 - <<'PY'
+          import sys,json,collections
+          sys.path.insert(0,'scripts')
+          import import_official_fife_times as f
+          codes={'4','6','7','7A','7B','7C','8','14A','19','X24','X27','39','X58','747','33','34','34A','35A','81','91'}
+          with open('data/fife-active-services.json') as fd:
+              registry={s['code']:s for s in json.load(fd)['services'] if s['code'] in codes}
+          with f.download() as z:
+              rows=f.ingest_archive(z,codes)
+          for code in sorted(codes):
+              options=rows.get(code,{}).get('Wednesday',[])
+              uniq={x['servicecode']:x for x in options}
+              route=registry.get(code,{}).get('route','?')
+              print('ROUTE',code,'TARGET',route,'REGISTRATIONS',len(uniq),flush=True)
+              for rid,item in sorted(uniq.items()):
+                  trips=item['trips'].get((code,'Wednesday'),[])
+                  summaries=[]
+                  for j in trips[:4]:
+                      labels=j['stops']
+                      summaries.append((labels.get(j['origin'],j['origin']),labels.get(j['terminal'],j['terminal']),j['dest']))
+                  print('  CANDIDATE',rid,'trips',len(trips),'file',item['sourcefile'],'warnings',dict(item['warnings']),
+                        'examples',summaries,flush=True)
+          PY
