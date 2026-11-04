@@ -9,27 +9,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Inspect a live TXC route's stop and journey patterns
+      - name: Show Stagecoach TXC line identification and journey offsets
         run: |
           python3 - <<'PY'
-          import urllib.request, zipfile, tempfile, xml.etree.ElementTree as ET, re
-          url='https://opendata.stagecoachbus.com/stagecoach-scfi-route-schedule-data-transxchange_2_4.zip'
+          import urllib.request, zipfile, tempfile, xml.etree.ElementTree as ET, collections
+          u='https://opendata.stagecoachbus.com/stagecoach-scfi-route-schedule-data-transxchange_2_4.zip'
           with tempfile.NamedTemporaryFile(suffix='.zip') as f:
-            with urllib.request.urlopen(url,timeout=90) as response:
+            with urllib.request.urlopen(u,timeout=90) as r:
               while True:
-                b=response.read(1048576)
-                if not b:break
-                f.write(b)
+                x=r.read(1048576)
+                if not x:break
+                f.write(x)
             f.flush()
-            with zipfile.ZipFile(f.name) as archive:
-              path=archive.namelist()[0]
-              root=ET.fromstring(archive.read(path))
+            with zipfile.ZipFile(f.name) as z:
+              root=ET.fromstring(z.read(z.namelist()[0]))
               ns={'t':'http://www.transxchange.org.uk/'}
-              for tag in ['StartDate','EndDate','AnnotatedStopPointRef','JourneyPattern','JourneyPatternSection','JourneyPatternTimingLink','VehicleJourney','OperatingProfile']:
-                e=root.find('.//t:'+tag,ns)
-                print('======',tag,'======')
-                if e is not None:
-                  snippet=ET.tostring(e,encoding='unicode')
-                  print(snippet[:5400].replace('ns0:', '').replace(' xmlns:ns0="http://www.transxchange.org.uk/"',''))
-              print('FIRST FILE',path)
+              def nsfind(e,path):
+                o=e.find(path,ns);return (o.text or '').strip() if o is not None else ''
+              for e in root.findall('.//t:Line',ns):
+                print('LINE',e.attrib,'LineName',nsfind(e,'t:LineName'))
+              for e in root.findall('.//t:JourneyPattern',ns):
+                print('JP',e.attrib,'LINEREF',nsfind(e,'t:LineRef'),'ROUTE',nsfind(e,'t:RouteRef'),'DEST',nsfind(e,'t:DestinationDisplay'),'SECTION',nsfind(e,'t:JourneyPatternSectionRefs'))
+              journeys=root.findall('.//t:VehicleJourney',ns)
+              print('VJCOUNT',len(journeys),'OVERRIDE COUNTS',collections.Counter(len(v.findall('.//t:VehicleJourneyTimingLink',ns)) for v in journeys))
+              for j in journeys[:3]:
+                print('VJ',j.attrib,'LINE',nsfind(j,'t:LineRef'),'CODE',nsfind(j,'t:Operational/t:TicketMachine/t:TicketMachineServiceCode'),'JP',nsfind(j,'t:JourneyPatternRef'),'DEPART',nsfind(j,'t:DepartureTime'),'OVERRIDE',len(j.findall('.//t:VehicleJourneyTimingLink',ns)))
+              for x in root.findall('.//t:JourneyPatternTimingLink',ns)[:3]:
+                print('LINK',x.attrib,'FROM',nsfind(x,'t:From/t:StopPointRef'),'TO',nsfind(x,'t:To/t:StopPointRef'),'RUNTIME',nsfind(x,'t:RunTime'),'WAIT',nsfind(x,'t:To/t:WaitTime'))
+              for a in root.findall('.//t:AnnotatedStopPointRef',ns)[:6]:
+                print('STOP',nsfind(a,'t:StopPointRef'),nsfind(a,'t:CommonName'),nsfind(a,'t:LocalityName'),nsfind(a,'t:Indicator'))
           PY
