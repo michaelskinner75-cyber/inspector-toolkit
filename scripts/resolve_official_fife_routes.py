@@ -10,6 +10,19 @@ import re
 import collections
 import import_official_fife_times as base
 
+# In the currently verified November 4–10 period, HolidaysOnly trip profiles
+# are explicitly excluded by their operator DaysOfOperation/DateRange. They
+# should resolve as NOT RUNNING, not UNKNOWN (important for daily services).
+_original_runs=base.runs
+def verified_runs(profile,date):
+    if profile is not None and profile.find("t:RegularDayType/t:HolidaysOnly",base.NS) is not None:
+        if not (base.REF_DATE <= date <= base.REF_DATE + __import__("datetime").timedelta(days=6)):
+            return None
+        special=profile.find("t:SpecialDaysOperation/t:DaysOfOperation",base.NS)
+        return base.special_date_match(special,date)
+    return _original_runs(profile,date)
+base.runs=verified_runs
+
 TWO_WORD = ("st andrews", "north queensferry", "south queensferry", "dalgety bay",
             "high valleyfield", "east wemyss", "west wemyss", "st davids", "firth of forth")
 
@@ -65,9 +78,10 @@ def choose_by_terminus(candidate_map,services):
                 continue
             registrations={x["servicecode"] for x in options}
             if len(registrations)==1:
-                # Already processed by the first importer: do not duplicate.
-                continue
-            chosen,error=details(options,code,day,svc["route"])
+                chosen=max(options,key=lambda x:(x["start"],x["last_edit"],x["revision"]))
+                error=None
+            else:
+                chosen,error=details(options,code,day,svc["route"])
             if not chosen:
                 problems[(code,day)]=error
                 continue
