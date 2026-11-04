@@ -1,4 +1,4 @@
-name: Verify official Stagecoach Fife timetable importer
+name: Import verified Stagecoach Fife times (pilot)
 on:
   push:
     paths:
@@ -12,5 +12,5 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Dry-run all Fife services against official Stagecoach archive
-        run: python3 scripts/import_official_fife_times.py --mode dry-run
+      - name: Import one verified Fife service to test Sheets read-back
+        run: python3 scripts/import_official_fife_times.py --mode apply --limit 1
