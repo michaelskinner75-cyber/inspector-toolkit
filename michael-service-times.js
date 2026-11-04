@@ -23,30 +23,58 @@ function clockMinutes(value){
  const match=String(value).match(/^(\d{1,2}):(\d{2})$/);
  return match?Number(match[1])*60+Number(match[2]):NaN;
 }
-function upcomingView(note,from=ukMinutes()){
- const text=str(note),lines=text.split(/\r?\n/),output=[],headers=[];
+function ukWeekday(date=new Date()){
+ try{
+  return new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',weekday:'long'}).format(date).toUpperCase();
+ }catch(e){return ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'][date.getDay()];}
+}
+function filterClockRows(lines,from){
+ const output=[],headers=[];
  let matched=0,kept=0;
  for(const line of lines){
   const times=[...line.matchAll(CLOCK_RE)];
   if(!times.length){headers.push(line);continue;}
   matched+=times.length;
   let count=0;
-  // In copied BusTimes tables one stop has many departures on one line.
-  // Strip only departed clock tokens and retain this stop's heading if any remain.
   const filtered=line.replace(CLOCK_RE,time=>{
    if(clockMinutes(time)>=from){count++;return time;}
    return '';
   }).replace(/\t{2,}/g,'\t').replace(/[ \t]{2,}/g,' ').replace(/[ \t]+,/g,',').replace(/,\s*$/,'').trim();
-  if(count){
-   output.push(...headers);
-   output.push(filtered);
-   kept+=count;
-  }
+  if(count){output.push(...headers,filtered);kept+=count;}
   headers.length=0;
  }
- // For prose without detectable HH:MM departures, never hide the notes.
- if(matched===0)return {text,matched:0,kept:0};
+ if(!matched)return {text:lines.join('\n').trim(),matched:0,kept:0};
  return {text:output.join('\n').trim(),matched,kept};
+}
+function upcomingView(note,from=ukMinutes(),weekday=ukWeekday(),date=new Date()){
+ const text=str(note),lines=text.split(/\r?\n/);
+ // Auto-imported operator timetable notes contain explicit day-of-week panels.
+ // Hide panels for other days rather than showing Saturday's times on Wednesday.
+ const dayLine=/^\[([A-Z ]+(?:\s*\/\s*[A-Z ]+)*)\]$/i;
+ const sections=[],intro=[];let active=null;
+ for(const line of lines){
+  const m=line.trim().match(dayLine);
+  const weekdays=m?m[1].split(/\s*\/\s*/).map(x=>x.trim().toUpperCase()):[];
+  if(m&&weekdays.length&&weekdays.every(x=>/^(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)$/.test(x))){
+   active={days:weekdays,lines:[line]};sections.push(active);
+  }else if(active)active.lines.push(line);
+  else intro.push(line);
+ }
+ if(!sections.length)return filterClockRows(lines,from);
+ const chosen=sections.filter(s=>s.days.includes(weekday.toUpperCase()));
+ if(!chosen.length)return {text:'No published departures listed for '+weekday.toLowerCase()+'. Switch off the filter to see all days.',matched:0,kept:0};
+ // This is a dated import: do not present old times as current after the
+ // source timetable's end date.
+ const endDates=[...text.matchAll(/\b(?:Data valid:|to)\s*(?:\d{4}-\d{2}-\d{2}\s+to\s+)?(\d{4}-\d{2}-\d{2})/g)].map(x=>x[1]);
+ const dateString=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
+ if(endDates.length&&dateString> endDates.sort().at(-1))
+  return {text:'This imported timetable has expired. Check the published timetable before using these times. Switch off the filter to review the saved notes.',matched:0,kept:0};
+ const filtered=chosen.map(c=>filterClockRows(c.lines,from));
+ if(filtered.some(x=>x.matched>0)&&filtered.every(x=>x.kept===0))
+  return {text:'',matched:filtered.reduce((n,x)=>n+x.matched,0),kept:0};
+ return {text:[...intro,...filtered.map(x=>x.text)].filter(Boolean).join('\n').trim(),
+         matched:filtered.reduce((n,x)=>n+x.matched,0),
+         kept:filtered.reduce((n,x)=>n+x.kept,0)};
 }
 function filterLabel(){
  const now=ukMinutes(),hour=String(Math.floor(now/60)).padStart(2,'0'),minute=String(now%60).padStart(2,'0');
