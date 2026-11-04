@@ -1,0 +1,15 @@
+name: Verify additional official Fife timetables
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-fife-route-matches.yml'
+      - 'scripts/resolve_official_fife_routes.py'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check duplicate service numbers against Fife termini (dry run)
+        run: python3 scripts/resolve_official_fife_routes.py --mode dry-run
