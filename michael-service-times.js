@@ -7,8 +7,8 @@ const str=v=>String(v??''),clean=v=>str(v).trim(),esc=v=>str(v).replace(/[&<>"']
 let saved={},drafts={},bases={},queue=[],loaded=false,loading=false,syncing=false,search='',ready=false;
 const expanded=new Set(),editing=new Set();
 const FILTER_PREF='inspectorTimesUpcomingOnlyV1';
-let upcomingOnly=false;
-try{upcomingOnly=localStorage.getItem(FILTER_PREF)==='true';}catch(e){}
+let upcomingOnly=true; // Default to upcoming times; the inspector can switch back to all.
+try{const preference=localStorage.getItem(FILTER_PREF);if(preference!==null)upcomingOnly=preference==='true';}catch(e){}
 // Match clock times only (e.g. 06:15, 9:05). Never interpret service numbers as times.
 const CLOCK_RE=/\b(?:[01]?\d|2[0-3]):[0-5]\d\b/g;
 function ukMinutes(date=new Date()){
@@ -36,7 +36,7 @@ function upcomingView(note,from=ukMinutes()){
   const filtered=line.replace(CLOCK_RE,time=>{
    if(clockMinutes(time)>=from){count++;return time;}
    return '';
-  }).replace(/\t{2,}/g,'\t').replace(/[ \t]{2,}/g,' ').trim();
+  }).replace(/\t{2,}/g,'\t').replace(/[ \t]{2,}/g,' ').replace(/[ \t]+,/g,',').replace(/,\s*$/,'').trim();
   if(count){
    output.push(...headers);
    output.push(filtered);
