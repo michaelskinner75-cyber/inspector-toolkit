@@ -5,6 +5,7 @@ const SHEET='Fife Service Times',TAB='https://docs.google.com/spreadsheets/d/110
 const CACHE='inspectorTimesPlainCache',OUTBOX='inspectorTimesPlainOutbox',DRAFT='inspectorTimesPlainDraft:', $=id=>document.getElementById(id);
 const str=v=>String(v??''),clean=v=>str(v).trim(),esc=v=>str(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let saved={},drafts={},bases={},queue=[],loaded=false,loading=false,syncing=false,search='',ready=false;
+let lastRemoteRefresh=0;
 const expanded=new Set(),editing=new Set();
 const FILTER_PREF='inspectorTimesUpcomingOnlyV1';
 let upcomingOnly=true; // Default to upcoming times; the inspector can switch back to all.
@@ -228,26 +229,28 @@ function statusKind(id){
 }
 function card(s){
  const id=esc(s.id),url=link(s),open=expanded.has(s.id),edit=editing.has(s.id);
- const value=note(s.id),hasNotes=!!clean(value);
- const filtered=upcomingOnly&&!edit?upcomingView(value):null;
+ // Don't put huge, hidden timetables into the DOM until Show Times is tapped.
+ const value=open?note(s.id):'';
+ const hasNotes=!!clean(value);
+ const filtered=open&&upcomingOnly&&!edit?upcomingView(value):null;
  const shown=filtered?filtered.text:value;
  const emptyText=hasNotes&&upcomingOnly&&filtered?.matched>0?
   'No upcoming times remaining today. Switch off the filter to view all times.':'No times entered yet.';
+ const content=!open?'':(
+  '<div class="ftLabel">Times</div>'+
+  (edit?
+   '<textarea id="ftText-'+id+'" data-ft-text="'+id+'" rows="6" aria-label="Edit times for service '+esc(s.code)+'" placeholder="Paste or type stops and times however you like…">'+esc(value)+'</textarea>'+
+   '<div class="ftControls"><button id="ftSave-'+id+'" data-ft-save="'+id+'" type="button" class="ftBtn primary" '+(pending(s.id)?'disabled':'')+'>SAVE TIMES</button>'+
+   '<button type="button" class="ftBtn" data-ft-end-edit="'+id+'">STOP EDITING</button></div>':
+   '<div id="ftView-'+id+'" class="ftReadOnly'+(clean(shown)?'':' empty')+'">'+(clean(shown)?esc(shown):esc(emptyText))+'</div>'+
+   '<div class="ftControls"><button class="ftBtn primary" type="button" data-ft-edit="'+id+'">EDIT TIMES</button></div>')+
+  (url?'<a class="ftBtn" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">BUSTIMES ↗</a>':''));
  return '<article class="ftCard" id="ftCard-'+id+'" data-ft-service="'+id+'">'+
   '<div class="ftCardHead"><div><div class="ftCode">'+esc(s.code)+'</div>'+
   '<div class="ftRoute">'+esc(s.route)+'</div></div>'+
   '<button class="ftBtn" type="button" data-ft-toggle="'+id+'" aria-expanded="'+open+'" aria-controls="ftDetails-'+id+'">'+(open?'HIDE TIMES':'SHOW TIMES')+'</button></div>'+
   '<div class="ftStatus" id="ftStatus-'+id+'" role="status" data-kind="'+statusKind(s.id)+'">'+esc(statusText(s.id))+'</div>'+
-  '<div class="ftDetails" id="ftDetails-'+id+'" '+(open?'':'hidden')+'>'+
-  '<div class="ftLabel">Times</div>'+
-  (edit?
-    '<textarea id="ftText-'+id+'" data-ft-text="'+id+'" rows="6" aria-label="Edit times for service '+esc(s.code)+'" placeholder="Paste or type stops and times however you like…">'+esc(value)+'</textarea>'+
-    '<div class="ftControls"><button id="ftSave-'+id+'" data-ft-save="'+id+'" type="button" class="ftBtn primary" '+(pending(s.id)?'disabled':'')+'>SAVE TIMES</button>'+
-    '<button type="button" class="ftBtn" data-ft-end-edit="'+id+'">STOP EDITING</button></div>':
-    '<div id="ftView-'+id+'" class="ftReadOnly'+(clean(shown)?'':' empty')+'">'+(clean(shown)?esc(shown):esc(emptyText))+'</div>'+
-    '<div class="ftControls"><button class="ftBtn primary" type="button" data-ft-edit="'+id+'">EDIT TIMES</button></div>')+
-  (url?'<a class="ftBtn" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">BUSTIMES ↗</a>':'')+
-  '</div></article>';
+  '<div class="ftDetails" id="ftDetails-'+id+'" '+(open?'':'hidden')+'>'+content+'</div></article>';
 }
 function render(){
  const root=$('ftServices');if(!root)return;
@@ -299,6 +302,7 @@ async function refresh(){
  loading=true;top('Loading Times from Google Sheets…');
  try{
   reconcileCloud(decode(await cloud()));
+  lastRemoteRefresh=Date.now();
   top('Latest Times loaded from Google Sheets — ready to view on all devices.');
   refreshFields();
  }catch(e){top('Google Sheets unavailable. Your unsaved Times are kept on this device.');}
@@ -427,7 +431,7 @@ function init(){
   visibility();
   if(allowed()&&isTimesVisible()){
    if(upcomingOnly)refreshFields(); // Recalculate as soon as the next minute is reached.
-   if(queue.length)sync();else refresh();
+   if(queue.length)sync();else if(Date.now()-lastRemoteRefresh>180000)refresh();
   }
  },60000);
  if(queue.length)sync();
