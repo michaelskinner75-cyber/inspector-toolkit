@@ -62,7 +62,8 @@ function mount(){
  const driver=$('homeSearchWrap')||$('homeGlobalSearch')?.closest('#homeSearchWrap');
  if(driver&&driver.parentElement)driver.before(el);
  else{const p=home.querySelector('.panel');(p||home).appendChild(el);}
- $('importantUpdatesEdit').onclick=()=>{editing=!editing;$('importantUpdatesEditor').hidden=!editing;if(editing){selectedId=null;fillEditor();$('importantUpdatesTitle').focus();}};\n $('iuAddNew').onclick=()=>{selectedId=null;fillEditor();$('importantUpdatesTitle').focus();};
+ $('importantUpdatesEdit').onclick=()=>{editing=!editing;$('importantUpdatesEditor').hidden=!editing;if(editing){selectedId=null;fillEditor();$('importantUpdatesTitle').focus();}};
+ $('iuAddNew').onclick=()=>{selectedId=null;fillEditor();$('importantUpdatesTitle').focus();};
  $('importantUpdatesPause').onclick=()=>{paused=!paused;render();};
  $('importantUpdatesText').onclick=e=>{const btn=e.target.closest('[data-details]');if(btn)showDetails(btn.dataset.details);};
  $('importantUpdatesCancel').onclick=()=>{editing=false;$('importantUpdatesEditor').hidden=true;};
