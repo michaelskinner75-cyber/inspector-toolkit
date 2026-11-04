@@ -1,0 +1,15 @@
+name: Verify final eight Fife routes
+on:
+  push:
+    paths:
+      - '.github/workflows/check-final-fife-eight.yml'
+      - 'scripts/import_last_eight_fife.py'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit current services, registration IDs, seven-day schedules (dry run)
+        run: python3 scripts/import_last_eight_fife.py --mode dry-run
