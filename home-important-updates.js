@@ -150,7 +150,8 @@ function tick(){
  render();
  if(allowed())refresh();
 }
-try{const v=localStorage.getItem(CACHE);if(v){const x=JSON.parse(v);current=Array.isArray(x)?x:(x?.title?[{id:'cached',title:x.title,details:x.details||''}]:[]);}}catch(e){current=[];}\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick);else tick();
+try{const v=localStorage.getItem(CACHE);if(v){const x=JSON.parse(v);current=Array.isArray(x)?x:(x?.title?[{id:'cached',title:x.title,details:x.details||''}]:[]);}}catch(e){current=[];}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick);else tick();
 document.addEventListener('click',e=>{if(e.target?.closest?.('[data-login-name],#loginBtn,#changeInspectorBtn'))setTimeout(tick,150);});
 window.addEventListener('storage',e=>{if(e.key==='activeInspector'){lastRefresh=0;tick();}});
 window.addEventListener('pageshow',()=>{lastRefresh=0;tick();});
