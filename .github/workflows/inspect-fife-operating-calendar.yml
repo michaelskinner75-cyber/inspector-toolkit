@@ -24,7 +24,7 @@ jobs:
               if not names: continue
               root=ET.fromstring(z.read(names[0]))
               lines={x.get('id'):f.txt(x,'t:LineName') for x in root.findall('.//t:Lines/t:Line',f.NS)}
-              unknown=[],counts=collections.Counter()
+              unknown=[];counts=collections.Counter()
               for j in root.findall('./t:VehicleJourneys/t:VehicleJourney',f.NS):
                 if lines.get(f.txt(j,'t:LineRef'))!=code:continue
                 p=j.find('t:OperatingProfile',f.NS)
