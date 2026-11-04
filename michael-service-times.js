@@ -65,9 +65,12 @@ function upcomingView(note,from=ukMinutes(),weekday=ukWeekday(),date=new Date())
  if(!chosen.length)return {text:'No published departures listed for '+weekday.toLowerCase()+'. Switch off the filter to see all days.',matched:0,kept:0};
  // This is a dated import: do not present old times as current after the
  // source timetable's end date.
- const endDates=[...text.matchAll(/\b(?:Data valid:|to)\s*(?:\d{4}-\d{2}-\d{2}\s+to\s+)?(\d{4}-\d{2}-\d{2})/g)].map(x=>x[1]);
- const dateString=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
- if(endDates.length&&dateString> endDates.sort().at(-1))
+ const period=text.match(/^Verified for[^\n]*Data valid:\s*([^\n]+)/m);
+ const endDates=period?[...period[1].matchAll(/\d{4}-\d{2}-\d{2}/g)].map(x=>x[0]):[];
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+ const part=k=>parts.find(x=>x.type===k)?.value||'';
+ const dateString=part('year')+'-'+part('month')+'-'+part('day');
+ if(endDates.length&&dateString>endDates.sort().at(-1))
   return {text:'This imported timetable has expired. Check the published timetable before using these times. Switch off the filter to review the saved notes.',matched:0,kept:0};
  const filtered=chosen.map(c=>filterClockRows(c.lines,from));
  if(filtered.some(x=>x.matched>0)&&filtered.every(x=>x.kept===0))
