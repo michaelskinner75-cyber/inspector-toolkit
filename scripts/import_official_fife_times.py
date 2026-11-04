@@ -469,9 +469,15 @@ def main():
             print("SKIP NOTE SIZE",code,len(note),flush=True)
             continue
         eligible.append((s,note))
-        if code in ("1A","7","X24","39"):
+        print("READY",code,"chars",len(note),"rows",len(prepare_rows(s,note)),"periods",sorted(set((x["start"],x["end"]) for x in daily.values())),flush=True)
+        if code in ("2","2A","3","4A","6A","20","X60"):
             print("VERIFY",code,"day trips",[(d,len(x["trips"])) for d,x in daily.items()],
-                  "note beginning",repr(note[:550]),flush=True)
+                  "note beginning",repr(note[:850]),flush=True)
+    for manual in [x for x in services if x["code"] in ("1","1A","2","2A","3")]:
+        days=schedules.get(manual["code"],{})
+        print("MANUAL VALIDATION",manual["code"],"verifiedDays",list(days),
+              "oneTripSample",[(d,[(t["dest"],t["calls"][:3]) for t in x["trips"][:1]])
+                               for d,x in list(days.items())[:1]],flush=True)
     print("DRY-RUN SUMMARY eligible",len(eligible),"manual",len(services)-len(missing),
           "unfilled",len(missing)-len(eligible),"characters",sum(len(n) for _,n in eligible),flush=True)
     if args.mode!="apply":
