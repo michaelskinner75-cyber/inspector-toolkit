@@ -1,0 +1,522 @@
+{
+  "as_of": "2026-11-04",
+  "source": "Fife Service List master in Inspector Hub",
+  "services": [
+    {
+      "id": "b1l131tj",
+      "code": "1",
+      "route": "Dunfermline James Street E - Dunfermline James Street E",
+      "source_url": "https://bustimes.org/services/1-east-baldridge-or-townhill-fife-leisure-park"
+    },
+    {
+      "id": "b4orfws",
+      "code": "1A",
+      "route": "Dunfermline James Street E - Dunfermline James Street E",
+      "source_url": "https://bustimes.org/services/1a-east-baldridge-or-townhill-fife-leisure-park"
+    },
+    {
+      "id": "b15gy5qi",
+      "code": "2",
+      "route": "Dunfermline James Street A - Dunfermline James Street A",
+      "source_url": "https://bustimes.org/services/2-east-baldridge-or-townhill-fife-leisure-park"
+    },
+    {
+      "id": "b1iivzpb",
+      "code": "2A",
+      "route": "Dunfermline James Street A - Dunfermline James Street A",
+      "source_url": "https://bustimes.org/services/2a-east-baldridge-or-townhill-fife-leisure-park"
+    },
+    {
+      "id": "b7zn6yo",
+      "code": "3",
+      "route": "Dunfermline bus station - Townhill turning circle",
+      "source_url": "https://bustimes.org/services/3-townhill-duloch-park"
+    },
+    {
+      "id": "b4rmcgz",
+      "code": "4",
+      "route": "Dunfermline Bus Station 10 - Blairhall Houldsworth Street",
+      "source_url": "https://bustimes.org/services/4-dunfermline-blairhall"
+    },
+    {
+      "id": "b1pklwmq",
+      "code": "4A",
+      "route": "Dunfermline Bus Station 10 - Steelend Turning Circle",
+      "source_url": "https://bustimes.org/services/4a-dunfermline-blairhall"
+    },
+    {
+      "id": "b1mi4w4t",
+      "code": "4B",
+      "route": "Halbeath Fife Leisure Park - Blairhall Houldsworth Street",
+      "source_url": "https://bustimes.org/services/4b-dunfermline-blairhall-or-steelend"
+    },
+    {
+      "id": "b1062tdq",
+      "code": "4C",
+      "route": "Halbeath Fife Leisure Park - Blairhall Houldsworth Street",
+      "source_url": "https://bustimes.org/services/4c-dunfermline-blairhall-or-steelend"
+    },
+    {
+      "id": "b134a7xr",
+      "code": "6",
+      "route": "Crombie Ordnance Road Turning Circle - Dunfermline Bus Station",
+      "source_url": "https://bustimes.org/services/6-steelend-or-dunfermline-crombie-or-rosyth"
+    },
+    {
+      "id": "b1jddyoe",
+      "code": "6A",
+      "route": "Ferrytoll Park & Ride 1 - Steelend Turning Circle",
+      "source_url": "https://bustimes.org/services/6a-steelend-or-dunfermline-crombie-or-rosyth"
+    },
+    {
+      "id": "bnkudmn",
+      "code": "7",
+      "route": "Dunfermline bus station - Kirkcaldy bus station - Leven bus station",
+      "source_url": "https://bustimes.org/services/7-dunfermline-leven"
+    },
+    {
+      "id": "b11eh1ic",
+      "code": "7A",
+      "route": "Dunfermline bus station - Kirkcaldy bus station - Leven bus station",
+      "source_url": "https://bustimes.org/services/7a-dunfermline-bus-station-leven-bus-station"
+    },
+    {
+      "id": "bheb6m3",
+      "code": "7B",
+      "route": "Kelty Westcroft Way - Dalgety Bay Shopping Centre",
+      "source_url": "https://bustimes.org/services/7b-kelty-dalgety-bay"
+    },
+    {
+      "id": "b1fuj1fr",
+      "code": "7C",
+      "route": "Kelty Westcroft Way - Dalgety Bay Parish Church",
+      "source_url": "https://bustimes.org/services/7c-kelty-dalgety-bay-or-north-queensferry"
+    },
+    {
+      "id": "b1hst4l0",
+      "code": "7D",
+      "route": "Kelty Keltyhill Avenue - North Queensferry Battery Road Turning Circle",
+      "source_url": "https://bustimes.org/services/7d-kelty-dalgety-bay"
+    },
+    {
+      "id": "b1euvqkz",
+      "code": "8",
+      "route": "Dunfermline Bus Station 11 - High Valleyfield Health Centre",
+      "source_url": "https://bustimes.org/services/8-dunfermline-culross-or-alloa"
+    },
+    {
+      "id": "b1khx9vt",
+      "code": "8A",
+      "route": "Dunfermline Bus Station 11 - Alloa Shillinghill 1",
+      "source_url": "https://bustimes.org/services/8a-dunfermline-alloa-or-falkirk"
+    },
+    {
+      "id": "bmvt0ll",
+      "code": "14A",
+      "route": "Kirkcaldy bus station - Chapel Fife Central Retail Park",
+      "source_url": "https://bustimes.org/services/14a-kirkcaldy-bus-station-dunnikier-estate"
+    },
+    {
+      "id": "by1nfbl",
+      "code": "19",
+      "route": "Rosyth - Dunfermline - Ballingry",
+      "source_url": "https://bustimes.org/services/19-rosyth-ballingry"
+    },
+    {
+      "id": "b7glq3n",
+      "code": "X22",
+      "route": "Dunfermline Bus Station - Stirling Bus Station",
+      "source_url": "https://bustimes.org/services/x22-dunfermline-bus-station-stirling-bus-station"
+    },
+    {
+      "id": "b6484gn",
+      "code": "X24",
+      "route": "Glasgow - Dunfermline - Glenrothes - St Andrews",
+      "source_url": "https://bustimes.org/services/x24-glasgow-st-andrews"
+    },
+    {
+      "id": "b1kxphal",
+      "code": "X24A",
+      "route": "Glasgow - Dunfermline - Kirkcaldy - Glenrothes",
+      "source_url": "https://bustimes.org/services/x24-glasgow-st-andrews"
+    },
+    {
+      "id": "b8hi110",
+      "code": "X27",
+      "route": "Glasgow Buchanan bus station - Kirkcaldy - Leven",
+      "source_url": "https://bustimes.org/services/x27-glasgow-st-andrews-or-dundee"
+    },
+    {
+      "id": "b1m8lmrx",
+      "code": "28",
+      "route": "Queen Margaret Hospital - Dunfermline - Falkirk Vicar Street",
+      "source_url": "https://bustimes.org/services/28-queen-margaret-hospital-falkirk-bus-station"
+    },
+    {
+      "id": "b18vtwd6",
+      "code": "32",
+      "route": "Kirkcaldy Bus Station 6 - Glenrothes Bus Station",
+      "source_url": "https://bustimes.org/services/32-kirkcaldy-glenrothes"
+    },
+    {
+      "id": "bvuvboj",
+      "code": "32A",
+      "route": "Kirkcaldy Bus Station 6 - Glenrothes Bus Station",
+      "source_url": "https://bustimes.org/services/32a-kirkcaldy-glenrothes"
+    },
+    {
+      "id": "b1l9n26s",
+      "code": "33",
+      "route": "Kirkcaldy Bus Station 10 - Dunfermline Bus Station",
+      "source_url": "https://bustimes.org/services/33-kirkcaldy-dunfermline"
+    },
+    {
+      "id": "b1b3zknr",
+      "code": "33A",
+      "route": "Kirkcaldy - Dunfermline via Cowdenbeath and Kelty",
+      "source_url": "https://bustimes.org/services/33a-kirkcaldy-dunfermline"
+    },
+    {
+      "id": "b1dhhap8",
+      "code": "34",
+      "route": "Kirkcaldy Bus Station 7 - Kirkcaldy Bus Station",
+      "source_url": "https://bustimes.org/services/34-kirkcaldy-bus-station-kirkcaldy-retail-park"
+    },
+    {
+      "id": "b1btzj3f",
+      "code": "34A",
+      "route": "Kirkcaldy Bus Station 7 - Kirkcaldy Bus Station",
+      "source_url": "https://bustimes.org/services/34a-kirkcaldy-bus-station-kirkcaldy-retail-park"
+    },
+    {
+      "id": "b8703um",
+      "code": "34B",
+      "route": "Kirkcaldy Bus Station 7 - Kirkcaldy Bus Station",
+      "source_url": "https://bustimes.org/services/34b-kirkcaldy-bus-station-7-kirkcaldy-bus-station"
+    },
+    {
+      "id": "b1e7rejo",
+      "code": "35",
+      "route": "Kirkcaldy Bus Station 8 - Chapel Glen Bruar Place",
+      "source_url": "https://bustimes.org/services/35-kirkcaldy-glen-bruar"
+    },
+    {
+      "id": "b1twxkqx",
+      "code": "35A",
+      "route": "Kirkcaldy Bus Station 8 - Chapel Glen Bruar Place",
+      "source_url": "https://bustimes.org/services/35a-kirkcaldy-bus-station-8-chapel-glen-bruar-plac"
+    },
+    {
+      "id": "bctjzah",
+      "code": "36",
+      "route": "Glenrothes bus station - Newburgh High Street",
+      "source_url": "https://bustimes.org/services/36-glenrothes-bus-station-perth-bus-station"
+    },
+    {
+      "id": "bphegz5",
+      "code": "37",
+      "route": "Kirkcaldy Bus Station 11 - Glenrothes Bus Station",
+      "source_url": "https://bustimes.org/services/37-kirkcaldy-bus-station-glenrothes-bus-station"
+    },
+    {
+      "id": "b4ubhu4",
+      "code": "37A",
+      "route": "Kirkcaldy Bus Station 11 - Glenrothes Bus Station",
+      "source_url": "https://bustimes.org/services/37a-kirkcaldy-bus-station-glenrothes-bus-station"
+    },
+    {
+      "id": "b1tnmrr5",
+      "code": "38",
+      "route": "Glenrothes circular via Auchmuty and Pitteuchar",
+      "source_url": "https://bustimes.org/services/38-glenrothes-bus-station-stenton"
+    },
+    {
+      "id": "b8l6ynp",
+      "code": "39",
+      "route": "Kirkcaldy Bus Station 12 - Newcastle Rosemount Road",
+      "source_url": "https://bustimes.org/services/39-kirkcaldy-glenrothes-newcastle"
+    },
+    {
+      "id": "buf7qsp",
+      "code": "39A",
+      "route": "Kirkcaldy Bus Station 12 - Leslie Allan Street",
+      "source_url": "https://bustimes.org/services/39a-kirkcaldy-leslie"
+    },
+    {
+      "id": "bq5t7ky",
+      "code": "39B",
+      "route": "Kirkcaldy Bus Station 12 - Leslie Allan Street",
+      "source_url": "https://bustimes.org/services/39b-kirkcaldy-bus-station-12-leslie-allan-street"
+    },
+    {
+      "id": "b1karrcq",
+      "code": "40",
+      "route": "Glenrothes bus station - Cupar - Dundee bus station",
+      "source_url": "https://bustimes.org/services/40-glenrothes-bus-station-glenrothes-asda"
+    },
+    {
+      "id": "b1qycmmj",
+      "code": "41",
+      "route": "Kirkcaldy / Leven - Cupar - Dundee",
+      "source_url": "https://bustimes.org/services/41-kirkcaldy-or-leven-cupar"
+    },
+    {
+      "id": "bw0q9ij",
+      "code": "41A",
+      "route": "Dundee - Cupar - Leven",
+      "source_url": "https://bustimes.org/services/41a-kirkcaldy-or-leven-cupar"
+    },
+    {
+      "id": "b1aoj8yx",
+      "code": "41B",
+      "route": "Leven - Cupar - Dundee",
+      "source_url": "https://bustimes.org/services/41b-kirkcaldy-or-leven-cupar"
+    },
+    {
+      "id": "b1qwemqn",
+      "code": "43",
+      "route": "Methil Toll Bar - Whitehill Turning Circle",
+      "source_url": "https://bustimes.org/services/43-leven-glenrothes"
+    },
+    {
+      "id": "b1yoh4qg",
+      "code": "43A",
+      "route": "Methilhill Grieve Street - Whitehill Turning Circle",
+      "source_url": "https://bustimes.org/services/43a-leven-glenrothes-whitehill"
+    },
+    {
+      "id": "byuugyr",
+      "code": "44",
+      "route": "Leven Bus Station 6 - Glenrothes Bus Station",
+      "source_url": "https://bustimes.org/services/44-leven-glenrothes-whitehill"
+    },
+    {
+      "id": "bl0v9ew",
+      "code": "44A",
+      "route": "Leven Bus Station 6 - Glenrothes Bus Station",
+      "source_url": "https://bustimes.org/services/44a-leven-glenrothes-whitehill"
+    },
+    {
+      "id": "b18dk4ni",
+      "code": "44B",
+      "route": "Leven Bus Station 6 - Viewfield Adam Smith College",
+      "source_url": "https://bustimes.org/services/44b-leven-glenrothes-whitehill"
+    },
+    {
+      "id": "b1kqpv5o",
+      "code": "46",
+      "route": "Kirkcaldy - Leven - Dundee",
+      "source_url": "https://bustimes.org/services/46-kirkcaldy-bus-station-leven-bus-station"
+    },
+    {
+      "id": "b98x550",
+      "code": "47A",
+      "route": "Leven - Cameron Bridge - Muiredge roundabout",
+      "source_url": "https://bustimes.org/services/47a-leven-bus-station-cameron-bridge-muiredge-roun"
+    },
+    {
+      "id": "b19d5sn3",
+      "code": "48",
+      "route": "Leven Bus Station 7 - Leven Bus Station",
+      "source_url": "https://bustimes.org/services/48-leven-bus-station-leven-bus-station-via-kennowa"
+    },
+    {
+      "id": "b1o6ulko",
+      "code": "49",
+      "route": "Leven bus station - Kennoway - Cameron Bridge",
+      "source_url": "https://bustimes.org/services/49-leven-mountfleurie"
+    },
+    {
+      "id": "b190y6ly",
+      "code": "X51",
+      "route": "Dunfermline bus station - Livingston bus terminal",
+      "source_url": "https://bustimes.org/services/x51-dunfermline-bus-station-livingston-bus-termina"
+    },
+    {
+      "id": "bqaqfav",
+      "code": "X55",
+      "route": "Edinburgh bus station - Dunfermline bus station",
+      "source_url": "https://bustimes.org/services/x55-edinburgh-dunfermline-or-perth"
+    },
+    {
+      "id": "b1o82xbi",
+      "code": "56",
+      "route": "Kinross Park and Ride - Perth Bus Station",
+      "source_url": "https://bustimes.org/services/56-perth-halbeath"
+    },
+    {
+      "id": "b1n458bo",
+      "code": "56B",
+      "route": "Kinross Park and Ride - Perth Bus Station",
+      "source_url": "https://bustimes.org/services/56b-perth-halbeath"
+    },
+    {
+      "id": "b11gysk9",
+      "code": "X57",
+      "route": "Edinburgh bus station - Halbeath Park & Ride",
+      "source_url": "https://bustimes.org/services/x57-edinburgh-dundee"
+    },
+    {
+      "id": "brllg5n",
+      "code": "X58",
+      "route": "Edinburgh - Dalgety Bay - Kirkcaldy - Leven - St Andrews",
+      "source_url": "https://bustimes.org/services/x58-edinburgh-leven-or-st-andrews"
+    },
+    {
+      "id": "b1uzhbxb",
+      "code": "59",
+      "route": "Glenrothes Bus Station 5 - St Andrews Bus Station",
+      "source_url": "https://bustimes.org/services/59-dundee-blairgowrie-4"
+    },
+    {
+      "id": "b174zaw3",
+      "code": "X59",
+      "route": "Edinburgh - Halbeath - Glenrothes - Cupar - St Andrews",
+      "source_url": "https://bustimes.org/services/x59-edinburgh-st-andrews"
+    },
+    {
+      "id": "bq5mmt4",
+      "code": "X59A",
+      "route": "Edinburgh - Halbeath - Glenrothes - Cupar - St Andrews",
+      "source_url": "https://bustimes.org/services/x59a-edinburgh-dundee-or-st-andrews"
+    },
+    {
+      "id": "bf89ncb",
+      "code": "X61",
+      "route": "Edinburgh - Halbeath - Kirkcaldy - Leven - Anstruther - St Andrews",
+      "source_url": "https://bustimes.org/services/x61-edinburgh-dundee-or-st-andrews"
+    },
+    {
+      "id": "bwftpm8",
+      "code": "65",
+      "route": "Perth - Newburgh",
+      "source_url": "https://bustimes.org/services/65-perth-newburgh"
+    },
+    {
+      "id": "bxnwgrg",
+      "code": "81",
+      "route": "Dunfermline Bus Station 13 circular",
+      "source_url": "https://bustimes.org/services/81-parkneuk-glenrothes"
+    },
+    {
+      "id": "bj8dsmj",
+      "code": "81A",
+      "route": "Dunfermline Bus Station 13 circular",
+      "source_url": "https://bustimes.org/services/81a-dunfermline-glenrothes"
+    },
+    {
+      "id": "b1d99a1d",
+      "code": "82",
+      "route": "Dunfermline Bus Station 13 circular",
+      "source_url": "https://bustimes.org/services/82-dunfermline-bus-station-13-dunfermline-bus-stat"
+    },
+    {
+      "id": "b4cm4fo",
+      "code": "82A",
+      "route": "Dunfermline Bus Station 13 circular",
+      "source_url": "https://bustimes.org/services/82a-dunfermline-bus-station-13-dunfermline-bus-sta"
+    },
+    {
+      "id": "b1jb4w06",
+      "code": "83",
+      "route": "Dunfermline - Duloch Park - Dalgety Bay - St Davids Harbour",
+      "source_url": "https://bustimes.org/services/83-dunfermline-dalgety-bay"
+    },
+    {
+      "id": "bo46wfs",
+      "code": "87",
+      "route": "Wellwood - Dunfermline - Duloch Park - Dalgety Bay - Inverkeithing",
+      "source_url": "https://bustimes.org/services/87-dunfermline-north-queensferry-2"
+    },
+    {
+      "id": "b1h6q9zh",
+      "code": "88",
+      "route": "North Queensferry - Ferrytoll - Inverkeithing",
+      "source_url": "https://bustimes.org/services/88-kincardine-high-street-rosyth-hilton-road-via-i"
+    },
+    {
+      "id": "b1a3mu0",
+      "code": "88A",
+      "route": "Kincardine High Street - Inverkeithing Railway Station",
+      "source_url": "https://bustimes.org/services/88a-kincardine-high-street-rosyth-hilton-road-via"
+    },
+    {
+      "id": "b17lwx6g",
+      "code": "90",
+      "route": "St Andrews Bus Station 4 circular",
+      "source_url": "https://bustimes.org/services/90-st-andrews-bus-station-bogward"
+    },
+    {
+      "id": "b2ve97r",
+      "code": "90A",
+      "route": "St Andrews Bus Station 4 circular",
+      "source_url": "https://bustimes.org/services/90a-st-andrews-bus-station-bogward"
+    },
+    {
+      "id": "b3svnfq",
+      "code": "90B",
+      "route": "St Andrews Bus Station 4 circular",
+      "source_url": "https://bustimes.org/services/90b-st-andrews-bus-station-bogward"
+    },
+    {
+      "id": "b1y2n1b1",
+      "code": "90C",
+      "route": "St Andrews Bus Station 4 circular",
+      "source_url": "https://bustimes.org/services/90c-st-andrews-bus-station-bogward"
+    },
+    {
+      "id": "b7lfmv3",
+      "code": "91",
+      "route": "St Andrews Bus Station 4 circular",
+      "source_url": "https://bustimes.org/services/91-st-andrews-bus-station-bogward"
+    },
+    {
+      "id": "b19fsbli",
+      "code": "91A",
+      "route": "St Andrews Bus Station 4 circular",
+      "source_url": "https://bustimes.org/services/91a-st-andrews-bus-station-bogward"
+    },
+    {
+      "id": "b1l7wjb2",
+      "code": "95",
+      "route": "Leven - Anstruther - St Andrews",
+      "source_url": "https://bustimes.org/services/95-leven-bus-station-anstruther-harbour"
+    },
+    {
+      "id": "b1s6wwjk",
+      "code": "99",
+      "route": "St Andrews - Dundee City Centre",
+      "source_url": "https://bustimes.org/services/99-st-andrews-bus-station-dundee-city-centre"
+    },
+    {
+      "id": "b1r0ckof",
+      "code": "99S",
+      "route": "St Andrews - Dundee bus station",
+      "source_url": "https://bustimes.org/services/99s-st-andrews-bus-station-dundee-bus-station"
+    },
+    {
+      "id": "bpbi9k9",
+      "code": "201",
+      "route": "Glenrothes Queensway - Milnathort - Kinross",
+      "source_url": "https://bustimes.org/services/201-glenrothes-bus-depot-kinross-ross-street"
+    },
+    {
+      "id": "b1guhw7u",
+      "code": "395",
+      "route": "Leven Bus Station 2 - Anstruther Waid Community Campus",
+      "source_url": "https://bustimes.org/services/395-leven-st-andrews"
+    },
+    {
+      "id": "b9nm7wa",
+      "code": "747",
+      "route": "Halbeath P&R - Edinburgh Airport",
+      "source_url": "https://bustimes.org/services/747-halbeath-pr-edinburgh-airport-2"
+    },
+    {
+      "id": "b7sm8c6",
+      "code": "787",
+      "route": "Edinburgh Airport - Halbeath - Kinross - Cupar - St Andrews",
+      "source_url": "https://bustimes.org/services/787-edinburgh-airport-st-andrews-via-halbeath-park"
+    }
+  ]
+}
