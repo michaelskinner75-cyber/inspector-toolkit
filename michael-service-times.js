@@ -6,6 +6,52 @@ const CACHE='inspectorTimesPlainCache',OUTBOX='inspectorTimesPlainOutbox',DRAFT=
 const str=v=>String(v??''),clean=v=>str(v).trim(),esc=v=>str(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let saved={},drafts={},bases={},queue=[],loaded=false,loading=false,syncing=false,search='',ready=false;
 const expanded=new Set(),editing=new Set();
+const FILTER_PREF='inspectorTimesUpcomingOnlyV1';
+let upcomingOnly=false;
+try{upcomingOnly=localStorage.getItem(FILTER_PREF)==='true';}catch(e){}
+// Match clock times only (e.g. 06:15, 9:05). Never interpret service numbers as times.
+const CLOCK_RE=/\b(?:[01]?\d|2[0-3]):[0-5]\d\b/g;
+function ukMinutes(date=new Date()){
+ try{
+  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+  const h=Number(parts.find(x=>x.type==='hour')?.value),m=Number(parts.find(x=>x.type==='minute')?.value);
+  if(Number.isFinite(h)&&Number.isFinite(m))return h*60+m;
+ }catch(e){}
+ return date.getHours()*60+date.getMinutes();
+}
+function clockMinutes(value){
+ const match=String(value).match(/^(\d{1,2}):(\d{2})$/);
+ return match?Number(match[1])*60+Number(match[2]):NaN;
+}
+function upcomingView(note,from=ukMinutes()){
+ const text=str(note),lines=text.split(/\r?\n/),output=[],headers=[];
+ let matched=0,kept=0;
+ for(const line of lines){
+  const times=[...line.matchAll(CLOCK_RE)];
+  if(!times.length){headers.push(line);continue;}
+  matched+=times.length;
+  let count=0;
+  // In copied BusTimes tables one stop has many departures on one line.
+  // Strip only departed clock tokens and retain this stop's heading if any remain.
+  const filtered=line.replace(CLOCK_RE,time=>{
+   if(clockMinutes(time)>=from){count++;return time;}
+   return '';
+  }).replace(/\t{2,}/g,'\t').replace(/[ \t]{2,}/g,' ').trim();
+  if(count){
+   output.push(...headers);
+   output.push(filtered);
+   kept+=count;
+  }
+  headers.length=0;
+ }
+ // For prose without detectable HH:MM departures, never hide the notes.
+ if(matched===0)return {text,matched:0,kept:0};
+ return {text:output.join('\n').trim(),matched,kept};
+}
+function filterLabel(){
+ const now=ukMinutes(),hour=String(Math.floor(now/60)).padStart(2,'0'),minute=String(now%60).padStart(2,'0');
+ return 'From '+hour+':'+minute+' (UK time)';
+}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function allowed(){let n='';try{n=typeof getInspector==='function'?getInspector():localStorage.getItem('activeInspector')||'';}catch(e){}return /^(m\.?\s*skinner|michael\s+skinner)$/i.test(clean(n))&&Number(localStorage.getItem('michaelLoginExpiresAt')||0)>Date.now();}
 function services(){const m=window.InspectorCoverageModel;return m?m.defs().filter(m.fifeService).sort((a,b)=>clean(a.code).localeCompare(clean(b.code),undefined,{numeric:true})||clean(a.route).localeCompare(clean(b.route))):[];}
@@ -109,6 +155,11 @@ function css(){
   '#michaelServiceTimes .ftCardHead .ftBtn{white-space:nowrap}',
   '#michaelServiceTimes .ftControls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}',
   '#michaelServiceTimes .ftStatus{display:inline-block;margin:5px 0 0}',
+  '#michaelServiceTimes .ftFilterLabel{display:inline-flex;align-items:center;gap:9px;font-size:12px;font-weight:850;color:#fff;background:#173c52;border:1px solid #537d95;border-radius:8px;min-height:38px;padding:7px 10px;cursor:pointer}',
+  '#michaelServiceTimes .ftFilterLabel input{accent-color:#f0bd62;width:19px;height:19px;margin:0;flex:none}',
+  '#michaelServiceTimes .ftFilterTime{font-size:11px;color:#d0e0ed;font-variant-numeric:tabular-nums}',
+  '#michaelServiceTimes .ftFilterHint{font-size:11px;color:#c1d5e2;margin:5px 0 11px}',
+
   '#michaelServiceTimes .ftStatus[data-kind="success"]{color:#7de0ad}#michaelServiceTimes .ftStatus[data-kind="warning"]{color:#f6c77e}',
   '#michaelServiceTimes [hidden]{display:none!important}@media(max-width:550px){#michaelServiceTimes .ftPanel,#michaelServiceTimes .ftCard{padding:10px}}'
  ].join('');document.head.appendChild(n);
@@ -127,6 +178,8 @@ function build(){
    '<p class="ftHelp">Tap <b>SHOW TIMES</b> to read the notes. Press <b>EDIT TIMES</b> to make changes, then <b>SAVE TIMES</b> to share them to Google Sheets and your other devices.</p>'+
    '<div class="ftTools"><a class="ftBtn" href="'+TAB+'" target="_blank" rel="noopener noreferrer">OPEN GOOGLE SHEET ↗</a>'+
    '<button id="ftRefresh" class="ftBtn" type="button">REFRESH FROM SHEETS</button><span id="ftTotal" class="ftHelp"></span></div>'+
+   '<div class="ftTools"><label class="ftFilterLabel" for="ftUpcomingOnly"><input id="ftUpcomingOnly" type="checkbox" '+(upcomingOnly?'checked':'')+'>SHOW UPCOMING TIMES ONLY</label><span class="ftFilterTime" id="ftFilterTime"></span></div>'+
+   '<p class="ftFilterHint">View only: hides departures before the current UK time. Switch off to see everything. Editing always shows all saved times.</p>'+
    '<input id="ftSearch" class="ftInput" type="search" placeholder="Search service number or route" aria-label="Search services">'+
    '<p class="ftTop" id="ftTopStatus" role="status">Loading Times…</p><div id="ftServices"></div></div>';
   host.appendChild(section);
@@ -145,6 +198,10 @@ function statusKind(id){
 function card(s){
  const id=esc(s.id),url=link(s),open=expanded.has(s.id),edit=editing.has(s.id);
  const value=note(s.id),hasNotes=!!clean(value);
+ const filtered=upcomingOnly&&!edit?upcomingView(value):null;
+ const shown=filtered?filtered.text:value;
+ const emptyText=hasNotes&&upcomingOnly&&filtered?.matched>0?
+  'No upcoming times remaining today. Switch off the filter to view all times.':'No times entered yet.';
  return '<article class="ftCard" id="ftCard-'+id+'" data-ft-service="'+id+'">'+
   '<div class="ftCardHead"><div><div class="ftCode">'+esc(s.code)+'</div>'+
   '<div class="ftRoute">'+esc(s.route)+'</div></div>'+
@@ -156,7 +213,7 @@ function card(s){
     '<textarea id="ftText-'+id+'" data-ft-text="'+id+'" rows="6" aria-label="Edit times for service '+esc(s.code)+'" placeholder="Paste or type stops and times however you like…">'+esc(value)+'</textarea>'+
     '<div class="ftControls"><button id="ftSave-'+id+'" data-ft-save="'+id+'" type="button" class="ftBtn primary" '+(pending(s.id)?'disabled':'')+'>SAVE TIMES</button>'+
     '<button type="button" class="ftBtn" data-ft-end-edit="'+id+'">STOP EDITING</button></div>':
-    '<div id="ftView-'+id+'" class="ftReadOnly'+(hasNotes?'':' empty')+'">'+(hasNotes?esc(value):'No times entered yet.')+'</div>'+
+    '<div id="ftView-'+id+'" class="ftReadOnly'+(clean(shown)?'':' empty')+'">'+(clean(shown)?esc(shown):esc(emptyText))+'</div>'+
     '<div class="ftControls"><button class="ftBtn primary" type="button" data-ft-edit="'+id+'">EDIT TIMES</button></div>')+
   (url?'<a class="ftBtn" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">BUSTIMES ↗</a>':'')+
   '</div></article>';
@@ -165,6 +222,8 @@ function render(){
  const root=$('ftServices');if(!root)return;
  const all=services(),list=all.filter(s=>(s.code+' '+s.route).toLowerCase().includes(search));
  const total=$('ftTotal');if(total)total.textContent=all.length+' services';
+ const filter=$('ftUpcomingOnly');if(filter)filter.checked=upcomingOnly;
+ const now=$('ftFilterTime');if(now)now.textContent=upcomingOnly?filterLabel():'All times shown';
  root.innerHTML=list.map(card).join('')||'<p class="ftHelp">No services found.</p>';
 }
 function updateCard(id){
@@ -185,13 +244,18 @@ function stopEdit(id){
  editing.delete(id);updateCard(id);
 }
 function refreshFields(){
+ const filterTime=$('ftFilterTime');if(filterTime)filterTime.textContent=upcomingOnly?filterLabel():'All times shown';
  for(const box of $('ftServices')?.querySelectorAll('[data-ft-service]')||[]){
   const id=box.dataset.ftService;
   const view=$('ftView-'+id);
   if(view){
    const value=note(id),hasValue=!!clean(value);
-   view.textContent=hasValue?value:'No times entered yet.';
-   view.classList.toggle('empty',!hasValue);
+   const filtered=upcomingOnly?upcomingView(value):null;
+   const shown=filtered?filtered.text:value;
+   const emptyText=hasValue&&upcomingOnly&&filtered?.matched>0?
+    'No upcoming times remaining today. Switch off the filter to view all times.':'No times entered yet.';
+   view.textContent=clean(shown)?shown:emptyText;
+   view.classList.toggle('empty',!clean(shown));
   }
   const field=$('ftText-'+id);
   if(field&&!Object.prototype.hasOwnProperty.call(drafts,id)&&document.activeElement!==field)
@@ -300,6 +364,12 @@ function init(){
  window.addEventListener('storage',e=>{if(['activeInspector','michaelLoginExpiresAt'].includes(e.key))visibility();});
  window.addEventListener('inspector-service-master-updated',()=>{if(allowed())render();});
  document.addEventListener('input',e=>{if(!allowed())return;
+  if(e.target?.id==='ftUpcomingOnly'){
+   upcomingOnly=!!e.target.checked;
+   try{localStorage.setItem(FILTER_PREF,String(upcomingOnly));}catch(err){}
+   refreshFields();
+   return;
+  }
   if(e.target?.id==='ftSearch'){search=clean(e.target.value).toLowerCase();render();return;}
   const x=e.target?.closest?.('[data-ft-text]');if(x)capture(x.dataset.ftText,x.value);
  });
@@ -322,7 +392,13 @@ function init(){
  window.addEventListener('pageshow',()=>{
   if(allowed()&&isTimesVisible())refresh().then(()=>{if(queue.length)sync();});
  });
- setInterval(()=>{visibility();if(allowed()&&isTimesVisible()){if(queue.length)sync();else refresh();}},60000);
+ setInterval(()=>{
+  visibility();
+  if(allowed()&&isTimesVisible()){
+   if(upcomingOnly)refreshFields(); // Recalculate as soon as the next minute is reached.
+   if(queue.length)sync();else refresh();
+  }
+ },60000);
  if(queue.length)sync();
 }
 let tries=0;const timer=setInterval(()=>{
