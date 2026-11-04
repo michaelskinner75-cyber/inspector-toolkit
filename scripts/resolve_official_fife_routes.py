@@ -11,7 +11,7 @@ import collections
 import import_official_fife_times as base
 
 TWO_WORD = ("st andrews", "north queensferry", "south queensferry", "dalgety bay",
-            "high valleyfield", "east wemyss", "west wemyss", "firth of forth")
+            "high valleyfield", "east wemyss", "west wemyss", "st davids", "firth of forth")
 
 def anchors(route):
     items = []
@@ -24,14 +24,22 @@ def anchors(route):
 
 def details(options,code,day,route):
     refs=anchors(route)
-    unique={x["servicecode"]:x for x in options}
+    unique={}
+    for candidate in options:
+        registration=candidate["servicecode"]
+        previous=unique.get(registration)
+        if previous is None or (candidate["start"],candidate["last_edit"],candidate["revision"])>(
+              previous["start"],previous["last_edit"],previous["revision"]):
+            unique[registration]=candidate
     scored=[]
     for reg,source in unique.items():
         trips=source["trips"].get((code,day),[])
-        # Evaluate only recorded end-to-end journeys, not an arbitrary line number.
+        # Match the route's localities against actual running stop calls, not
+        # unrelated route numbers that happen to share an operator or file.
         names=[]
         for t in trips:
-            names.extend([t["stops"].get(t["origin"],""),t["stops"].get(t["terminal"],""),t["dest"]])
+            names.append(t["dest"])
+            names.extend(t["stops"].get(stop,"") for stop,_ in t["calls"])
         haystack=" ".join(names).lower()
         hits=[x for x in refs if x in haystack]
         scored.append((len(hits),reg,source,hits))
