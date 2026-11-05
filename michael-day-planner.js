@@ -9,7 +9,7 @@ const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+Stri
 function inspector(){
  let name='';try{name=typeof getInspector==='function'?getInspector():localStorage.getItem('activeInspector')||'';}catch(e){}
  name=str(name);if(/^(?:m\.?\s*skinner|michael\s+skinner)$/i.test(name)&&Number(localStorage.getItem('michaelLoginExpiresAt')||0)>Date.now())return'Michael';
- return /^drew(?:\s+fairbairn)?$/i.test(name)?'Drew':'';
+ return /^(?:drew(?:\s+fairbairn)?|a\.?\s*fairbairn|ali\s+fairbairn)$/i.test(name)?'Drew':'';
 }
 function local(){
  try{data=JSON.parse(localStorage.getItem(CACHE)||'{}')||{};}catch(e){data={};}
