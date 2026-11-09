@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id),str=v=>String(v??'').trim();
 const esc=v=>str(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const SHEET='Inspector Day Planner',CACHE='inspectorDayPlannerCloudCacheV1',PENDING='inspectorDayPlannerPendingV1';
-let person='',date='',data={},pending=[],status='Loading shared plans...',query='',servicesVisible=true,started=false,busy=false,requesting=false;
+let person='',date='',data={},pending=[],status='Loading shared plans...',query='',servicesVisible=true,weekFilter=false,started=false,busy=false,requesting=false;
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 function inspector(){
  let name='';try{name=typeof getInspector==='function'?getInspector():localStorage.getItem('activeInspector')||'';}catch(e){}
@@ -100,7 +100,7 @@ function change(s,event,notes,done){
 function activeItems(){return Object.values(data).filter(p=>p.person===person&&p.date===date&&!p.deleted).sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true}));}
 function style(){
  if($('dpOneTapStyle'))return;
- const s=document.createElement('style');s.id='dpOneTapStyle';s.textContent='#michaelDayPlanner{color:#e8f3fb}#michaelDayPlanner .dpBox{background:#102c40;border:1px solid #426982;border-radius:12px;padding:14px;margin:12px 0}#michaelDayPlanner h2,#michaelDayPlanner h3{color:#f1b95f;margin:0 0 12px}#michaelDayPlanner .dpFields{display:flex;flex-wrap:wrap;gap:10px}#michaelDayPlanner label{flex:1;min-width:145px;font-size:12px;font-weight:bold;display:flex;flex-direction:column;gap:5px}#michaelDayPlanner input,#michaelDayPlanner select,#michaelDayPlanner textarea{box-sizing:border-box;width:100%;border:1px solid #5a829e;border-radius:7px;background:#0d2232;color:white;padding:10px;font:inherit;min-height:40px}#michaelDayPlanner textarea{min-height:75px}#michaelDayPlanner .dpColumns{display:grid;grid-template-columns:1fr 1fr;gap:12px}#michaelDayPlanner .dpColumns.dpPlannerOnly{grid-template-columns:minmax(0,1fr)}#michaelDayPlanner .dpSearchBox[hidden]{display:none!important}#michaelDayPlanner .dpList{max-height:490px;overflow:auto}#michaelDayPlanner .dpItem{padding:12px 0;border-bottom:1px solid #36566b;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}#michaelDayPlanner .dpItem:last-child{border:0}#michaelDayPlanner .dpText{flex:1;min-width:0}#michaelDayPlanner .dpMuted{font-size:12px;color:#b6cad8;margin:5px 0}#michaelDayPlanner .dpBtns{display:flex;flex-wrap:wrap;gap:6px}#michaelDayPlanner .dpBtn{background:#24536e;color:white;border:1px solid #6488a0;border-radius:7px;padding:9px;font-weight:bold;font-size:11px;cursor:pointer;display:inline-block;text-decoration:none;min-height:34px}#michaelDayPlanner .dpBtn.primary{background:#eab758;color:#102538}#michaelDayPlanner .dpBtn:disabled{opacity:.55}#michaelDayPlanner .dpNotes{margin:9px 0 0}#michaelDayPlanner .dpStatus{font-size:12px;color:#c3d4df}#michaelDayPlanner .dpTag{font-size:10px;color:#ffd38c;margin-left:5px}@media(max-width:800px){#michaelDayPlanner .dpColumns{grid-template-columns:1fr}}@media print{#michaelDayPlanner .dpSearchBox,#michaelDayPlanner .dpBtn,#michaelDayPlanner .backBtn{display:none!important}}';
+ const s=document.createElement('style');s.id='dpOneTapStyle';s.textContent='#michaelDayPlanner{color:#e8f3fb}#michaelDayPlanner .dpBox{background:#102c40;border:1px solid #426982;border-radius:12px;padding:14px;margin:12px 0}#michaelDayPlanner h2,#michaelDayPlanner h3{color:#f1b95f;margin:0 0 12px}#michaelDayPlanner .dpFields{display:flex;flex-wrap:wrap;gap:10px}#michaelDayPlanner label{flex:1;min-width:145px;font-size:12px;font-weight:bold;display:flex;flex-direction:column;gap:5px}#michaelDayPlanner input,#michaelDayPlanner select,#michaelDayPlanner textarea{box-sizing:border-box;width:100%;border:1px solid #5a829e;border-radius:7px;background:#0d2232;color:white;padding:10px;font:inherit;min-height:40px}#michaelDayPlanner textarea{min-height:75px}#michaelDayPlanner .dpColumns{display:grid;grid-template-columns:1fr 1fr;gap:12px}#michaelDayPlanner .dpColumns.dpPlannerOnly{grid-template-columns:minmax(0,1fr)}#michaelDayPlanner .dpSearchBox[hidden]{display:none!important}#michaelDayPlanner .dpList{max-height:490px;overflow:auto}#michaelDayPlanner .dpItem{padding:12px 0;border-bottom:1px solid #36566b;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}#michaelDayPlanner .dpItem:last-child{border:0}#michaelDayPlanner .dpText{flex:1;min-width:0}#michaelDayPlanner .dpMuted{font-size:12px;color:#b6cad8;margin:5px 0}#michaelDayPlanner .dpBtns{display:flex;flex-wrap:wrap;gap:6px}#michaelDayPlanner .dpBtn{background:#24536e;color:white;border:1px solid #6488a0;border-radius:7px;padding:9px;font-weight:bold;font-size:11px;cursor:pointer;display:inline-block;text-decoration:none;min-height:34px}#michaelDayPlanner .dpBtn.primary{background:#eab758;color:#102538}#michaelDayPlanner .dpBtn:disabled{opacity:.55}#michaelDayPlanner .dpWeekFilter{display:flex;align-items:center;gap:8px;min-width:0;margin:10px 0;font-size:12px;cursor:pointer}#michaelDayPlanner .dpWeekFilter input{width:18px;min-height:18px;height:18px;flex:none;accent-color:#eab758}#michaelDayPlanner .dpNotes{margin:9px 0 0}#michaelDayPlanner .dpStatus{font-size:12px;color:#c3d4df}#michaelDayPlanner .dpTag{font-size:10px;color:#ffd38c;margin-left:5px}@media(max-width:800px){#michaelDayPlanner .dpColumns{grid-template-columns:1fr}}@media print{#michaelDayPlanner .dpSearchBox,#michaelDayPlanner .dpBtn,#michaelDayPlanner .backBtn{display:none!important}}';
  document.head.appendChild(s);
 }
 function build(){
@@ -110,15 +110,15 @@ function build(){
  if(!$('dpNavButton')){const b=document.createElement('button');b.id='dpNavButton';b.type='button';b.dataset.open='michaelDayPlanner';b.innerHTML='<span class="navIcon">🗓️</span>My Day Planner';nav.insertBefore(b,nav.firstChild?.nextSibling||null);}
  if(!$('michaelDayPlanner')){
   const sec=document.createElement('section');sec.id='michaelDayPlanner';sec.className='section';
-  sec.innerHTML='<button class="backBtn" data-open="home">← Back</button><div class="dpBox"><h2 id="dpTitle">DAY PLANNER</h2><p class="dpMuted">Tap a service to add it. No location or times needed. Your notes and planned services save to Google Sheets.</p><div class="dpFields"><label>Plan date<input id="dpDate" type="date"></label></div><p id="dpStatus" class="dpStatus"></p><div class="dpBtns"><button id="dpRefresh" class="dpBtn">REFRESH FROM GOOGLE SHEETS</button><button id="dpToggleServices" class="dpBtn" type="button" aria-controls="dpServicesPanel" aria-expanded="true">HIDE SERVICES NEEDING ATTENTION</button></div></div><div class="dpColumns" id="dpColumns"><div class="dpBox dpSearchBox" id="dpServicesPanel"><h3>Services needing attention</h3><div class="dpFields"><label>Search<input id="dpSearch" placeholder="Service or place"></label></div><div id="dpServices" class="dpList"></div></div><div class="dpBox"><h3>Services in your plan (<span id="dpCount">0</span>)</h3><div id="dpPlanned"></div></div></div>';
+  sec.innerHTML='<button class="backBtn" data-open="home">← Back</button><div class="dpBox"><h2 id="dpTitle">DAY PLANNER</h2><p class="dpMuted">Tap a service to add it. No location or times needed. Your notes and planned services save to Google Sheets.</p><div class="dpFields"><label>Plan date<input id="dpDate" type="date"></label></div><p id="dpStatus" class="dpStatus"></p><div class="dpBtns"><button id="dpRefresh" class="dpBtn">REFRESH FROM GOOGLE SHEETS</button><button id="dpToggleServices" class="dpBtn" type="button" aria-controls="dpServicesPanel" aria-expanded="true">HIDE SERVICES NEEDING ATTENTION</button></div></div><div class="dpColumns" id="dpColumns"><div class="dpBox dpSearchBox" id="dpServicesPanel"><h3>Services needing attention</h3><div class="dpFields"><label>Search<input id="dpSearch" placeholder="Service or place"></label></div><label class="dpWeekFilter"><input id="dpWeekFilter" type="checkbox">Not checked in the last 7 days</label><div id="dpServices" class="dpList"></div></div><div class="dpBox"><h3>Services in your plan (<span id="dpCount">0</span>)</h3><div id="dpPlanned"></div></div></div>';
   host.appendChild(sec);
  }
- $('dpDate').value=date;$('dpTitle').textContent=person.toUpperCase()+'’S DAY PLANNER';$('dpSearch').value=query;
+ $('dpDate').value=date;$('dpTitle').textContent=person.toUpperCase()+'’S DAY PLANNER';$('dpSearch').value=query;$('dpWeekFilter').checked=weekFilter;
 }
 function render(){
  if(!person||!$('michaelDayPlanner'))return;
  $('dpStatus').textContent=status;
- const all=services(),filtered=all.filter(s=>!query||(s.code+' '+s.route).toLowerCase().includes(query));
+ const all=services(),filtered=all.filter(s=>(!weekFilter||!Number.isFinite(s.days)||s.days>=7)&&(!query||(s.code+' '+s.route).toLowerCase().includes(query)));
  $('dpServicesPanel').hidden=!servicesVisible;
  $('dpColumns').classList.toggle('dpPlannerOnly',!servicesVisible);
  $('dpToggleServices').textContent=servicesVisible?'HIDE SERVICES NEEDING ATTENTION':'SHOW SERVICES NEEDING ATTENTION';
@@ -134,7 +134,7 @@ function render(){
 function visibility(){
  const who=inspector();
  if(!who){if($('michaelDayPlanner')?.classList.contains('active')&&typeof openSection==='function')openSection('home');$('michaelDayPlanner')?.remove();$('dpNavButton')?.remove();person='';return;}
- if(who!==person){person=who;date=iso(new Date());query='';try{servicesVisible=localStorage.getItem('inspectorDayPlannerServicesVisible:'+who)!=='false';}catch(e){servicesVisible=true;}status='Loading Google Sheets…';}
+ if(who!==person){person=who;date=iso(new Date());query='';try{servicesVisible=localStorage.getItem('inspectorDayPlannerServicesVisible:'+who)!=='false';weekFilter=localStorage.getItem('inspectorDayPlannerWeekFilter:'+who)==='true';}catch(e){servicesVisible=true;weekFilter=false;}status='Loading Google Sheets…';}
  build();render();if(!requesting){requesting=true;refresh().finally(()=>requesting=false);}
 }
 function init(){
@@ -158,6 +158,7 @@ function init(){
  document.addEventListener('input',e=>{if(e.target.id==='dpSearch'){query=str(e.target.value).toLowerCase();render();}});
  document.addEventListener('change',e=>{
   if(e.target.id==='dpDate'&&/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){date=e.target.value;render();}
+  if(e.target.id==='dpWeekFilter'){weekFilter=e.target.checked;try{localStorage.setItem('inspectorDayPlannerWeekFilter:'+person,String(weekFilter));}catch(e){}render();}
   
  });
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){visibility();}});
