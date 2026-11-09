@@ -110,10 +110,31 @@ function build(){
  if(!$('dpNavButton')){const b=document.createElement('button');b.id='dpNavButton';b.type='button';b.dataset.open='michaelDayPlanner';b.innerHTML='<span class="navIcon">🗓️</span>My Day Planner';nav.insertBefore(b,nav.firstChild?.nextSibling||null);}
  if(!$('michaelDayPlanner')){
   const sec=document.createElement('section');sec.id='michaelDayPlanner';sec.className='section';
-  sec.innerHTML='<button class="backBtn" data-open="home">← Back</button><div class="dpBox"><h2 id="dpTitle">DAY PLANNER</h2><p class="dpMuted">Tap a service to add it. No location or times needed. Your notes and planned services save to Google Sheets.</p><div class="dpFields"><label>Plan date<input id="dpDate" type="date"></label></div><p id="dpStatus" class="dpStatus"></p><div class="dpBtns"><button id="dpRefresh" class="dpBtn">REFRESH FROM GOOGLE SHEETS</button><button id="dpToggleServices" class="dpBtn" type="button" aria-controls="dpServicesPanel" aria-expanded="true">HIDE SERVICES NEEDING ATTENTION</button></div></div><div class="dpColumns" id="dpColumns"><div class="dpBox dpSearchBox" id="dpServicesPanel"><h3>Services needing attention</h3><div class="dpFields"><label>Search<input id="dpSearch" placeholder="Service or place"></label></div><label class="dpWeekFilter"><input id="dpWeekFilter" type="checkbox">Not checked in the last 7 days</label><div id="dpServices" class="dpList"></div></div><div class="dpBox"><h3>Services in your plan (<span id="dpCount">0</span>)</h3><div id="dpPlanned"></div></div></div>';
+  sec.innerHTML='<button class="backBtn" data-open="home">← Back</button><div class="dpBox"><h2 id="dpTitle">DAY PLANNER</h2><p class="dpMuted">Tap a service to add it. No location or times needed. Your notes and planned services save to Google Sheets.</p><div class="dpFields"><label>Plan date<input id="dpDate" type="date"></label></div><p id="dpStatus" class="dpStatus"></p><div class="dpBtns"><button id="dpRefresh" class="dpBtn">REFRESH FROM GOOGLE SHEETS</button><button id="dpCopyServices" class="dpBtn primary" type="button">COPY SERVICES TO TEXT</button><button id="dpToggleServices" class="dpBtn" type="button" aria-controls="dpServicesPanel" aria-expanded="true">HIDE SERVICES NEEDING ATTENTION</button></div></div><div class="dpColumns" id="dpColumns"><div class="dpBox dpSearchBox" id="dpServicesPanel"><h3>Services needing attention</h3><div class="dpFields"><label>Search<input id="dpSearch" placeholder="Service or place"></label></div><label class="dpWeekFilter"><input id="dpWeekFilter" type="checkbox">Not checked in the last 7 days</label><div id="dpServices" class="dpList"></div></div><div class="dpBox"><h3>Services in your plan (<span id="dpCount">0</span>)</h3><div id="dpPlanned"></div></div></div>';
   host.appendChild(sec);
  }
  $('dpDate').value=date;$('dpTitle').textContent=person.toUpperCase()+'’S DAY PLANNER';$('dpSearch').value=query;$('dpWeekFilter').checked=weekFilter;
+}
+function serviceText(){
+ const all=services(),today=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
+ return ['STAGECOACH EAST SCOTLAND — SERVICE CHECK STATUS','Report date: '+today,'Total services: '+all.length,'',...all.map(s=>{
+  const last=s.last?'Last checked: '+s.last+' | Days since last check: '+(Number.isFinite(s.days)?s.days:'Unknown'):'Never checked';
+  return 'Service '+str(s.code)+' — '+str(s.route)+'\n'+last;
+ })].join('\n\n');
+}
+async function copyServices(){
+ const all=services();if(!all.length){status='No services are available to copy yet.';render();return;}
+ const content=serviceText();
+ try{
+  if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(content);
+  else{
+   const area=document.createElement('textarea');area.value=content;area.setAttribute('readonly','');
+   area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();
+   const ok=document.execCommand('copy');area.remove();if(!ok)throw Error('Copy unavailable');
+  }
+  status='Copied '+all.length+' services with last check dates. Paste into Word.';
+ }catch(e){status='Unable to copy automatically. Please allow clipboard access and try again.';}
+ render();
 }
 function render(){
  if(!person||!$('michaelDayPlanner'))return;
@@ -153,6 +174,7 @@ function init(){
    return;
   }
   if(t.closest?.('#dpRefresh'))refresh();
+  if(t.closest?.('#dpCopyServices')){copyServices();return;}
   if(t.closest?.('#dpToggleServices')){servicesVisible=!servicesVisible;try{localStorage.setItem('inspectorDayPlannerServicesVisible:'+person,String(servicesVisible));}catch(e){}render();}
  });
  document.addEventListener('input',e=>{if(e.target.id==='dpSearch'){query=str(e.target.value).toLowerCase();render();}});
