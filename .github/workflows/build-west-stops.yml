@@ -41,8 +41,13 @@ jobs:
                   if v is not None and str(v).strip():return str(v).strip()
               return ''
           found={}
+          from collections import Counter
+          raw_counts=Counter()
+          raw_types=Counter()
           for row in rd:
               atco=col(row,'ATCOCode','Atco Code')
+              raw_counts[atco[:3]]+=1
+              if atco[:3] in ['617','618','619']:raw_types[col(row,'StopType')]+=1
               if atco[:3] not in codes:continue
               typ=col(row,'StopType')
               if typ and not typ.upper().startswith('B'):continue
@@ -50,6 +55,8 @@ jobs:
               lon=col(row,'Longitude')
               if not atco or not lat or not lon:continue
               found[atco]=[atco,col(row,'CommonName','ShortCommonName','Name'),col(row,'LocalityName','Locality','Town'),col(row,'Indicator','StopIndicator'),lat,lon,'DfT NaPTAN',datetime.date.today().isoformat()]
+          print('Raw ATCO codes returned:',dict(raw_counts),flush=True)
+          print('Ayrshire stop types:',dict(raw_types),flush=True)
           print('Verified official West Scotland bus stop rows:',len(found),flush=True)
           from collections import Counter
           print('Codes:',dict(Counter(k[:3] for k in found)),flush=True)
