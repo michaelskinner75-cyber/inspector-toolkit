@@ -3,45 +3,65 @@ on:
   push:
     paths:
       - '.github/workflows/build-west-stops.yml'
-      - 'scotland-bus-stops.json'
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   export:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Export West Scotland NaPTAN catalogue
+      - name: Fetch official NaPTAN West Scotland bus stops
         run: |
           python3 - <<'PY'
-          import json, csv, datetime, pathlib
-          src=pathlib.Path('scotland-bus-stops.json')
-          data=json.loads(src.read_text())
-          stops=data['stops'] if isinstance(data,dict) else data
-          # Ayrshire, Arran, Glasgow, Renfrewshire, Lanarkshire and western neighbouring stops.
-          # Retain all stop types supplied by the existing Inspector Hub bus-stop catalogue.
-          selected={}
-          for s in stops:
-              if len(s)<6:continue
-              lat,lon,code,name,locality,indicator=s[:6]
-              try:lat=float(lat);lon=float(lon)
-              except (TypeError,ValueError):continue
-              if not (54.50<=lat<=56.4 and -6.7<=lon<=-3.7):continue
-              if not str(code).strip():continue
-              selected[str(code)]=(str(code),str(name),str(locality),str(indicator),lat,lon,'Inspector Hub NaPTAN catalogue',datetime.date.today().isoformat())
+          import urllib.request, urllib.parse, zipfile, csv, io, pathlib, datetime
+          codes=['617','618','619','609','614','615','616','680','607','608','611','612','613']
+          url='https://naptan.api.dft.gov.uk/v1/access-nodes?'+urllib.parse.urlencode({'atcoAreaCodes':','.join(codes),'dataFormat':'csv'})
+          print('Requesting official NaPTAN codes:',','.join(codes),flush=True)
+          req=urllib.request.Request(url,headers={'User-Agent':'InspectorHub/1.0','Accept':'text/csv,application/zip,application/octet-stream'})
+          with urllib.request.urlopen(req,timeout=110) as response:
+              payload=response.read()
+              print('Content type:',response.headers.get('Content-Type'),'bytes:',len(payload),flush=True)
+          if zipfile.is_zipfile(io.BytesIO(payload)):
+              with zipfile.ZipFile(io.BytesIO(payload)) as z:
+                  names=z.namelist()
+                  print('Archive files:',names[:30],flush=True)
+                  candidates=[n for n in names if pathlib.PurePosixPath(n).name.lower()=='stops.csv']
+                  if not candidates:candidates=[n for n in names if n.lower().endswith('.csv')]
+                  if not candidates:raise SystemExit('No stops CSV in NaPTAN archive')
+                  data=z.read(candidates[0])
+          else:data=payload
+          data=data.decode('utf-8-sig',errors='replace')
+          rd=csv.DictReader(io.StringIO(data))
+          print('CSV headers:',rd.fieldnames,flush=True)
+          def col(r,*keys):
+              norm={k.strip().lower().replace(' ',''):v for k,v in r.items() if k}
+              for key in keys:
+                  v=norm.get(key.lower().replace(' ',''))
+                  if v is not None and str(v).strip():return str(v).strip()
+              return ''
+          found={}
+          for row in rd:
+              atco=col(row,'ATCOCode','Atco Code')
+              if atco[:3] not in codes:continue
+              typ=col(row,'StopType')
+              if typ and not typ.upper().startswith('B'):continue
+              lat=col(row,'Latitude')
+              lon=col(row,'Longitude')
+              if not atco or not lat or not lon:continue
+              found[atco]=[atco,col(row,'CommonName','ShortCommonName','Name'),col(row,'LocalityName','Locality','Town'),col(row,'Indicator','StopIndicator'),lat,lon,'DfT NaPTAN',datetime.date.today().isoformat()]
+          print('Verified official West Scotland bus stop rows:',len(found),flush=True)
+          from collections import Counter
+          print('Codes:',dict(Counter(k[:3] for k in found)),flush=True)
+          if len(found)<3000 or not any(k.startswith('617') for k in found) or not any(k.startswith('619') for k in found):raise SystemExit('Ayrshire records missing or incomplete; refusing to overwrite')
           dest=pathlib.Path('west-scotland-bus-stops.csv')
-          with dest.open('w',newline='',encoding='utf-8') as f:
-              w=csv.writer(f);w.writerow(['ATCO Code','Stop Name','Locality','Indicator','Latitude','Longitude','Source','Last Updated'])
-              w.writerows(sorted(selected.values(),key=lambda r:(r[2].casefold(),r[1].casefold(),r[0])))
-          print('Stops exported:',len(selected),'CSV bytes:',dest.stat().st_size)
-          if len(selected)<2000:raise SystemExit('Insufficient West Scotland stops, refusing import')
+          with dest.open('w',newline='',encoding='utf-8') as out:
+              writer=csv.writer(out);writer.writerow(['ATCO Code','Stop Name','Locality','Indicator','Latitude','Longitude','Source','Last Updated'])
+              writer.writerows(sorted(found.values(),key=lambda r:(r[2].lower(),r[1].lower(),r[0])))
           PY
-      - name: Commit exported stops
+      - name: Commit official stop CSV
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add west-scotland-bus-stops.csv
-          git diff --cached --quiet || (git commit -m 'Export verified West Scotland stop list' && git push)
+          git diff --cached --quiet || (git commit -m 'Export official West Scotland NaPTAN stops' && git push)
