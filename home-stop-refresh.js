@@ -33,7 +33,10 @@ async function useCurrentLocation(btn){
  if(box)box.hidden=true;
  try{
   const finder=await waitForFinder();
-  const stops=await finder(true);
+  const stops=await Promise.race([
+   finder(true),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error('Bus stop search timed out')),24000))
+  ]);
   if(!stops||!stops.length)throw new Error('No nearby stops found');
   window.inspectorNearbyStops={...(window.inspectorNearbyStops||{}),stops:stops.slice(),updated:Date.now()};
   document.dispatchEvent(new CustomEvent('inspector-nearby-stops',{detail:window.inspectorNearbyStops}));
@@ -43,7 +46,7 @@ async function useCurrentLocation(btn){
   },50);
  }catch(e){
   if(name)name.textContent='Unable to find nearby stops';
-  if(meta)meta.textContent='Nearby bus stop data did not load. Try again, or enter the stop manually in the Check Sheet.';
+  if(meta)meta.textContent=e?.message==='Bus stop search timed out'?'Stop search timed out. Check location permission and try again, or enter a stop manually.':'Unable to locate nearby stops. Check location permission and try again, or enter a stop manually.';
  }finally{
   btn.disabled=false;btn.classList.remove('locating');btn.textContent='📍 USE CURRENT LOCATION';
  }
