@@ -74,6 +74,16 @@ function reportFromCard(card){
   nature:labelled(x,['Nature of Offence']),passengers:labelled(x,['Passengers'])
  };
 }
+function splitVehicleDriverNotes(reason){
+ const vehicle=[],driver=[];
+ String(reason||'').split(/\r?\n/).forEach(line=>{
+  const value=line.trim();
+  if(!value||value==='-')return;
+  if(/^Vehicle (?:issue|comments?)\s*:/i.test(value))vehicle.push(value);
+  else driver.push(value);
+ });
+ return{vehicle:vehicle.join('\n'),driver:driver.join('\n')};
+}
 function title(d){return'Inspection-Report'+(d.service&&d.service!=='-'?'-Service-'+d.service:'')+(d.fleet&&d.fleet!=='-'?'-Fleet-'+d.fleet:'');}
 function loadScript(src,id){return new Promise((resolve,reject)=>{if(document.getElementById(id))return resolve();const s=document.createElement('script');s.id=id;s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
 async function imageData(url){try{const res=await fetch(url,{mode:'cors'});const blob=await res.blob();return await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>resolve(null);r.readAsDataURL(blob);});}catch(e){return null;}}
@@ -96,6 +106,8 @@ async function makePdf(d,name){
  sectionTitle('Inspection Details');tableRow('Date',d.date);tableRow('Time Checked',d.timeChecked);tableRow('Driver',d.driver);tableRow('Depot',d.depot);tableRow('Fleet Number',d.fleet);y+=14;
  sectionTitle('Journey Details');tableRow('Service',d.service);tableRow('Boarding point',d.boarding);tableRow('Destination',d.destination);y+=14;
  sectionTitle('NSA');tableRow('NSA Working',d.nsa);tableRow('Details',d.nsaDetails);y+=14;
+ const notes=splitVehicleDriverNotes(d.reason);
+ if(notes.vehicle){sectionTitle('Vehicle Issues');tableRow('Vehicle issues / comments',notes.vehicle);y+=14;}
  sectionTitle('Driver');tableRow('Driver Report',d.driverReport);
  const isOffence=/offence/i.test(String(d.driverReport||''))||d.offenceRef||d.nature||d.passengers;
  if(isOffence){
@@ -103,9 +115,9 @@ async function makePdf(d,name){
   if(d.offenceRef)tableRow('Offence Reference',d.offenceRef);
   if(d.nature)tableRow('Nature of Offence',d.nature);
   if(d.passengers)tableRow('Passengers',d.passengers);
-  tableRow('Inspector offence details / notes',d.reason);
+  if(notes.driver)tableRow('Inspector offence details / notes',notes.driver);
  }else{
-  tableRow('Driver report reason / inspection notes',d.reason);
+  if(notes.driver)tableRow('Driver report reason / inspection notes',notes.driver);
  }
  footer();pdf.setProperties({title:name,subject:'Inspector Check Sheet / Report Record',author:'Stagecoach South Scotland'});
  const bytes=pdf.output('arraybuffer');const safe=name.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'Inspection-Report';return{bytes,name:safe+'.pdf'};
