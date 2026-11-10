@@ -3,14 +3,16 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let records=null,loading=null,results=[];
+let catalogue={east:null,west:null},loading={east:null,west:null},results=[];
 function load(){
- if(records)return Promise.resolve(records);
- if(loading)return loading;
- loading=fetch('scotland-bus-stops.json',{cache:'force-cache'}).then(r=>{if(!r.ok)throw new Error('Stop data not published');return r.json();})
-  .then(d=>{if(!Array.isArray(d.stops)||d.stops.length<1000)throw new Error('Stop data incomplete');records=d.stops;return records;})
-  .finally(()=>{loading=null;});
- return loading;
+ const kind=region();
+ if(catalogue[kind])return Promise.resolve(catalogue[kind]);
+ if(loading[kind])return loading[kind];
+ const request=kind==='west'&&typeof window.inspectorWestBusStops==='function'
+  ?window.inspectorWestBusStops()
+  :fetch('scotland-bus-stops.json',{cache:'force-cache'}).then(r=>{if(!r.ok)throw new Error('Stop data not published');return r.json();}).then(d=>{if(!Array.isArray(d.stops)||d.stops.length<1000)throw new Error('Stop data incomplete');return d.stops;});
+ loading[kind]=request.then(stops=>{catalogue[kind]=stops;loading[kind]=null;return stops;},err=>{loading[kind]=null;throw err;});
+ return loading[kind];
 }
 function nameOf(s){
  const locality=String(s[4]||'').trim(),name=String(s[3]||'').trim(),indicator=String(s[5]||'').trim();
@@ -29,12 +31,13 @@ function draw(query){
  const box=$('csBoardingResults');if(!box)return;
  const q=query.trim().toLowerCase();
  if(q.length<2){close();setStatus('Type at least 2 characters, or use Find Nearby Bus Stop.');return;}
- if(!records){setStatus('Loading Scottish bus stops…');load().then(()=>{if($('csBoarding')?.value.trim().toLowerCase()===q)draw(q);}).catch(()=>setStatus('Stop catalogue unavailable. You can still enter the boarding point manually or use Find Nearby.'));return;}
+ const records=catalogue[region()];
+ if(!records){const selectedRegion=region();setStatus('Loading '+(selectedRegion==='west'?'West Scotland':'Scottish')+' bus stops…');load().then(()=>{if(region()===selectedRegion&&$('csBoarding')?.value.trim().toLowerCase()===q)draw(q);}).catch(()=>setStatus('Stop catalogue unavailable. You can still enter the boarding point manually or use Find Nearby.'));return;}
  const tokens=q.split(/\s+/).filter(Boolean),west=region()==='west';
  const matches=[];
  for(const stop of records){
   if(!Array.isArray(stop)||stop.length<5)continue;
-  if(west&&!isWest(stop))continue;
+  if(west&&!stop[2])continue;
   const searchable=[stop[2],stop[3],stop[4],stop[5]].map(v=>String(v||'')).join(' ').toLowerCase();
   if(tokens.every(t=>searchable.includes(t))){matches.push(stop);if(matches.length===40)break;}
  }
@@ -62,7 +65,7 @@ function init(){
   close();setStatus('Boarding stop selected.');input.dispatchEvent(new Event('change',{bubbles:true}));
  });
  document.addEventListener('pointerdown',e=>{if(e.target!==input&&!wrap.contains(e.target))close();});
- $('csServiceRegion')?.addEventListener('change',()=>{close();setStatus('Search '+(region()==='west'?'West Scotland':'Scottish')+' boarding stops, or use Find Nearby.');});
+ $('csServiceRegion')?.addEventListener('change',()=>{close();load().catch(()=>{});setStatus('Search '+(region()==='west'?'West Scotland':'Scottish')+' boarding stops, or use Find Nearby.');});
  document.addEventListener('click',e=>{if(e.target.id==='clearCheckFormBtn'||e.target.id==='saveCheckSheetBtn')setTimeout(()=>{close();setStatus('Type a stop name or ATCO code to search Scottish stops.');},80);});
  return true;
 }
