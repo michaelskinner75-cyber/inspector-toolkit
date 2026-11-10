@@ -106,7 +106,7 @@ function hydrateCache(){try{const cached=JSON.parse(localStorage.getItem(CACHE_K
 hydrateCache();
 function sharedLookup(force){
  if(activeLookup)return activeLookup;
- activeLookup=new Promise((resolve,reject)=>{
+ const work=new Promise((resolve,reject)=>{
   if(!navigator.geolocation){activeLookup=null;reject(new Error('Location unavailable'));return;}
   navigator.geolocation.getCurrentPosition(async p=>{
    try{
@@ -122,6 +122,9 @@ function sharedLookup(force){
    finally{activeLookup=null;}
   },e=>{activeLookup=null;reject(e);},{enableHighAccuracy:true,timeout:12000,maximumAge:force?0:60000});
  });
+ // Bound the entire lookup: a slow remote stop provider must never leave the UI spinning.
+ activeLookup=Promise.race([work,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Nearby stop lookup timed out; try typed stop search.')),18000))])
+  .then(stops=>{activeLookup=null;return stops;},error=>{activeLookup=null;throw error;});
  return activeLookup;
 }
 window.inspectorFindNearbyStops=sharedLookup;
