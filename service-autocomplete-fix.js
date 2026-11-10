@@ -38,15 +38,21 @@ function buildInspectorSearch(){
  const wrap=document.createElement('div');
  wrap.className='serviceSelectWrap inspectorServiceSearchWrap';
  wrap.dataset.forService='csService';
- const regionLabel=document.createElement('label');
- regionLabel.className='inspectorServiceLabel';
- regionLabel.htmlFor='csServiceRegion';
- regionLabel.textContent='Operating Region';
- const region=document.createElement('select');
+ // Region is selected automatically from the depot, not by an inspector.
+ const region=document.createElement('input');
+ region.type='hidden';
  region.id='csServiceRegion';
- region.className='field';
- region.innerHTML='<option value="east">East Scotland</option><option value="west">West Scotland</option>';
- region.value='east'; // East Scotland is always the default on a new session.
+ region.value='east';
+ function updateRegion(){
+  const depot=String($('csDepot')?.value||'').trim().toLowerCase();
+  const next=['ayr','ardrossan','kilmarnock'].includes(depot)?'west':'east';
+  if(region.value===next)return;
+  region.value=next;
+  selected=null;wrap._selectedService=null;search.value='';
+  close();emit('');
+  help.textContent=next==='west'?'Search West Scotland services by number or route. Manual entry is also available.':'Type to narrow the results, then tap a service. You can also enter a service manually.';
+  region.dispatchEvent(new Event('change',{bubbles:true}));
+ }
  const label=document.createElement('label');
  label.className='inspectorServiceLabel';
  label.htmlFor='csServiceSearch';
@@ -68,7 +74,7 @@ function buildInspectorSearch(){
  const help=document.createElement('div');
  help.className='small inspectorServiceHint';
  help.textContent='Type to narrow the results, then tap a service. You can also enter a service manually.';
- wrap.append(regionLabel,region,label,search,suggestions,help);
+ wrap.append(region,label,search,suggestions,help);
  input.before(wrap);
  let shown=[],active=-1,selected=null;
  const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -125,11 +131,9 @@ function buildInspectorSearch(){
   const row=$('csServiceOption'+active);
   if(row){search.setAttribute('aria-activedescendant',row.id);row.scrollIntoView({block:'nearest'});}
  }
- region.addEventListener('change',()=>{
-  selected=null;wrap._selectedService=null;search.value='';
-  close();emit('');
-  help.textContent=region.value==='west'?'Search West Scotland services by number or route. Manual entry is also available.':'Type to narrow the results, then tap a service. You can also enter a service manually.';
- });
+ $('csDepot')?.addEventListener('change',updateRegion);
+ document.addEventListener('change',e=>{if(e.target.id==='csDepot')updateRegion();});
+ updateRegion();
  search.addEventListener('input',()=>{
   selected=null;wrap._selectedService=null;
   emit(search.value.trim());
