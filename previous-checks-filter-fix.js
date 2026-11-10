@@ -64,6 +64,19 @@ function markButtons(){
  document.querySelectorAll('[data-check-filter]').forEach(b=>b.classList.toggle('active',b.dataset.checkFilter===activeFilter));
 }
 function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function splitCheckNotes(value){
+ const vehicle=[],driver=[];
+ String(value||'').split(/\r?\n/).forEach(part=>{
+  let line=part.trim();
+  if(!line||line==='-')return;
+  if(/^Vehicle (?:issue|comments?)\s*:/i.test(line)){
+   const boundary=line.match(/\s+(?=Driver\s+(?:failed|was|did|has|had|advised|informed|reported|confirmed|refused|apologised)\b)/i);
+   if(boundary){const pos=boundary.index;vehicle.push(line.slice(0,pos).trim());line=line.slice(pos).trim();if(line)driver.push(line);}
+   else vehicle.push(line);
+  }else driver.push(line);
+ });
+ return{vehicle:vehicle.join('\n'),driver:driver.join('\n')};
+}
 function ensureSortControl(){
  const search=document.getElementById('checkSearch');
  if(!search||!search.parentElement)return;
@@ -120,8 +133,9 @@ function renderFixedChecks(){
   const ref=r[15]||'';
   const status=typeof statusMark==='function'?statusMark(r):(r[13]||'OK');
   const cls=typeof statusClass==='function'?statusClass(r):'';
-  const details=[ref?'<b>Offence Reference: '+safe(ref)+'</b>':'','Inspector: '+safe(r[2]||'-'),'Depot: '+safe(r[3]||'-'),'Driver: '+safe(r[4]||'-'),'Service: '+safe(r[5]||'-'),'Fleet: '+safe(r[6]||'-'),'Time boarded: '+safe(timeOn),'Journey: '+safe((r[8]||'-')+' to '+(r[9]||'-')),'NSA: '+safe(r[10]||'-')+(r[10]==='No'?' - '+safe(r[11]||'-')+' - '+safe(r[12]||'-'):''),'Driver Report: '+safe(r[13]||'-'),safe(r[14]||'-')].filter(Boolean);
-  return '<div class="compactCheck '+safe(cls)+'"><div class="compactTop" data-toggle="pcf'+i+'"><div class="compactMain">'+safe(date)+' '+safe(timeOn)+' | '+safe(r[5]||'-')+' | '+safe(r[6]||'-')+' | '+safe(r[4]||'-')+' | '+safe(status)+(ref?' | '+safe(ref):'')+'</div><div class="compactSub">'+safe(r[3]||'-')+' • '+safe(r[8]||'-')+' → '+safe(r[9]||'-')+' • '+safe(r[2]||'-')+'</div></div><div class="compactDetails" id="pcf'+i+'">'+details.join('<br>')+'</div></div>';
+  const notes=splitCheckNotes(r[14]);
+  const details=[ref?'<b>Offence Reference: '+safe(ref)+'</b>':'','Inspector: '+safe(r[2]||'-'),'Depot: '+safe(r[3]||'-'),'Driver: '+safe(r[4]||'-'),'Service: '+safe(r[5]||'-'),'Fleet: '+safe(r[6]||'-'),'Time boarded: '+safe(timeOn),'Journey: '+safe((r[8]||'-')+' to '+(r[9]||'-')),'NSA: '+safe(r[10]||'-')+(r[10]==='No'?' - '+safe(r[11]||'-')+' - '+safe(r[12]||'-'):''),'Driver Report: '+safe(r[13]||'-'),(notes.driver?safe(notes.driver):'')].filter(Boolean);
+  return '<div class="compactCheck '+safe(cls)+'"><div class="compactTop" data-toggle="pcf'+i+'"><div class="compactMain">'+safe(date)+' '+safe(timeOn)+' | '+safe(r[5]||'-')+' | '+safe(r[6]||'-')+' | '+safe(r[4]||'-')+' | '+safe(status)+(ref?' | '+safe(ref):'')+'</div><div class="compactSub">'+safe(r[3]||'-')+' • '+safe(r[8]||'-')+' → '+safe(r[9]||'-')+' • '+safe(r[2]||'-')+'</div></div><div class="compactDetails" id="pcf'+i+'" data-vehicle-notes="'+safe(notes.vehicle)+'">'+details.join('<br>')+'</div></div>';
  }).join('')||'No checks or other work for this view.';
  markButtons();
 }
