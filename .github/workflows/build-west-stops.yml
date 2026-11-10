@@ -11,10 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install coordinate conversion
+        run: python3 -m pip install --quiet pyproj
       - name: Fetch official NaPTAN West Scotland bus stops
         run: |
           python3 - <<'PY'
           import urllib.request, urllib.parse, zipfile, csv, io, pathlib, datetime
+          from pyproj import Transformer
           codes=['617','618','619','609','614','615','616','680','607','608','611','612','613']
           url='https://naptan.api.dft.gov.uk/v1/access-nodes?'+urllib.parse.urlencode({'atcoAreaCodes':','.join(codes),'dataFormat':'csv'})
           print('Requesting official NaPTAN codes:',','.join(codes),flush=True)
@@ -41,6 +44,7 @@ jobs:
                   if v is not None and str(v).strip():return str(v).strip()
               return ''
           found={}
+          convert=Transformer.from_crs('EPSG:27700','EPSG:4326',always_xy=True)
           from collections import Counter
           raw_counts=Counter()
           raw_types=Counter()
@@ -53,6 +57,13 @@ jobs:
               if typ and not typ.upper().startswith('B'):continue
               lat=col(row,'Latitude')
               lon=col(row,'Longitude')
+              if not lat or not lon:
+                  east=col(row,'Easting');north=col(row,'Northing')
+                  if east and north:
+                      try:
+                          a,b=convert.transform(float(east),float(north))
+                          lon=str(round(a,7));lat=str(round(b,7))
+                      except (ValueError,TypeError):pass
               if not atco or not lat or not lon:continue
               found[atco]=[atco,col(row,'CommonName','ShortCommonName','Name'),col(row,'LocalityName','Locality','Town'),col(row,'Indicator','StopIndicator'),lat,lon,'DfT NaPTAN',datetime.date.today().isoformat()]
           print('Raw ATCO codes returned:',dict(raw_counts),flush=True)
