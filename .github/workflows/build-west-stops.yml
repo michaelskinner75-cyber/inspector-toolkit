@@ -1,0 +1,47 @@
+name: Build West Scotland bus stop CSV
+on:
+  push:
+    paths:
+      - '.github/workflows/build-west-stops.yml'
+      - 'scotland-bus-stops.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export West Scotland NaPTAN catalogue
+        run: |
+          python3 - <<'PY'
+          import json, csv, datetime, pathlib
+          src=pathlib.Path('scotland-bus-stops.json')
+          data=json.loads(src.read_text())
+          stops=data['stops'] if isinstance(data,dict) else data
+          # Ayrshire, Arran, Glasgow, Renfrewshire, Lanarkshire and western neighbouring stops.
+          # Retain all stop types supplied by the existing Inspector Hub bus-stop catalogue.
+          selected={}
+          for s in stops:
+              if len(s)<6:continue
+              lat,lon,code,name,locality,indicator=s[:6]
+              try:lat=float(lat);lon=float(lon)
+              except (TypeError,ValueError):continue
+              if not (54.50<=lat<=56.4 and -6.7<=lon<=-3.7):continue
+              if not str(code).strip():continue
+              selected[str(code)]=(str(code),str(name),str(locality),str(indicator),lat,lon,'Inspector Hub NaPTAN catalogue',datetime.date.today().isoformat())
+          dest=pathlib.Path('west-scotland-bus-stops.csv')
+          with dest.open('w',newline='',encoding='utf-8') as f:
+              w=csv.writer(f);w.writerow(['ATCO Code','Stop Name','Locality','Indicator','Latitude','Longitude','Source','Last Updated'])
+              w.writerows(sorted(selected.values(),key=lambda r:(r[2].casefold(),r[1].casefold(),r[0])))
+          print('Stops exported:',len(selected),'CSV bytes:',dest.stat().st_size)
+          if len(selected)<2000:raise SystemExit('Insufficient West Scotland stops, refusing import')
+          PY
+      - name: Commit exported stops
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add west-scotland-bus-stops.csv
+          git diff --cached --quiet || (git commit -m 'Export verified West Scotland stop list' && git push)
