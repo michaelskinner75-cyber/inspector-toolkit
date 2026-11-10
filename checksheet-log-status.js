@@ -52,7 +52,7 @@ function decorate(){
   else if(state==='na'){badge.className='nsaBadge nsaNA';badge.textContent='NSA N/A';}
   else if(state==='bad'){badge.className='nsaBadge nsaBad';badge.textContent='NSA NOT WORKING';}
   else{badge.className='nsaBadge nsaGood';badge.textContent='NSA WORKING';}
-  const vehicleData=extractVehicle(raw);
+  const vehicleData=extractVehicle((details?.dataset.vehicleNotes||'')+'\n'+raw);
   const hasVehicleNotes=Boolean(vehicleData.issue||vehicleData.comments);
   let vehicle=stack.querySelector('.vehicleNotesBadge');
   if(hasVehicleNotes){
