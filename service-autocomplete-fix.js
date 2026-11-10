@@ -1,6 +1,10 @@
 (function(){
 'use strict';
 const TARGETS=['tcService','nsaService'];
+// Operator routes from bustimes.org/operators/stagecoach-west-scotland (10 November 2026).
+// Keep separate from the East Scotland Google Sheets master and coverage list.
+const WEST_SCOTLAND_SERVICES=[{"code":"1","route":"Kilmarnock Bus Station - Priestland Loudon Avenue","id":"west-0"},{"code":"1","route":"Masonhill, Ayr - Hayhill, Ayr","id":"west-1"},{"code":"1A","route":"Kilmarnock Bus Station - Drumleyhill Drive, Hurlford","id":"west-2"},{"code":"1B","route":"Kilmarnock - Galston","id":"west-3"},{"code":"2","route":"Carrick Street, Ayr - Carrick Street, Ayr","id":"west-4"},{"code":"2","route":"Kilmarnock Bus Station - Hurlford","id":"west-5"},{"code":"2A","route":"Ayr Town Centre - Citadel Leisure Centre","id":"west-6"},{"code":"3","route":"Amlaird Road, Onthank, Kilmarnock - Loreny Drive, Shortlees, Kilmarnock","id":"west-7"},{"code":"3","route":"Ayr Snowdrop Square - Ayr Snowdrop Square","id":"west-8"},{"code":"3B","route":"Ayr Snowdrop Square - Ayr Snowdrop Square","id":"west-9"},{"code":"4","route":"Buchanan Bus Station, Glasgow - Ayr Bus Station","id":"west-10"},{"code":"5","route":"Kilmarnock Bus Station - Kennedy Drive, New Farm Loch","id":"west-11"},{"code":"6","route":"New Farm Loch, Kilmarnock - Bellfield, Kilmarnock","id":"west-12"},{"code":"6","route":"Boswell Park, Ayr - Boswell Park, Ayr","id":"west-13"},{"code":"7","route":"New Farm Loch, Kilmarnock - Bellfield, Kilmarnock","id":"west-14"},{"code":"9","route":"Ayr - Doonfoot","id":"west-15"},{"code":"9","route":"Kilmarnock - Stewarton","id":"west-16"},{"code":"10","route":"Kilmarnock Bus Station - Barassie Westward Way","id":"west-17"},{"code":"11","route":"Chapelhill Mount, Ardrossan - Kilmarnock Bus Station","id":"west-18"},{"code":"12","route":"Stanley Road, Ardrossan - Sommerville Drive, Stevenston","id":"west-19"},{"code":"14","route":"Ayr Hospital - High Street, Irvine","id":"west-20"},{"code":"18","route":"New England, Saltcoats - Hayocks, Stevenston","id":"west-21"},{"code":"X19","route":"New South Glasgow Hospitals - Easterhouse","id":"west-22"},{"code":"22","route":"Castlepark, Irvine - Holehouse Roundabout, Irvine","id":"west-23"},{"code":"23","route":"Dickson Drive, Irvine - Broomlands, Irvine","id":"west-24"},{"code":"25","route":"Irvine Bridgegate - Beith Strand","id":"west-25"},{"code":"25A","route":"Stanecastle Middleton Road - Beith Strand","id":"west-26"},{"code":"25B","route":"Kilbirnie Milton Quadrant - Beith Grahamfield Place","id":"west-27"},{"code":"25C","route":"Kilwinning Claremont Crescent - Beith Grahamfield Place","id":"west-28"},{"code":"25D","route":"Stanecastle Middleton Road - Beith Grahamfield Place","id":"west-29"},{"code":"25E","route":"Stanecastle Middleton Road - Kilbirnie Milton Quadrant","id":"west-30"},{"code":"25X","route":"Kilwinning Claremont Crescent - Beith Grahamfield Place","id":"west-31"},{"code":"28","route":"Tesco, Irvine - Bourtreehill, Irvine","id":"west-32"},{"code":"28A","route":"Livingstone Terrace, Irvine - Broomlands, Irvine","id":"west-33"},{"code":"X36","route":"Glasgow Buchanan Bus Station - Ardrossan","id":"west-34"},{"code":"X36A","route":"Ardrossan Hill Street - Beith Strand","id":"west-35"},{"code":"42","route":"Ayr Bus Station - Muirkirk Bridge Street","id":"west-36"},{"code":"42A","route":"Ayr Bus Station - Cumnock Tanyard","id":"west-37"},{"code":"X42","route":"Ayr Bus Station - Muirkirk Bridge Street","id":"west-38"},{"code":"43","route":"Ayr Bus Station - Greenbraes Drive, New Cumnock","id":"west-39"},{"code":"43A","route":"Ayr Bus Station or Burns Statue Square - Annbank","id":"west-40"},{"code":"50","route":"Cumnock Bus Stance - Kilmarnock Bus Station","id":"west-41"},{"code":"52","route":"Ayr Bus Station - Bellsbank Glenmount","id":"west-42"},{"code":"58","route":"Ayr Bus Station - Girvan Elder Avenue","id":"west-43"},{"code":"60","route":"Ayr Bus Station - Girvan Elder Avenue","id":"west-44"},{"code":"61","route":"Ayr Bus Station / Carrick Street - Dunure","id":"west-45"},{"code":"X71","route":"Glasgow Buchanan Bus Station - Kilmarnock Bus Station - Priestland Loudoun Avenue","id":"west-46"},{"code":"X74","route":"Dumfries - Glasgow","id":"west-47"},{"code":"76","route":"Cumnock / New Cumnock - Kilmarnock Bus Station","id":"west-48"},{"code":"X76","route":"Hillhead University Union - Ardle Avenue","id":"west-49"},{"code":"X76B","route":"Muirkirk - Cumnock","id":"west-50"},{"code":"X77","route":"Hillhead University Union - Alloway Burns Birthplace Museum","id":"west-51"},{"code":"X77K","route":"Glasgow Buchanan Bus Station - Ayr Bus Station","id":"west-52"},{"code":"X78","route":"Glasgow Buchanan Bus Station - Kilmarnock Bus Station - Barassie, Troon","id":"west-53"},{"code":"X79","route":"Irvine Cross - Kilmarnock","id":"west-54"},{"code":"97","route":"Ayr Bus Station - Craig Tara Holiday Park","id":"west-55"},{"code":"110","route":"Templehill, Troon - Kilmarnock Bus Station","id":"west-56"},{"code":"301","route":"Ayr Fullarton Street - Holmston Shavin Brae","id":"west-57"},{"code":"302","route":"Prestwick Carnell Crescent - Ayr Fullarton Street","id":"west-58"},{"code":"306","route":"Marchburn, Ayr - Hillfoot Road, Ayr","id":"west-59"},{"code":"322","route":"Brodick - Blackwaterfoot","id":"west-60"},{"code":"323","route":"Brodick Douglas Place - Blackwaterfoot Ferry Cottage","id":"west-61"},{"code":"323A","route":"Brodick Douglas Place - Blackwaterfoot Ferry Cottage","id":"west-62"},{"code":"324","route":"Brodick - Blackwaterfoot","id":"west-63"},{"code":"343","route":"Ayr Bus Station - New Cumnock","id":"west-64"},{"code":"347","route":"Douglas Street, Ayr - Kerse Terrace, Rankinston","id":"west-65"},{"code":"352","route":"Ayr Bus Station - Burnton Turning Circle","id":"west-66"},{"code":"356","route":"Bellsbank Terminus - Cumnock Tanyard","id":"west-67"},{"code":"358","route":"Ayr Bus Station - Stranraer Cross","id":"west-68"},{"code":"360","route":"Ayr Bus Station - Stranraer Cross","id":"west-69"},{"code":"361","route":"Straiton - Dunure","id":"west-70"},{"code":"585","route":"Largs Laverock Drive - Ayr Bus Station","id":"west-71"},{"code":"585A","route":"Largs Brisbane Glen - Stevenston Golf Avenue","id":"west-72"},{"code":"X585","route":"Ardrossan Princes Street - Largs Manse Court","id":"west-73"}];
+
 const GROUPS=[['1-9','Services 1–9'],['10-19','Services 10–19'],['20-29','Services 20–29'],['30-39','Services 30–39'],['40-49','Services 40–49'],['50-59','Services 50–59'],['60-69','Services 60–69'],['70-79','Services 70–79'],['80-89','Services 80–89'],['90-99','Services 90–99'],['X','X Services'],['OTHER','Other services']];
 const $=id=>document.getElementById(id);
 function getServices(){let source=null;try{source=JSON.parse(localStorage.getItem('serviceCoverageList')||'null');}catch(e){}if(!Array.isArray(source)||!source.length)source=Array.isArray(window.INSPECTOR_SERVICES)?window.INSPECTOR_SERVICES:[];return source.map(item=>typeof item==='string'?{code:item.trim(),route:'',aliases:[]}:{code:String(item.code||item.service||'').trim(),route:String(item.route||item.description||'').trim(),aliases:Array.isArray(item.aliases)?item.aliases:[]}).filter(item=>item.code);}
@@ -34,6 +38,15 @@ function buildInspectorSearch(){
  const wrap=document.createElement('div');
  wrap.className='serviceSelectWrap inspectorServiceSearchWrap';
  wrap.dataset.forService='csService';
+ const regionLabel=document.createElement('label');
+ regionLabel.className='inspectorServiceLabel';
+ regionLabel.htmlFor='csServiceRegion';
+ regionLabel.textContent='Operating Region';
+ const region=document.createElement('select');
+ region.id='csServiceRegion';
+ region.className='field';
+ region.innerHTML='<option value="east">East Scotland</option><option value="west">West Scotland</option>';
+ region.value='east'; // East Scotland is always the default on a new session.
  const label=document.createElement('label');
  label.className='inspectorServiceLabel';
  label.htmlFor='csServiceSearch';
@@ -55,13 +68,13 @@ function buildInspectorSearch(){
  const help=document.createElement('div');
  help.className='small inspectorServiceHint';
  help.textContent='Type to narrow the results, then tap a service. You can also enter a service manually.';
- wrap.append(label,search,suggestions,help);
+ wrap.append(regionLabel,region,label,search,suggestions,help);
  input.before(wrap);
  let shown=[],active=-1,selected=null;
  const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const clean=s=>String(s??'').trim().toUpperCase();
  function options(){
-  const expanded=getServices().flatMap(item=>{
+  const expanded=(region.value==='west'?WEST_SCOTLAND_SERVICES:getServices()).flatMap(item=>{
    const variants=item.code.split(/[\/,;&]+/).map(x=>x.trim()).filter(Boolean);
    return variants.map(code=>({code,route:item.route,aliases:item.aliases}));
   });
@@ -112,6 +125,11 @@ function buildInspectorSearch(){
   const row=$('csServiceOption'+active);
   if(row){search.setAttribute('aria-activedescendant',row.id);row.scrollIntoView({block:'nearest'});}
  }
+ region.addEventListener('change',()=>{
+  selected=null;wrap._selectedService=null;search.value='';
+  close();emit('');
+  help.textContent=region.value==='west'?'Search West Scotland services by number or route. Manual entry is also available.':'Type to narrow the results, then tap a service. You can also enter a service manually.';
+ });
  search.addEventListener('input',()=>{
   selected=null;wrap._selectedService=null;
   emit(search.value.trim());
