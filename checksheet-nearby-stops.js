@@ -37,7 +37,10 @@ async function loadBundledStops(){
 async function findBundledStops(lat,lon){
  // This catalogue includes East Scotland and neighbouring Scottish regions.
  if(lat<54||lat>59||lon< -8||lon>0)return [];
- const records=await loadBundledStops(),nearby=[];
+ // Use the downloaded West Scotland stop catalogue west of the central belt;
+ // retain the original East Scotland local catalogue for eastern positions.
+ const useWest=lon< -3.75&&lat>=54.5&&lat<=56.5&&typeof window.inspectorWestBusStops==='function';
+ const records=useWest?await window.inspectorWestBusStops():await loadBundledStops(),nearby=[];
  const radius=3500,cos=Math.cos(lat*Math.PI/180),unitLat=111195,unitLon=111195*cos;
  for(const item of records){
   const y=(item[0]-lat)*unitLat;
