@@ -25,7 +25,20 @@ function init(){
  $('scOpen').onclick=async()=>{try{if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera access needs HTTPS');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920}},audio:false});$('scVideo').srcObject=stream;await $('scVideo').play();$('scCamera').hidden=false;$('scOpen').disabled=true;status.textContent='Place the card inside the frame and press READ CARD.';}catch(e){stop();status.textContent='Camera unavailable: '+e.message+'. Use Manual Entry.';}};
  $('scClose').onclick=stop;
  function ocr(){if(window.Tesseract)return Promise.resolve(window.Tesseract);if(!loading)loading=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=()=>window.Tesseract?resolve(window.Tesseract):reject(Error('Recognition unavailable'));s.onerror=()=>reject(Error('Could not load recognition'));document.head.append(s);}).catch(e=>{loading=null;throw e;});return loading;}
- function isoDate(s){const m=String(s||'').match(/(\d{1,2})\s*[\/.\- ]\s*(\d{1,2})\s*[\/.\- ]\s*(\d{2,4})/);if(!m)return '';let y=+m[3];if(y<100)y+=y<=30?2000:1900;const d=new Date(y,+m[2]-1,+m[1]);return d.getFullYear()===y&&d.getMonth()+1===+m[2]&&d.getDate()===+m[1]?y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):'';}
+ function isoDate(s){
+  s=String(s||'').toUpperCase();
+  const months={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
+  let m=s.match(/(\d{1,2})\s*[\/.\- ]\s*(\d{1,2})\s*[\/.\- ]\s*(\d{2,4})/);
+  let day,month,year;
+  if(m){day=+m[1];month=+m[2];year=+m[3];}
+  else {
+   m=s.match(/(\d{1,2})\s*[-.\s]*\s*(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)[A-Z]*\s*[-.\s]*\s*(\d{2,4})/);
+   if(!m)return '';day=+m[1];month=months[m[2]];year=+m[3];
+  }
+  if(year<100)year+=year<=30?2000:1900;
+  const date=new Date(year,month-1,day);
+  return date.getFullYear()===year&&date.getMonth()+1===month&&date.getDate()===day?year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'):'';
+ }
  function parse(raw){
   const lines=raw.split(/\n/).map(s=>s.trim()).filter(Boolean);
   let itso='';
