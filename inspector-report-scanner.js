@@ -7,18 +7,36 @@ function init(){
  const status=p.querySelector('#reportScanStatus'),review=p.querySelector('#reportScanReview');
  const clean=s=>(s||'').replace(/[Oo]/g,'0').replace(/[Il|]/g,'1').replace(/[^0-9]/g,'');
  function extract(raw){
-  const lines=raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  const find=label=>{const re=new RegExp('^'+label+'\\s*[:#-]?\\s*(.*)$','i');for(let i=0;i<lines.length;i++){const m=lines[i].match(re);if(m)return m[1].trim()||lines[i+1]||'';}return '';};
-  const date=raw.match(/\b([0-3]?\d)\/([01]?\d)\/(\d{2,4})\b/);
-  const dt=date?(date[3].length===2?'20'+date[3]:date[3])+'-'+date[2].padStart(2,'0')+'-'+date[1].padStart(2,'0'):'';
-  const tm=s=>{const m=(s||'').replace(/O/g,'0').match(/(\d{1,2})\s*[:.]\s*(\d{2})/);return m?m[1].padStart(2,'0')+':'+m[2]:'';};
-  return {date:dt,fleet:clean(find('BUS\\s*NO')),driver:clean(find('DRIVER')),service:(find('SERVICE').match(/[A-Z]?\d+[A-Z]?/i)||[])[0]||'',equipment:clean(find('EQUIP\\s*#?')),trip:clean(find('TRIP\\s*#?')),scheduled:tm(find('SCHD\\s*START')),actual:tm(find('REAL\\s*START')),first:clean(find('FIRST\\s*TICKET')),last:clean(find('LAST\\s*TICKET'))};
+  const text=String(raw||'').replace(/\r/g,'\n');
+  const lines=text.split('\n').map(x=>x.trim()).filter(Boolean);
+  const normal=x=>x.toUpperCase().replace(/[|]/g,'I').replace(/[^A-Z0-9:#/. -]/g,' ').replace(/\s+/g,' ').trim();
+  const items=lines.map(normal);
+  const time=s=>{const m=String(s||'').replace(/[Oo]/g,'0').match(/([01]?\d|2[0-3])\s*[:.]\s*([0-5]\d)/);return m?m[1].padStart(2,'0')+':'+m[2]:'';};
+  function find(label){
+    const re=new RegExp('^\\s*'+label+'\\s*[:#.-]?\\s*(.*)$','i');
+    for(let i=0;i<items.length;i++){
+      const m=items[i].match(re);
+      if(m)return m[1].trim()||items[i+1]||'';
+    }
+    return '';
+  }
+  const d=text.match(/\b([0-3]?\d)\s*[/.\-]\s*([01]?\d)\s*[/.\-]\s*(\d{2,4})\b/);
+  const dt=d?(d[3].length===2?'20'+d[3]:d[3])+'-'+d[2].padStart(2,'0')+'-'+d[1].padStart(2,'0'):'';
+  // The time printed alongside the FIRST report date is the inspection/check time.
+  const top=text.match(/\b[0-3]?\d\s*[/.\-]\s*[01]?\d\s*[/.\-]\s*\d{2,4}\s+([0-2]?\d\s*[:.]\s*[0-5]\d)/);
+  const header=lines.slice(0,Math.min(lines.length,8)).join(' ');
+  const checked=time(top?top[1]:(header.match(/\b([0-2]?\d\s*[:.]\s*[0-5]\d)\b/)||[])[1]);
+  const number=x=>(String(x||'').match(/[0-9OIl|]{1,12}/)||[])[0]||'';
+  const fleet=clean(number(find('BUS\\s*N[O0]')));
+  const driver=clean(number(find('DR[I1]VER')));
+  const service=(find('SERV[I1]CE').match(/\b[A-Z]?\d{1,3}[A-Z]?\b/i)||[])[0]||'';
+  return {date:dt,checked,fleet,driver,service,equipment:clean(number(find('EQU[I1]P\\s*#?'))),trip:clean(number(find('TR[I1]P\\s*#?'))),scheduled:time(find('SCH[D0]\\s*START')),actual:time(find('REAL\\s*START')),first:clean(number(find('F[I1]RST\\s*T[I1]CKT'))),last:clean(number(find('LAST\\s*T[I1]CKT')))};
  }
  function render(v){
   review.replaceChildren();
   const h=document.createElement('h4');h.textContent='Review scanned details';review.append(h);
   const rows=[];
-  [['fleet','Fleet number','csFleet'],['driver','Driver','csDriver'],['service','Service','csService'],['date','Report date','csDate']].forEach(([key,title,id])=>{
+  [['fleet','Fleet number','csFleet'],['driver','Driver','csDriver'],['service','Service','csService'],['date','Report date','csDate'],['checked','Time Checked','csTimeOn']].forEach(([key,title,id])=>{
    const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;align-items:center;margin:8px 0';
    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!!v[key];cb.disabled=!v[key];
    const label=document.createElement('label');label.textContent=title;label.style.flex='1';
@@ -33,7 +51,7 @@ function init(){
  }
  let loading;
  function getTesseract(){if(window.Tesseract)return Promise.resolve(window.Tesseract);if(!loading)loading=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=()=>resolve(window.Tesseract);s.onerror=()=>reject(Error('Unable to load OCR library'));document.head.append(s);}).catch(e=>{loading=null;throw e;});return loading;}
- async function scan(file){if(!file)return;review.replaceChildren();status.textContent='Reading report photograph…';let worker;try{const t=await getTesseract();worker=await t.createWorker('eng');const result=await worker.recognize(file);const values=extract(result.data.text||'');if(!values.fleet&&!values.driver&&!values.service&&!values.date)throw Error('No recognisable report details');render(values);status.textContent='Review the recognised details, then select Apply.';}catch(e){status.textContent='Scan failed: '+e.message+'. You can still complete the sheet manually.';}finally{if(worker)await worker.terminate();}}
+ async function scan(file){if(!file)return;review.replaceChildren();status.textContent='Reading report photograph…';let worker;try{const t=await getTesseract();worker=await t.createWorker('eng');const result=await worker.recognize(file);const values=extract(result.data.text||'');if(!values.fleet&&!values.driver&&!values.service&&!values.date&&!values.checked)throw Error('No recognisable report details');render(values);status.textContent='Review the recognised details, then select Apply.';}catch(e){status.textContent='Scan could not read the report: '+e.message+'. You can still complete the sheet manually.';}finally{if(worker)await worker.terminate();}}
  ['reportCamera','reportUpload'].forEach(id=>p.querySelector('#'+id).addEventListener('change',e=>{scan(e.target.files[0]);e.target.value='';}));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
