@@ -5,6 +5,16 @@ function init(){
  p.innerHTML='<h3>Scan Inspector Report</h3><p class="small">Take a photo of the printed report. Review recognised fields before filling the check sheet. Manual entry remains available.</p><label class="btn" style="display:inline-block;padding:12px;cursor:pointer;margin:4px">📷 SCAN REPORT<input type="file" accept="image/*" capture="environment" hidden id="reportCamera"></label><label class="btn" style="display:inline-block;padding:12px;cursor:pointer;margin:4px">UPLOAD PHOTO<input type="file" accept="image/*" hidden id="reportUpload"></label><div id="reportScanStatus" class="small" role="status"></div><div id="reportScanReview"></div>';
  section.querySelector('h2').insertAdjacentElement('afterend',p);
  const status=p.querySelector('#reportScanStatus'),review=p.querySelector('#reportScanReview');
+ const controls=document.createElement('div');controls.style.cssText='margin:10px 0;display:none';
+ controls.innerHTML='<p class="small">Adjust the crop if the ticket is cut off. The shaded area is excluded from recognition.</p><div style="position:relative;max-width:320px"><img id="scanPhotoPreview" alt="Ticket photo for crop adjustment" style="width:100%;display:block;border-radius:8px"><div id="scanTopShade" style="position:absolute;top:0;left:0;right:0;background:#0009;pointer-events:none"></div><div id="scanBottomShade" style="position:absolute;bottom:0;left:0;right:0;background:#0009;pointer-events:none"></div></div><label style="display:block;margin:8px 0">Top crop <input id="scanCropTop" type="range" min="0" max="50" value="0" style="width:100%"></label><label style="display:block;margin:8px 0">Bottom crop <input id="scanCropBottom" type="range" min="50" max="100" value="100" style="width:100%"></label><button id="scanAgainBtn" type="button" class="btn">RESCAN SELECTED AREA</button>';
+ p.querySelector('#reportScanReview').before(controls);
+ const topSlider=controls.querySelector('#scanCropTop'),bottomSlider=controls.querySelector('#scanCropBottom');
+ const topShade=controls.querySelector('#scanTopShade'),bottomShade=controls.querySelector('#scanBottomShade');
+ let latestFile=null, previewUrl=null;
+ function updateShades(){topShade.style.height=topSlider.value+'%';bottomShade.style.height=(100-Number(bottomSlider.value))+'%';}
+ topSlider.addEventListener('input',updateShades);bottomSlider.addEventListener('input',updateShades);
+ controls.querySelector('#scanAgainBtn').onclick=()=>{if(latestFile)scan(latestFile,true);};
+ updateShades();
  const clean=s=>(s||'').replace(/[Oo]/g,'0').replace(/[Il|]/g,'1').replace(/[^0-9]/g,'');
  function extract(raw){
   const text=String(raw||'').replace(/\r/g,'\n');
@@ -47,40 +57,40 @@ function init(){
    const y=dateMatch[3].length===2?'20'+dateMatch[3]:dateMatch[3],mo=+dateMatch[2],da=+dateMatch[1];
    if(mo>=1&&mo<=12&&da>=1&&da<=31)date=y+'-'+dateMatch[2].padStart(2,'0')+'-'+dateMatch[1].padStart(2,'0');
   }
-  // Use the report header time, NEVER the journey's scheduled or actual start.
-  const headerPortion=text.split(/E\s*Q\s*U\s*[I1]\s*P|B\s*U\s*S\s*N\s*O/i)[0];
-  const headerTimes=[...headerPortion.matchAll(/(?:^|[^\d])([01]?\d|2[0-3])\s*[:.]\s*([0-5]\d)(?!\d)/g)];
-  const checked=headerTimes.length?time(headerTimes[headerTimes.length-1][0]):'';
+  // Only accept a check time directly alongside a recognised date, never an arbitrary number.
+  let checked='';
+  if(dateMatch){
+    const i=text.indexOf(dateMatch[0]);
+    const near=text.slice(i+dateMatch[0].length,i+dateMatch[0].length+25).split('\n')[0];
+    checked=time(near);
+  }
   const serviceCandidate=value('service').match(/(?:^|\s)([A-Z]?\d{1,3}[A-Z]?)(?!\d)/i);
   return {date,checked,fleet:number('fleet',4,6),driver:number('driver',3,8),service:serviceCandidate?serviceCandidate[1]:'',
    equipment:number('equipment',5,12),trip:number('trip',1,4),
    scheduled:time(value('scheduled')),actual:time(value('actual')),
    first:number('first',3,9),last:number('last',3,9)};
  }
- function makeEnhancedPhoto(file){
-  // Crop to the central ticket print rather than OCRing the surrounding carpet.
-  // Preserve grayscale antialiasing: hard black/white thresholding destroys dot-matrix glyphs.
+ function makeEnhancedPhoto(file,enhance){
   return new Promise((resolve,reject)=>{
    const img=new Image(),url=URL.createObjectURL(file);
    img.onload=()=>{try{
-    const x=Math.round(img.width*.16),y=Math.round(img.height*.17);
-    const w=Math.round(img.width*.70),h=Math.round(img.height*.53);
-    const c=document.createElement('canvas'),scale=Math.max(1,Math.min(2,1500/w));
+    const top=Number(topSlider.value)/100,bottom=Number(bottomSlider.value)/100;
+    const x=0,y=Math.round(img.height*top),w=img.width,h=Math.max(1,Math.round(img.height*(bottom-top)));
+    const c=document.createElement('canvas'),scale=Math.max(1,Math.min(2,1600/w));
     c.width=Math.round(w*scale);c.height=Math.round(h*scale);
     const ctx=c.getContext('2d',{willReadFrequently:true});
     ctx.drawImage(img,x,y,w,h,0,0,c.width,c.height);
-    const frame=ctx.getImageData(0,0,c.width,c.height),data=frame.data;
-    for(let i=0;i<data.length;i+=4){
-     // Red channel largely suppresses the blue security watermark.
-     const red=data[i];
-     const gray=Math.max(0,Math.min(255,(red-125)*1.5+190));
-     data[i]=data[i+1]=data[i+2]=gray;
+    if(enhance){
+     const frame=ctx.getImageData(0,0,c.width,c.height),data=frame.data;
+     for(let i=0;i<data.length;i+=4){
+      const red=data[i],gray=Math.max(0,Math.min(255,(red-115)*1.25+155));
+      data[i]=data[i+1]=data[i+2]=gray;
+     }
+     ctx.putImageData(frame,0,0);
     }
-    ctx.putImageData(frame,0,0);
     c.toBlob(blob=>blob?resolve(blob):reject(Error('Cannot process photo')),'image/png');
    }catch(e){reject(e);}finally{URL.revokeObjectURL(url);}};
-   img.onerror=()=>{URL.revokeObjectURL(url);reject(Error('Cannot open photo'));};
-   img.src=url;
+   img.onerror=()=>{URL.revokeObjectURL(url);reject(Error('Cannot open photo'));};img.src=url;
   });
  }
  function render(v){
@@ -102,37 +112,44 @@ function init(){
  }
  let loading;
  function getTesseract(){if(window.Tesseract)return Promise.resolve(window.Tesseract);if(!loading)loading=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=()=>resolve(window.Tesseract);s.onerror=()=>reject(Error('Unable to load OCR library'));document.head.append(s);}).catch(e=>{loading=null;throw e;});return loading;}
- async function scan(file){
+ async function scan(file,fromCrop){
   if(!file)return;
-  review.replaceChildren();status.textContent='Reading report photograph…';let worker;
+  latestFile=file;
+  if(!fromCrop){
+   if(previewUrl)URL.revokeObjectURL(previewUrl);
+   previewUrl=URL.createObjectURL(file);
+   controls.querySelector('#scanPhotoPreview').src=previewUrl;
+   topSlider.value='0';bottomSlider.value='100';updateShades();
+  }
+  controls.style.display='block';
+  review.replaceChildren();status.textContent='Reading report photograph…';
+  let worker;
   try{
-   const t=await getTesseract();
-   worker=await t.createWorker('eng');
+   const t=await getTesseract();worker=await t.createWorker('eng');
+   const originals=await makeEnhancedPhoto(file,false);
    await worker.setParameters({tessedit_pageseg_mode:'4'});
-   const cropped=await makeEnhancedPhoto(file);
-   const standard=await worker.recognize(cropped);
-   let raw=standard.data.text||'',best=extract(raw);
+   const first=await worker.recognize(originals);
+   let raw=first.data.text||'',best=extract(raw);
    const filled=v=>['date','checked','fleet','driver','service'].filter(k=>v[k]).length;
-   // If normal recognition misses key fields, try a high-contrast image.
    if(filled(best)<5){
-     status.textContent='Checking faint print with enhanced recognition…';
-     await worker.setParameters({tessedit_pageseg_mode:'6'});
-     const second=await worker.recognize(cropped);
-     const alt=extract(second.data.text||'');
-     ['date','checked','fleet','driver','service','equipment','trip','scheduled','actual','first','last'].forEach(k=>{
-       if(!best[k]&&alt[k])best[k]=alt[k];
-       // Preserve disagreement for manual confirmation rather than making a silent guess.
-       else if(best[k]&&alt[k]&&best[k]!==alt[k]&&['fleet','driver','service','date','checked'].includes(k)) best[k]='';
-     });
-     raw+='\n\n--- Alternate layout ---\n'+(second.data.text||'');
+    status.textContent='Trying clearer lettering…';
+    const improved=await makeEnhancedPhoto(file,true);
+    await worker.setParameters({tessedit_pageseg_mode:'6'});
+    const second=await worker.recognize(improved);
+    const alt=extract(second.data.text||'');
+    ['date','checked','fleet','driver','service','equipment','trip','scheduled','actual','first','last'].forEach(k=>{
+     if(!best[k]&&alt[k])best[k]=alt[k];
+     else if(best[k]&&alt[k]&&best[k]!==alt[k]&&['fleet','driver','service','date','checked'].includes(k))best[k]='';
+    });
+    raw+='\n\n--- Enhanced text ---\n'+(second.data.text||'');
    }
    render(best);
-   const details=document.createElement('details');details.style.marginTop='12px';
-   const summary=document.createElement('summary');summary.textContent='View recognised text / troubleshoot';details.append(summary);
-   const pre=document.createElement('pre');pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;font-size:12px';
-   pre.textContent=raw||'No readable text';details.append(pre);review.append(details);
-   status.textContent=filled(best)<3?'Only some fields were recognised. Please enter or correct missing values before applying.':'Please verify every recognised value before applying.';
-  }catch(e){status.textContent='Scan could not read the report: '+e.message+'. Manual entry remains available.';}
+   const d=document.createElement('details');d.style.marginTop='12px';
+   const summary=document.createElement('summary');summary.textContent='View recognised text / troubleshoot';d.append(summary);
+   const pre=document.createElement('pre');pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;font-size:12px';pre.textContent=raw||'No readable text';
+   d.append(pre);review.append(d);
+   status.textContent=filled(best)<3?'Not enough reliable fields. Adjust the crop above and rescan, or complete manually.':'Please verify each value before applying.';
+  }catch(e){status.textContent='Unable to scan: '+e.message+'. Manual entry remains available.';}
   finally{if(worker)try{await worker.terminate();}catch(e){}}
  }
  ['reportCamera','reportUpload'].forEach(id=>p.querySelector('#'+id).addEventListener('change',e=>{scan(e.target.files[0]);e.target.value='';}));
