@@ -6,7 +6,7 @@ function init(){
  section.querySelector('h2').insertAdjacentElement('afterend',p);
  const status=p.querySelector('#reportScanStatus'),review=p.querySelector('#reportScanReview');
  const controls=document.createElement('div');controls.style.cssText='margin:10px 0;display:none';
- controls.innerHTML='<p class="small">Adjust the crop if the ticket is cut off. The shaded area is excluded from recognition.</p><div style="position:relative;max-width:320px"><img id="scanPhotoPreview" alt="Ticket photo for crop adjustment" style="width:100%;display:block;border-radius:8px"><div id="scanTopShade" style="position:absolute;top:0;left:0;right:0;background:#0009;pointer-events:none"></div><div id="scanBottomShade" style="position:absolute;bottom:0;left:0;right:0;background:#0009;pointer-events:none"></div></div><label style="display:block;margin:8px 0">Top crop <input id="scanCropTop" type="range" min="0" max="50" value="0" style="width:100%"></label><label style="display:block;margin:8px 0">Bottom crop <input id="scanCropBottom" type="range" min="50" max="100" value="100" style="width:100%"></label><button id="scanAgainBtn" type="button" class="btn">RESCAN SELECTED AREA</button>';
+ controls.innerHTML='<p class="small">Adjust the crop if the ticket is cut off. Keep the whole printed report in the bright area. The shaded edges are excluded; cropping too much loses the date, driver and other fields.</p><div style="position:relative;max-width:320px"><img id="scanPhotoPreview" alt="Ticket photo for crop adjustment" style="width:100%;display:block;border-radius:8px"><div id="scanTopShade" style="position:absolute;top:0;left:0;right:0;background:#0009;pointer-events:none"></div><div id="scanBottomShade" style="position:absolute;bottom:0;left:0;right:0;background:#0009;pointer-events:none"></div></div><label style="display:block;margin:8px 0">Top crop <input id="scanCropTop" type="range" min="0" max="15" value="0" style="width:100%"></label><label style="display:block;margin:8px 0">Bottom crop <input id="scanCropBottom" type="range" min="85" max="100" value="100" style="width:100%"></label><button id="scanResetBtn" type="button" class="btn" style="margin:5px">SHOW ENTIRE TICKET</button><button id="scanAgainBtn" type="button" class="btn" style="margin:5px">RESCAN SELECTED AREA</button>';
  p.querySelector('#reportScanReview').before(controls);
  const topSlider=controls.querySelector('#scanCropTop'),bottomSlider=controls.querySelector('#scanCropBottom');
  const topShade=controls.querySelector('#scanTopShade'),bottomShade=controls.querySelector('#scanBottomShade');
@@ -14,6 +14,7 @@ function init(){
  function updateShades(){topShade.style.height=topSlider.value+'%';bottomShade.style.height=(100-Number(bottomSlider.value))+'%';}
  topSlider.addEventListener('input',updateShades);bottomSlider.addEventListener('input',updateShades);
  controls.querySelector('#scanAgainBtn').onclick=()=>{if(latestFile)scan(latestFile,true);};
+ controls.querySelector('#scanResetBtn').onclick=()=>{topSlider.value='0';bottomSlider.value='100';updateShades();if(latestFile)scan(latestFile,true);};
  updateShades();
  const clean=s=>(s||'').replace(/[Oo]/g,'0').replace(/[Il|]/g,'1').replace(/[^0-9]/g,'');
  function extract(raw){
@@ -75,15 +76,15 @@ function init(){
    const img=new Image(),url=URL.createObjectURL(file);
    img.onload=()=>{try{
     const top=Number(topSlider.value)/100,bottom=Number(bottomSlider.value)/100;
-    const x=0,y=Math.round(img.height*top),w=img.width,h=Math.max(1,Math.round(img.height*(bottom-top)));
-    const c=document.createElement('canvas'),scale=Math.max(1,Math.min(2,1600/w));
+    const x=Math.round(img.width*.08),y=Math.round(img.height*top),w=Math.round(img.width*.84),h=Math.max(1,Math.round(img.height*(bottom-top)));
+    const c=document.createElement('canvas'),scale=Math.max(1,Math.min(2.5,1800/w));
     c.width=Math.round(w*scale);c.height=Math.round(h*scale);
     const ctx=c.getContext('2d',{willReadFrequently:true});
     ctx.drawImage(img,x,y,w,h,0,0,c.width,c.height);
     if(enhance){
      const frame=ctx.getImageData(0,0,c.width,c.height),data=frame.data;
      for(let i=0;i<data.length;i+=4){
-      const red=data[i],gray=Math.max(0,Math.min(255,(red-115)*1.25+155));
+      const red=data[i],gray=Math.max(0,Math.min(255,(red-105)*1.4+125));
       data[i]=data[i+1]=data[i+2]=gray;
      }
      ctx.putImageData(frame,0,0);
@@ -134,7 +135,7 @@ function init(){
    if(filled(best)<5){
     status.textContent='Trying clearer lettering…';
     const improved=await makeEnhancedPhoto(file,true);
-    await worker.setParameters({tessedit_pageseg_mode:'6'});
+    await worker.setParameters({tessedit_pageseg_mode:'11'});
     const second=await worker.recognize(improved);
     const alt=extract(second.data.text||'');
     ['date','checked','fleet','driver','service','equipment','trip','scheduled','actual','first','last'].forEach(k=>{
@@ -148,7 +149,7 @@ function init(){
    const summary=document.createElement('summary');summary.textContent='View recognised text / troubleshoot';d.append(summary);
    const pre=document.createElement('pre');pre.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;font-size:12px';pre.textContent=raw||'No readable text';
    d.append(pre);review.append(d);
-   status.textContent=filled(best)<3?'Not enough reliable fields. Adjust the crop above and rescan, or complete manually.':'Please verify each value before applying.';
+   status.textContent=filled(best)<3?'Only part of the report was recognised. Use SHOW ENTIRE TICKET and rescan, or complete manually.':'Please verify each value before applying.';
   }catch(e){status.textContent='Unable to scan: '+e.message+'. Manual entry remains available.';}
   finally{if(worker)try{await worker.terminate();}catch(e){}}
  }
