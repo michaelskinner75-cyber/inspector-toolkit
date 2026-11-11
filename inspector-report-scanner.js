@@ -58,22 +58,28 @@ function init(){
    first:number('first',3,9),last:number('last',3,9)};
  }
  function makeEnhancedPhoto(file){
+  // Crop to the central ticket print rather than OCRing the surrounding carpet.
+  // Preserve grayscale antialiasing: hard black/white thresholding destroys dot-matrix glyphs.
   return new Promise((resolve,reject)=>{
    const img=new Image(),url=URL.createObjectURL(file);
    img.onload=()=>{try{
-    const c=document.createElement('canvas'),scale=Math.max(1,Math.min(2.2,1800/img.width));
-    c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
-    const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,c.width,c.height);
+    const x=Math.round(img.width*.16),y=Math.round(img.height*.17);
+    const w=Math.round(img.width*.70),h=Math.round(img.height*.53);
+    const c=document.createElement('canvas'),scale=Math.max(1,Math.min(2,1500/w));
+    c.width=Math.round(w*scale);c.height=Math.round(h*scale);
+    const ctx=c.getContext('2d',{willReadFrequently:true});
+    ctx.drawImage(img,x,y,w,h,0,0,c.width,c.height);
     const frame=ctx.getImageData(0,0,c.width,c.height),data=frame.data;
     for(let i=0;i<data.length;i+=4){
-     const gray=.299*data[i]+.587*data[i+1]+.114*data[i+2];
-     // High contrast for faint thermal-printer characters; light blue watermark fades.
-     const value=gray<168?0:255;
-     data[i]=data[i+1]=data[i+2]=value;
+     // Red channel largely suppresses the blue security watermark.
+     const red=data[i];
+     const gray=Math.max(0,Math.min(255,(red-125)*1.5+190));
+     data[i]=data[i+1]=data[i+2]=gray;
     }
-    ctx.putImageData(frame,0,0);c.toBlob(blob=>blob?resolve(blob):reject(Error('Cannot process image')),'image/png');
+    ctx.putImageData(frame,0,0);
+    c.toBlob(blob=>blob?resolve(blob):reject(Error('Cannot process photo')),'image/png');
    }catch(e){reject(e);}finally{URL.revokeObjectURL(url);}};
-   img.onerror=()=>{URL.revokeObjectURL(url);reject(Error('Cannot open image'));};
+   img.onerror=()=>{URL.revokeObjectURL(url);reject(Error('Cannot open photo'));};
    img.src=url;
   });
  }
@@ -102,21 +108,23 @@ function init(){
   try{
    const t=await getTesseract();
    worker=await t.createWorker('eng');
-   const standard=await worker.recognize(file);
+   await worker.setParameters({tessedit_pageseg_mode:'4'});
+   const cropped=await makeEnhancedPhoto(file);
+   const standard=await worker.recognize(cropped);
    let raw=standard.data.text||'',best=extract(raw);
    const filled=v=>['date','checked','fleet','driver','service'].filter(k=>v[k]).length;
    // If normal recognition misses key fields, try a high-contrast image.
    if(filled(best)<5){
      status.textContent='Checking faint print with enhanced recognition…';
-     const enhanced=await makeEnhancedPhoto(file);
-     const second=await worker.recognize(enhanced);
+     await worker.setParameters({tessedit_pageseg_mode:'6'});
+     const second=await worker.recognize(cropped);
      const alt=extract(second.data.text||'');
      ['date','checked','fleet','driver','service','equipment','trip','scheduled','actual','first','last'].forEach(k=>{
        if(!best[k]&&alt[k])best[k]=alt[k];
        // Preserve disagreement for manual confirmation rather than making a silent guess.
        else if(best[k]&&alt[k]&&best[k]!==alt[k]&&['fleet','driver','service','date','checked'].includes(k)) best[k]='';
      });
-     raw+='\n\n--- Enhanced read ---\n'+(second.data.text||'');
+     raw+='\n\n--- Alternate layout ---\n'+(second.data.text||'');
    }
    render(best);
    const details=document.createElement('details');details.style.marginTop='12px';
