@@ -100,7 +100,7 @@ function fullDayCard(entry){
     const status=/offence|report submitted/i.test(String(r[13]||''))?'REPORTED':/advised/i.test(String(r[13]||''))?'ADVISED':r[10]==='No'?'NSA':'OK';
     headline=[entry.time,r[5]||'-',r[6]||'-',r[4]||'-',status].join(' | ');
     subline=[r[3]||'-',(r[8]||'-')+' → '+(r[9]||'-'),inspector].join(' • ');
-    parts.push(fullDayValue('Depot',r[3]),fullDayValue('Driver',r[4]),fullDayValue('Service',r[5]),fullDayValue('Fleet',r[6]),fullDayValue('Boarding point',r[8]),fullDayValue('Destination',r[9]),fullDayValue('Time checked',fullDayTime(r[7])),fullDayValue('NSA',r[10]),fullDayValue('NSA fault',r[11]),fullDayValue('NSA notes',r[12]),fullDayValue('Driver action',r[13]),fullDayValue('Offence reference',r[15]),fullDayValue('Inspection / offence details',r[14]));
+    parts.push(fullDayValue('Depot',r[3]),fullDayValue('Driver',r[4]),fullDayValue('Service',r[5]),fullDayValue('Fleet',r[6]),fullDayValue('Boarding point',r[8]),fullDayValue('Destination',r[9]),fullDayValue('Time checked',fullDayTime(r[7])),fullDayValue('NSA',r[10]),fullDayValue('NSA fault',r[11]),fullDayValue('NSA notes',r[12]),fullDayValue('Service Reliability / Issues',r[20]),fullDayValue('Driver action',r[13]),fullDayValue('Offence reference',r[15]),fullDayValue('Inspection / offence details',r[14]));
   }else if(entry.kind==='timing'){
     const status=r[11]||(Number.isFinite(Number(r[10]))?resultText(Number(r[10])):'-');
     headline=[entry.time,r[4]||'-',r[6]||'-',r[7]||'-',status].join(' | ');
