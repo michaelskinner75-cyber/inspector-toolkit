@@ -134,7 +134,7 @@ function renderFixedChecks(){
   const status=typeof statusMark==='function'?statusMark(r):(r[13]||'OK');
   const cls=typeof statusClass==='function'?statusClass(r):'';
   const notes=splitCheckNotes(r[14]);
-  const details=[ref?'<b>Offence Reference: '+safe(ref)+'</b>':'','Inspector: '+safe(r[2]||'-'),'Depot: '+safe(r[3]||'-'),'Driver: '+safe(r[4]||'-'),'Service: '+safe(r[5]||'-'),'Fleet: '+safe(r[6]||'-'),'Time boarded: '+safe(timeOn),'Journey: '+safe((r[8]||'-')+' to '+(r[9]||'-')),'NSA: '+safe(r[10]||'-')+(r[10]==='No'?' - '+safe(r[11]||'-')+' - '+safe(r[12]||'-'):''),'Driver Report: '+safe(r[13]||'-'),(notes.driver?safe(notes.driver):'')].filter(Boolean);
+  const details=[ref?'<b>Offence Reference: '+safe(ref)+'</b>':'','Inspector: '+safe(r[2]||'-'),'Depot: '+safe(r[3]||'-'),'Driver: '+safe(r[4]||'-'),'Service: '+safe(r[5]||'-'),'Fleet: '+safe(r[6]||'-'),'Time boarded: '+safe(timeOn),'Journey: '+safe((r[8]||'-')+' to '+(r[9]||'-')),'NSA: '+safe(r[10]||'-')+(r[10]==='No'?' - '+safe(r[11]||'-')+' - '+safe(r[12]||'-'):''),(r[20]?'Service Reliability / Issues: '+safe(r[20]):''),'Driver Report: '+safe(r[13]||'-'),(notes.driver?safe(notes.driver):'')].filter(Boolean);
   return '<div class="compactCheck '+safe(cls)+'"><div class="compactTop" data-toggle="pcf'+i+'"><div class="compactMain">'+safe(date)+' '+safe(timeOn)+' | '+safe(r[5]||'-')+' | '+safe(r[6]||'-')+' | '+safe(r[4]||'-')+' | '+safe(status)+(ref?' | '+safe(ref):'')+'</div><div class="compactSub">'+safe(r[3]||'-')+' • '+safe(r[8]||'-')+' → '+safe(r[9]||'-')+' • '+safe(r[2]||'-')+'</div></div><div class="compactDetails" id="pcf'+i+'" data-vehicle-notes="'+safe(notes.vehicle)+'">'+details.join('<br>')+'</div></div>';
  }).join('')||'No checks or other work for this view.';
  markButtons();
