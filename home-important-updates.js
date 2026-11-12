@@ -5,6 +5,10 @@
 const SHEET='Important Updates';
 const URL='https://docs.google.com/spreadsheets/d/110csCfzaZ6w_jFQwsK3l_KRy0KeupulU5SgyYxG1pQI/edit#gid=1020068254';
 const CACHE='inspectorImportantUpdatesLastGoodV1';
+const CATEGORY_CACHE='inspectorImportantUpdatesCategoryV1';
+const CATEGORIES=['Diversions','Services','Drivers to Check','Other Notices'];
+const categoryOf=v=>CATEGORIES.includes(String(v||'').trim())?String(v).trim():'Other Notices';
+let activeCategory=categoryOf(localStorage.getItem(CATEGORY_CACHE));
 const $=id=>document.getElementById(id);
 let current=[],selectedId=null,editing=false,refreshing=false,lastRefresh=0,saving=false,paused=false;
 const name=()=>String((typeof getInspector==='function'?getInspector():localStorage.getItem('activeInspector'))||'').trim().toLowerCase().replace(/\s+/g,' ');
@@ -19,7 +23,7 @@ function latest(rows){
   if(action==='DELETE'){items.delete(details);continue;}
   if(action==='SAVE'){
    // Editing an existing item writes a new row, keeping the original item ID.
-   items.set(id,{id,title:String(r[3]||''),details});
+   items.set(id,{id,title:String(r[3]||''),details,category:categoryOf(r[6]||items.get(id)?.category)});
   }
  }
  return [...items.values()].filter(x=>x.title);
@@ -33,6 +37,9 @@ function style(){
  #importantUpdatesBar .iuHeading{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:8px}
  #importantUpdatesBar .iuHeading strong{font-size:12px;letter-spacing:.04em;color:#ffcc79}
  #importantUpdatesBar button{border:1px solid #b57c2c;background:#3b2c20;color:#fff;border-radius:8px;padding:7px 12px;min-height:34px;font-size:12px;font-weight:800;cursor:pointer}
+ #importantUpdatesBar .iuCategoryTabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+ #importantUpdatesBar .iuCategoryTabs button{background:#173b55;border:1px solid #52748c;color:#eaf2f8;border-radius:8px;padding:7px 9px;min-height:34px;font-size:11px;font-weight:800;flex:1 1 auto;white-space:nowrap}
+ #importantUpdatesBar .iuCategoryTabs button[aria-pressed="true"]{background:#ffca79;border-color:#ffca79;color:#14283b}
  #importantUpdatesBar .iuTrack{width:100%;overflow:hidden;white-space:nowrap;background:#071a29;border:1px solid #3c5669;border-radius:7px;padding:9px 0}
  #importantUpdatesBar .iuScroll{display:inline-block;width:max-content;min-width:100%;white-space:pre;will-change:transform;animation:iuMarquee var(--iu-duration,22s) linear infinite;font-size:15px;font-weight:800;color:#fff}
  #importantUpdatesBar .iuScroll button{background:transparent!important;border:0!important;color:#fff!important;font-size:15px!important;text-decoration:underline;padding:0 35px!important;min-height:0!important;cursor:pointer}
@@ -41,7 +48,7 @@ function style(){
  #importantUpdatesBar textarea{box-sizing:border-box;width:100%;min-height:90px;padding:10px;border-radius:9px;border:1px solid #64849d;background:#071a29;color:#fff;font:inherit;resize:vertical}
  #importantUpdatesBar .iuActions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
  #importantUpdatesBar .iuFields label{display:block;margin:10px 0 5px;color:#ffcd83;font-size:12px;font-weight:800}
- #importantUpdatesBar input{box-sizing:border-box;width:100%;padding:10px;border-radius:9px;border:1px solid #64849d;background:#071a29;color:white;font:inherit}
+ #importantUpdatesBar input,#importantUpdatesBar select{box-sizing:border-box;width:100%;padding:10px;border-radius:9px;border:1px solid #64849d;background:#071a29;color:white;font:inherit}
  #iuDetailsOverlay[hidden]{display:none!important}
  #iuDetailsOverlay{position:fixed;inset:0;z-index:40000;background:rgba(0,9,18,.86);padding:15px;box-sizing:border-box;display:flex;align-items:center;justify-content:center}
  #iuDetailsDialog{width:min(590px,100%);max-height:85dvh;overflow-y:auto;box-sizing:border-box;background:#102c42;border:1px solid #bd842d;border-radius:14px;padding:18px;color:white}
@@ -58,13 +65,14 @@ function mount(){
  const home=$('home');if(!home)return;
  style();
  const el=document.createElement('div');el.id='importantUpdatesBar';el.hidden=true;
- el.innerHTML='<div class="iuHeading"><strong>📢 IMPORTANT UPDATES</strong><div style="display:flex;gap:7px"><button id="importantUpdatesPause" type="button" aria-pressed="false">⏸ PAUSE</button><button id="importantUpdatesEdit" type="button">EDIT</button></div></div><div class="iuTrack" aria-label="Important inspector updates"><div class="iuScroll" id="importantUpdatesText"></div><div id="importantUpdatesEmpty" class="iuEmpty" hidden>No important updates published.</div></div><div id="importantUpdatesEditor" class="iuFields" hidden><div id="iuManageList"></div><div class="iuActions"><button type="button" id="iuAddNew">+ ADD ANNOUNCEMENT</button></div><label for="importantUpdatesTitle">Title (scrolling headline)</label><input id="importantUpdatesTitle" maxlength="200" placeholder="Enter update title"><label for="importantUpdatesInput">Details (shown when title is clicked)</label><textarea id="importantUpdatesInput" maxlength="5000" placeholder="Enter full details…"></textarea><div class="iuActions"><button type="button" id="importantUpdatesSave">SAVE UPDATE</button><button type="button" id="importantUpdatesCancel">CANCEL</button><button type="button" id="importantUpdatesClear">DELETE SELECTED</button><a href="'+URL+'" target="_blank" rel="noopener" style="color:#ffcd83;font-size:12px;align-self:center">View Google Sheet</a></div></div><div id="importantUpdatesStatus" class="iuStatus" role="status"></div>';
+ el.innerHTML='<div class="iuHeading"><strong>📢 IMPORTANT UPDATES</strong><div style="display:flex;gap:7px"><button id="importantUpdatesPause" type="button" aria-pressed="false">⏸ PAUSE</button><button id="importantUpdatesEdit" type="button">EDIT</button></div></div><div class="iuCategoryTabs" role="group" aria-label="Notice category"><button type="button" data-iu-category="Diversions">Diversions</button><button type="button" data-iu-category="Services">Services</button><button type="button" data-iu-category="Drivers to Check">Drivers to Check</button><button type="button" data-iu-category="Other Notices">Other Notices</button></div><div class="iuTrack" aria-label="Important inspector updates"><div class="iuScroll" id="importantUpdatesText"></div><div id="importantUpdatesEmpty" class="iuEmpty" hidden>No notices in this category.</div></div><div id="importantUpdatesEditor" class="iuFields" hidden><div id="iuManageList"></div><div class="iuActions"><button type="button" id="iuAddNew">+ ADD ANNOUNCEMENT</button></div><label for="iuNoticeCategory">Category</label><select id="iuNoticeCategory"><option>Diversions</option><option>Services</option><option>Drivers to Check</option><option>Other Notices</option></select><label for="importantUpdatesTitle">Title (scrolling headline)</label><input id="importantUpdatesTitle" maxlength="200" placeholder="Enter update title"><label for="importantUpdatesInput">Details (shown when title is clicked)</label><textarea id="importantUpdatesInput" maxlength="5000" placeholder="Enter full details…"></textarea><div class="iuActions"><button type="button" id="importantUpdatesSave">SAVE UPDATE</button><button type="button" id="importantUpdatesCancel">CANCEL</button><button type="button" id="importantUpdatesClear">DELETE SELECTED</button><a href="'+URL+'" target="_blank" rel="noopener" style="color:#ffcd83;font-size:12px;align-self:center">View Google Sheet</a></div></div><div id="importantUpdatesStatus" class="iuStatus" role="status"></div>';
  const driver=$('homeSearchWrap')||$('homeGlobalSearch')?.closest('#homeSearchWrap');
  if(driver&&driver.parentElement)driver.before(el);
  else{const p=home.querySelector('.panel');(p||home).appendChild(el);}
  $('importantUpdatesEdit').onclick=()=>{editing=!editing;$('importantUpdatesEditor').hidden=!editing;if(editing){selectedId=null;fillEditor();$('importantUpdatesTitle').focus();}};
  $('iuAddNew').onclick=()=>{selectedId=null;fillEditor();$('importantUpdatesTitle').focus();};
  $('importantUpdatesPause').onclick=()=>{paused=!paused;render();};
+ el.querySelector('.iuCategoryTabs').onclick=e=>{const b=e.target.closest('[data-iu-category]');if(!b)return;activeCategory=categoryOf(b.dataset.iuCategory);localStorage.setItem(CATEGORY_CACHE,activeCategory);render();};
  $('importantUpdatesText').onclick=e=>{const btn=e.target.closest('[data-details]');if(btn)showDetails(btn.dataset.details);};
  $('importantUpdatesCancel').onclick=()=>{editing=false;$('importantUpdatesEditor').hidden=true;};
  $('importantUpdatesSave').onclick=()=>save(false);
@@ -73,11 +81,12 @@ function mount(){
 }
 function fillEditor(){
  const item=current.find(x=>x.id===selectedId);
+ $('iuNoticeCategory').value=categoryOf(item?.category||activeCategory);
  $('importantUpdatesTitle').value=item?.title||'';
  $('importantUpdatesInput').value=item?.details||'';
  $('importantUpdatesClear').hidden=!item;
  const list=$('iuManageList');
- list.innerHTML=current.length?current.map(x=>'<div class="iuManageItem"><span>'+safe(x.title)+'</span><button type="button" data-edit="'+safe(x.id)+'">EDIT</button><button type="button" data-delete="'+safe(x.id)+'">DELETE</button></div>').join(''):'<p>No announcements yet.</p>';
+ list.innerHTML=current.length?current.map(x=>'<div class="iuManageItem"><span><small style="color:#ffcd83">'+safe(categoryOf(x.category))+'</small> — '+safe(x.title)+'</span><button type="button" data-edit="'+safe(x.id)+'">EDIT</button><button type="button" data-delete="'+safe(x.id)+'">DELETE</button></div>').join(''):'<p>No announcements yet.</p>';
  list.onclick=e=>{
   const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');
   if(edit){selectedId=edit.dataset.edit;fillEditor();}
@@ -89,8 +98,10 @@ function render(){
  el.hidden=!allowed();
  if(el.hidden){editing=false;$('importantUpdatesEditor').hidden=true;const d=$('iuDetailsOverlay');if(d)d.hidden=true;return;}
  const t=$('importantUpdatesText'),empty=$('importantUpdatesEmpty');if(!t)return;
- t.hidden=!current.length;empty.hidden=!!current.length;
- t.innerHTML=current.map(x=>'<button type="button" data-details="'+safe(x.id)+'" title="View full details">'+safe(x.title)+'</button>').join(' <span aria-hidden="true"> • </span> ');
+ const visible=current.filter(x=>categoryOf(x.category)===activeCategory);
+ el.querySelectorAll('[data-iu-category]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.iuCategory===activeCategory));});
+ t.hidden=!visible.length;empty.hidden=!!visible.length;
+ t.innerHTML=visible.map(x=>'<button type="button" data-details="'+safe(x.id)+'" title="View full details">'+safe(x.title)+'</button>').join(' <span aria-hidden="true"> • </span> ');
  const viewport=t.parentElement.clientWidth||320;
  t.style.setProperty('--iu-start',viewport+'px');
  t.style.setProperty('--iu-duration',Math.max(15,Math.ceil((viewport+t.scrollWidth)/65))+'s');
@@ -124,11 +135,13 @@ async function save(clear){
  if(saving||!allowed())return;
  const title=clear?'':$('importantUpdatesTitle').value.trim();
  const details=clear?'':$('importantUpdatesInput').value.trim();
+ const category=clear?categoryOf(current.find(x=>x.id===selectedId)?.category):categoryOf($('iuNoticeCategory').value);
  if(!clear&&!title){status('Enter a title, or choose Clear Update.');return;}
  if(typeof WEB_APP_URL!=='string'||!WEB_APP_URL){status('Google Sheets connection unavailable.');return;}
  saving=true;$('importantUpdatesSave').disabled=true;$('importantUpdatesClear').disabled=true;
  const id=clear?'IU-DELETE-'+Date.now():selectedId||'IU-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
- const row=[id,new Date().toISOString(),typeof getInspector==='function'?getInspector():name(),title,clear?'DELETE':'SAVE',clear?selectedId:details];
+ // Keep the original six columns unchanged; category is the new seventh column.
+ const row=[id,new Date().toISOString(),typeof getInspector==='function'?getInspector():name(),title,clear?'DELETE':'SAVE',clear?selectedId:details,category];
  status('Saving to Google Sheets…');
  try{
   await fetch(WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({sheet:SHEET,row})});
@@ -142,7 +155,7 @@ async function save(clear){
    if(Array.isArray(json?.data)&&json.data.some(r=>String(r?.[0]||'')===id)){confirmed=true;break;}
   }
   if(!confirmed){status('Save not confirmed in Google Sheets. Please retry; your text is still here.');return;}
-  if(clear)current=current.filter(x=>x.id!==selectedId);else{const i=current.findIndex(x=>x.id===id);const item={id,title,details};if(i>=0)current[i]=item;else current.push(item);}selectedId=null;localStorage.setItem(CACHE,JSON.stringify(current));editing=false;$('importantUpdatesEditor').hidden=true;render();status('Saved and shared across devices.');
+  if(clear)current=current.filter(x=>x.id!==selectedId);else{const i=current.findIndex(x=>x.id===id);const item={id,title,details,category};if(i>=0)current[i]=item;else current.push(item);}selectedId=null;localStorage.setItem(CACHE,JSON.stringify(current));editing=false;$('importantUpdatesEditor').hidden=true;render();status('Saved and shared across devices.');
  }catch(e){status('Unable to confirm saving to Google Sheets. Please retry.');console.warn(e);}
  finally{saving=false;$('importantUpdatesSave').disabled=false;$('importantUpdatesClear').disabled=false;lastRefresh=0;}
 }
@@ -154,7 +167,7 @@ function tick(){
  render();
  if(allowed())refresh();
 }
-try{const v=localStorage.getItem(CACHE);if(v){const x=JSON.parse(v);current=Array.isArray(x)?x:(x?.title?[{id:'cached',title:x.title,details:x.details||''}]:[]);}}catch(e){current=[];}
+try{const v=localStorage.getItem(CACHE);if(v){const x=JSON.parse(v);current=Array.isArray(x)?x.map(item=>({...item,category:categoryOf(item.category)})):(x?.title?[{id:'cached',title:x.title,details:x.details||'',category:'Other Notices'}]:[]);}}catch(e){current=[];}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick);else tick();
 document.addEventListener('click',e=>{if(e.target?.closest?.('[data-login-name],#loginBtn,#changeInspectorBtn'))setTimeout(tick,150);});
 window.addEventListener('storage',e=>{if(e.key==='activeInspector'){lastRefresh=0;tick();}});
