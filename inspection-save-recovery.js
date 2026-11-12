@@ -4,7 +4,7 @@
 // Own only the check-sheet Save button. Other forms retain their existing handlers.
 const OUTBOX='inspectorHubInspectionOutboxV1';
 const DRAFT_PREFIX='inspectorHubInspectionDraftV1:';
-const FIELDS=['csDate','csDepot','csDepotOther','csDriver','csService','csServiceSearch','csFleet','csTimeOn','csBoarding','csDestination','csDestinationChoice','csDestinationManual','csNSA','csNSAFault','csNSANotes','csDriverReport','csDriverReason','csNatureOffence','csPassengers','csJourneyStatus','csConfirmedEarly','csVehicleIssue','csVehicleIssueNotes'];
+const FIELDS=['csDate','csDepot','csDepotOther','csDriver','csService','csServiceSearch','csFleet','csTimeOn','csBoarding','csDestination','csDestinationChoice','csDestinationManual','csNSA','csNSAFault','csNSANotes','csDriverReport','csDriverReason','csNatureOffence','csPassengers','csJourneyStatus','csConfirmedEarly','csVehicleIssue','csVehicleIssueNotes','csServiceReliability','csServiceReliabilityNotes'];
 const $=id=>document.getElementById(id);
 const val=id=>String($(id)?.value||'').trim();
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -18,7 +18,7 @@ function saveDraft(){
  if(restoring||!getName())return;
  try{
   const data=collectDraft();
-  if(!val('csDriver')&&!val('csServiceSearch')&&!val('csService')&&!val('csFleet')&&!val('csDriverReason')&&!val('csNSANotes')&&!val('csVehicleIssueNotes')){localStorage.removeItem(draftKey());return;}
+  if(!val('csDriver')&&!val('csServiceSearch')&&!val('csService')&&!val('csFleet')&&!val('csDriverReason')&&!val('csNSANotes')&&!val('csVehicleIssueNotes')&&!val('csServiceReliabilityNotes')&&!val('csServiceReliability')){localStorage.removeItem(draftKey());return;}
   localStorage.setItem(draftKey(),JSON.stringify(data));
  }catch(e){console.warn('Check-sheet draft could not be stored',e);}
 }
@@ -171,7 +171,10 @@ function buildRows(){
  const reportReason=[vehicleText,val('csDriverReason')].filter(Boolean).join('\n');
  const ref=reportType==='Offence Report Submitted'?nextOffenceRef(date,inspector):'';
  const nature=val('csNatureOffence'),passengers=val('csPassengers'),status=val('csJourneyStatus')||'On Time',early=status==='Early'?(val('csConfirmedEarly')||'No'):'No';
- const row=[date,time,inspector,depot,driver,service,fleet,boarded,val('csBoarding'),destination,val('csNSA'),val('csNSAFault'),val('csNSANotes'),reportType,reportReason,ref,nature,passengers,status,early];
+ const reliabilityType=val('csServiceReliability');
+ const reliabilityNotes=val('csServiceReliabilityNotes');
+ const reliabilityText=[reliabilityType,reliabilityNotes].filter(Boolean).join(' — ');
+ const row=[date,time,inspector,depot,driver,service,fleet,boarded,val('csBoarding'),destination,val('csNSA'),val('csNSAFault'),val('csNSANotes'),reportType,reportReason,ref,nature,passengers,status,early,reliabilityText];
  const items=[{sheet:'Inspections',row,confirmed:false,sentAt:0},
   {sheet:'NSA Faults',row:[date,time,inspector,depot,fleet,service,driver,row[10],row[11],row[12],row[8],row[9],'Inspector Check Sheet'],confirmed:false,sentAt:0}];
  if(reportType!=='No Driver Report')items.push({sheet:'Driver Reports',row:[date,time,inspector,driver,depot,reportType,reportReason,service,fleet,ref,row[8],row[9],nature,passengers,depot],confirmed:false,sentAt:0});
@@ -186,7 +189,7 @@ function resetForm(){
  restoring=true;
  try{
   if(typeof clearCheckForm==='function')clearCheckForm();
-  ['csServiceSearch','csDestinationChoice','csDestinationManual','csNatureOffence','csPassengers','csVehicleIssueNotes'].forEach(id=>{if($(id))$(id).value='';});
+  ['csServiceSearch','csDestinationChoice','csDestinationManual','csNatureOffence','csPassengers','csVehicleIssueNotes','csServiceReliabilityNotes','csServiceReliability'].forEach(id=>{if($(id))$(id).value='';});
   if($('csVehicleIssue'))$('csVehicleIssue').value='No Vehicle Issues';
   if($('csJourneyStatus'))$('csJourneyStatus').value='On Time';
   if($('csConfirmedEarly'))$('csConfirmedEarly').value='No';
