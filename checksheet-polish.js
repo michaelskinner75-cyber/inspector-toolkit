@@ -15,6 +15,7 @@ function addStyles(){
     #checksheet .formSectionTitle{margin:-2px 0 10px;padding:8px 12px;border-radius:9px;font-weight:800;letter-spacing:.02em;background:#17324b;color:#fff;border-left:6px solid #e8aa3d}
     #checksheet .formSectionTitle.journey{border-left-color:#4d83c4}
     #checksheet .formSectionTitle.vehicle{border-left-color:#49a17f}
+    #checksheet .formSectionTitle.reliability{border-left-color:#d3a044}
     #checksheet .formSectionTitle.driver{border-left-color:#d64a50}
     #checksheet .sectionGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     #checksheet .sectionGrid.inspectionRows{grid-template-columns:1fr}
@@ -86,6 +87,7 @@ function buildLayout(){
   inspection.grid.classList.add('inspectionRows');
   const journey=makeSection('Journey Details','journey');
   const vehicle=makeSection('Vehicle','vehicle');
+  const reliability=makeSection('Service Reliability / Issues','reliability');
   const driver=makeSection('Driver','driver');
 
   const serviceWrap=document.querySelector('[data-for-service="csService"]');
@@ -121,13 +123,24 @@ function buildLayout(){
   const issueNotes=document.createElement('textarea');issueNotes.id='csVehicleIssueNotes';issueNotes.className='field full';issueNotes.placeholder='Vehicle issue comments';
   vehicle.grid.append(issueSelect,issueNotes);
 
+  const reliabilitySelect=document.createElement('select');
+  reliabilitySelect.id='csServiceReliability';
+  reliabilitySelect.className='field full';
+  reliabilitySelect.setAttribute('aria-label','Service reliability / issues');
+  reliabilitySelect.innerHTML='<option value="">No service reliability issues to record (optional)</option><option>Late Running</option><option>Early Running</option><option>Missed Journey</option><option>Cancelled Journey</option><option>Service Disruption</option><option>Other Service Issue</option>';
+  const reliabilityNotes=document.createElement('textarea');
+  reliabilityNotes.id='csServiceReliabilityNotes';
+  reliabilityNotes.className='field full';
+  reliabilityNotes.placeholder='Service reliability / issues details (optional)';
+  reliability.grid.append(reliabilitySelect,reliabilityNotes);
+
   const report=$('csDriverReport');
   if(report){report.innerHTML='<option value="No Driver Report">No Driver Issues</option><option value="Advised">Driver Advised</option><option value="Offence Report Submitted">Offence Report to be Submitted</option>';}
   moveElement(report,driver.grid,true);
   const notes=$('csDriverReason');if(notes){notes.placeholder='Driver report reason / inspection notes';moveElement(notes,driver.grid,true);}
 
   oldGrids.forEach(g=>{if(g.isConnected&&g.children.length===0)g.remove();});
-  saveGrid.before(inspection.section,journey.section,vehicle.section,driver.section);
+  saveGrid.before(inspection.section,journey.section,vehicle.section,reliability.section,driver.section);
   section.dataset.layoutRebuilt='2';
 }
 
