@@ -37,7 +37,8 @@ function reportFromRow(r){
   fleet:String(r[6]||'-').trim()||'-',timeChecked:formatSavedTime(r[7]),boarding:String(r[8]||'-').trim()||'-',
   destination:String(r[9]||'-').trim()||'-',nsa:String(r[10]||'-').trim()||'-',nsaDetails,
   driverReport:String(r[13]||'-').trim()||'-',reason:String(r[14]||'-').trim()||'-',
-  offenceRef:String(r[15]||'').trim(),nature:String(r[16]||'').trim(),passengers:String(r[17]||'').trim()
+  offenceRef:String(r[15]||'').trim(),nature:String(r[16]||'').trim(),passengers:String(r[17]||'').trim(),
+  reliability:String(r[20]||'').trim()
  };
 }
 function reportFromCard(card){
@@ -71,7 +72,8 @@ function reportFromCard(card){
   boarding:journey.boarding,destination:journey.destination,nsa:strip(nsaParts[0],['NSA Working']),
   nsaDetails:strip(nsaParts.slice(1).join(' - ')||((nsaParts[0]||'')==='Yes'?'Fully Working':'-'),['Details']),
   driverReport:labelled(x,['Driver Report'])||val(['Driver Report'],9),reason:reason||'-',offenceRef,
-  nature:labelled(x,['Nature of Offence']),passengers:labelled(x,['Passengers'])
+  nature:labelled(x,['Nature of Offence']),passengers:labelled(x,['Passengers']),
+  reliability:labelled(x,['Service Reliability / Issues','Service reliability / issues'])
  };
 }
 function splitVehicleDriverNotes(reason){
@@ -108,6 +110,7 @@ async function makePdf(d,name){
  sectionTitle('NSA');tableRow('NSA Working',d.nsa);tableRow('Details',d.nsaDetails);y+=14;
  const notes=splitVehicleDriverNotes(d.reason);
  if(notes.vehicle){sectionTitle('Vehicle Issues');tableRow('Vehicle issues / comments',notes.vehicle);y+=14;}
+ if(d.reliability){sectionTitle('Service Reliability / Issues');tableRow('Service reliability / issues',d.reliability);y+=14;}
  sectionTitle('Driver');tableRow('Driver Report',d.driverReport);
  const isOffence=/offence/i.test(String(d.driverReport||''))||d.offenceRef||d.nature||d.passengers;
  if(isOffence){
