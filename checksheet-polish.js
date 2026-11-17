@@ -229,8 +229,15 @@ function updateStatus(){
   const sync=$('syncStatus');if(cloud){const text=(sync&&sync.textContent)||'Live';cloud.textContent=/fail|offline|error/i.test(text)?'Check connection':'Live';}
 }
 
+function ensureTimingCheckOnlyNsa(){
+  const select=$('csNSA');
+  if(select&&!Array.from(select.options).some(option=>option.value==='Timing Check Only')){
+    select.add(new Option('Timing Check Only','Timing Check Only'));
+  }
+}
+
 function initialise(){
-  addStyles();addStatusBar();buildLayout();setupGeolocation();wrapSave();setupHistoryToggle();updateStatus();
+  addStyles();addStatusBar();buildLayout();ensureTimingCheckOnlyNsa();setupGeolocation();wrapSave();setupHistoryToggle();updateStatus();
   const date=$('csDate');if(date){date.addEventListener('change',updateStatus);date.addEventListener('input',updateStatus);}
   setInterval(updateStatus,2000);
 }
