@@ -14,11 +14,16 @@ function selectedDepot(){return String($('mroDepot')?.value||'').trim();}
 function key(r){return [toIso(r[0]),r[1],r[2],r[3],r[5],r[8],r[9],r[15]].map(norm).join('|');}
 function localRows(){try{const x=JSON.parse(localStorage.getItem('local_Morning Run Out')||'[]');return Array.isArray(x)?x:[];}catch(e){return [];}}
 function reportRows(){
- let remote=[];try{if(typeof cloud!=='undefined'&&Array.isArray(cloud['Morning Run Out']))remote=cloud['Morning Run Out'];}catch(e){}
- if(remote.length&&norm(remote[0]?.[3])==='duty number')remote=remote.slice(1);
- const map=new Map();[...localRows(),...remote].forEach(r=>{if(Array.isArray(r)&&r[0]&&r[3])map.set(key(r),r);});
+ let all=[];
+ if(typeof window.morningRunOutEffectiveRows==='function')all=window.morningRunOutEffectiveRows();
+ else{
+  let remote=[];try{if(typeof cloud!=='undefined'&&Array.isArray(cloud['Morning Run Out']))remote=cloud['Morning Run Out'];}catch(e){}
+  if(remote.length&&norm(remote[0]?.[3])==='duty number')remote=remote.slice(1);
+  const map=new Map();[...localRows(),...remote].forEach(r=>{if(Array.isArray(r)&&r[0]&&r[3])map.set(key(r),r);});
+  all=[...map.values()];
+ }
  const date=$('mroDate')?.value||'',depot=selectedDepot();
- return [...map.values()].filter(r=>toIso(r[0])===date&&(!depot||norm(depotOf(r))===norm(depot))).sort((a,b)=>((mins(a[8])??9999)-(mins(b[8])??9999))||((mins(a[1])??9999)-(mins(b[1])??9999)));
+ return all.filter(r=>toIso(r[0])===date&&(!depot||norm(depotOf(r))===norm(depot))).sort((a,b)=>((mins(a[8])??9999)-(mins(b[8])??9999))||((mins(a[1])??9999)-(mins(b[1])??9999)));
 }
 function loadScript(src,id){return new Promise((resolve,reject)=>{if(document.getElementById(id))return resolve();const s=document.createElement('script');s.id=id;s.src=src;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
 async function imageData(url){try{const res=await fetch(url,{mode:'cors'});const blob=await res.blob();return await new Promise(resolve=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>resolve(null);r.readAsDataURL(blob);});}catch(e){return null;}}
