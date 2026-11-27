@@ -11,37 +11,59 @@ function driverHistory(name){const key=norm(name);const checks=rows('Inspections
 function detailsHtml(h){const items=[];h.checks.slice().reverse().forEach(r=>{const action=norm(r[13]);const isReport=action==='offence report submitted'||action==='advised';const type=action==='offence report submitted'?'report':action==='advised'?'advice':'check';items.push(`<div class="homeHistoryItem ${type}"><b>${isReport?esc(r[13]):'Inspector Check'} — ${esc(r[0]||'Date not recorded')}</b><div>Service ${esc(r[5]||'-')} • Fleet ${esc(r[6]||'-')}</div><div>${esc(r[3]||'-')} • ${esc(r[8]||'-')} to ${esc(r[9]||'-')} • ${esc(r[2]||'-')}</div>${isReport?`<div class="homeHistoryReason">${esc(r[14]||'No reason entered')}</div>`:''}</div>`);});return items.join('')||'<div class="homeHistoryItem">No previous report details available.</div>';}
 function render(){const input=$('homeGlobalSearch'),box=$('homeSearchResults');if(!input||!box)return;const q=norm(input.value);if(!q){box.classList.remove('show');box.innerHTML='';return;}const matches=employees().filter(e=>norm(e.name).includes(q)||norm(e.employeeNumber).includes(q)).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,20);if(!matches.length){box.innerHTML='<div class="homeSearchEmpty">No matching driver found.</div>';box.classList.add('show');return;}box.innerHTML=matches.map((e,i)=>{const h=driverHistory(e.name),count=h.checks.length;return `<div class="homeDriverResult ${h.cls}"><b>${esc(e.name||'Unknown driver')}</b><small>Employee ${esc(e.employeeNumber||'-')}${e.depot?' • '+esc(e.depot):''}</small><div class="homeDriverStatus">${h.text}</div><small>${esc(h.sub)}</small>${count?`<button type="button" class="homeDriverExpand" data-expand-driver="${i}">SHOW REPORT DETAILS</button><div class="homeDriverDetails" id="homeDriverDetails${i}">${detailsHtml(h)}</div>`:''}</div>`;}).join('');box.classList.add('show');box.querySelectorAll('[data-expand-driver]').forEach(btn=>btn.onclick=()=>{const d=$('homeDriverDetails'+btn.dataset.expandDriver),open=d?.classList.toggle('show');btn.textContent=open?'HIDE REPORT DETAILS':'SHOW REPORT DETAILS';});}
 
+
 function ensureUnchecked(){
- const wrap=$('homeSearchWrap');if(!wrap||$('homeUncheckedDrivers'))return;
- const section=document.createElement('details');section.id='homeUncheckedDrivers';section.style.cssText='margin-top:10px;padding:12px;border:1px solid #416783;border-radius:12px;background:#102b40;color:#fff';
- section.innerHTML='<summary style="cursor:pointer;font-weight:800">Drivers never checked <span id="homeUncheckedCount"></span></summary><p style="font-size:12px">Drivers with no matching inspection record. Based on the shared employee directory and recorded inspector checks.</p><select id="homeUncheckedDepot" aria-label="Filter by depot" style="width:100%;margin-bottom:8px"><option value="">All depots</option></select><input id="homeUncheckedQuery" type="search" placeholder="Search name or employee number" style="width:100%;box-sizing:border-box"><button id="homeUncheckedRefresh" type="button" style="margin-top:8px">Refresh checks</button><div id="homeUncheckedResults" style="max-height:440px;overflow:auto;margin-top:8px" aria-live="polite"></div>';
- wrap.insertAdjacentElement('afterend',section);
- let verified=false,busy=false,error=false;
- const normalize=v=>norm(v).replace(/\s+/g,' ');
+ const nav=$('reportsChecksNav'),parent=$('reportsChecks');if(!nav||!parent)return false;if($('homeUncheckedDrivers'))return true;
+ const btn=document.createElement('button');btn.type='button';btn.dataset.open='homeUncheckedDrivers';btn.textContent='Drivers Never Checked';nav.appendChild(btn);
+ const section=document.createElement('section');section.id='homeUncheckedDrivers';section.className='section';
+ section.innerHTML='<button class="backBtn" data-open="reportsChecks">← Back</button><h2>Drivers Never Checked</h2><div class="panel"><p>Employee list compared with all recorded inspections.</p><div id="homeUncheckedCount" aria-live="polite"></div><select class="field" id="homeUncheckedDepot" aria-label="Filter by depot"><option value="">All depots</option></select><input class="field" id="homeUncheckedQuery" type="search" placeholder="Search name or employee number"><button id="homeUncheckedRefresh" type="button">Refresh from Google Sheets</button><div id="homeUncheckedResults" aria-live="polite"></div></div>';
+ parent.insertAdjacentElement('afterend',section);
+ const normalize=v=>norm(v).normalize('NFKC').replace(/\s+/g,' ');
+ const number=v=>String(v??'').trim().replace(/^0+(?=\d)/,'');
+ const header=v=>normalize(v).replace(/[^a-z0-9]/g,'');
+ let roster=null,checks=null,busy=false,error='';
+ function parseEmployees(data){
+  if(!data.length)throw Error('Employees sheet returned no rows');
+  const h=data[0].map(header),name=h.findIndex(x=>['name','employeename','drivername','fullname','staffname'].includes(x)),num=h.findIndex(x=>['employeenumber','employeeid','staffnumber','payrollnumber','driver number'.replace(' ','')].includes(x));
+  const first=h.findIndex(x=>['firstname','forename'].includes(x)),last=h.findIndex(x=>['lastname','surname'].includes(x));
+  const hasHeader=name>=0||num>=0||first>=0;
+  const depot=h.findIndex(x=>x.includes('depot')||x==='location');
+  return data.slice(hasHeader?1:0).filter(Array.isArray).map(r=>({name:String(hasHeader?(name>=0?r[name]:first>=0&&last>=0?[r[first],r[last]].join(' '):r[0]):r[0]||'').trim(),employeeNumber:String(r[hasHeader&&num>=0?num:1]??'').trim(),depot:String(r[hasHeader?depot:2]??'').trim()})).filter(e=>e.name&&e.employeeNumber);
+ }
+ function parseChecks(data){
+  if(!data.length)throw Error('Inspections sheet returned no rows');
+  const h=data[0].map(header),driver=h.findIndex(x=>['driver','drivername','employeename'].includes(x)),num=h.findIndex(x=>['employeenumber','employeeid','drivernumber','payrollnumber'].includes(x));
+  const hasHeader=driver>=0||h.includes('date')||h.includes('inspector');
+  return data.slice(hasHeader?1:0).filter(Array.isArray).map(r=>({name:normalize(r[driver>=0?driver:4]),num:num>=0?number(r[num]):''})).filter(r=>r.name||r.num);
+ }
  function renderUnchecked(){
-  const roster=Array.isArray(window.SHARED_EMPLOYEE_DIRECTORY)?window.SHARED_EMPLOYEE_DIRECTORY:[];
-  const drivers=roster.filter(e=>e&&e.name&&/\bdriver\b/i.test(e.jobTitle||''));
   const box=$('homeUncheckedResults'),count=$('homeUncheckedCount'),select=$('homeUncheckedDepot');
-  if(!verified||!roster.length){count.textContent='';box.textContent=busy?'Refreshing inspection records…':error?'Unable to verify inspection records. Please refresh.':'Waiting for shared employee directory and inspection records…';return;}
-  const selected=select.value;const depots=[...new Set(drivers.map(e=>String(e.depot||'').trim()).filter(Boolean))].sort();
+  if(!roster||!checks){count.textContent=busy?'Loading both Google Sheets…':error||'Open to load records.';box.textContent='';return;}
+  if(!roster.length){count.textContent='No employee records could be read. Check Employees sheet columns.';box.textContent='';return;}
+  const selected=select.value,depots=[...new Set(roster.map(e=>e.depot).filter(Boolean))].sort();
   const opts=['<option value="">All depots</option>',...depots.map(d=>'<option value="'+esc(d)+'">'+esc(d)+'</option>')].join('');
   if(select.dataset.options!==opts){select.innerHTML=opts;select.dataset.options=opts;select.value=selected;}
-  let local=[];try{local=JSON.parse(localStorage.getItem('local_Inspections')||'[]');}catch(e){}
-  const checked=new Set([...rows('Inspections'),...(Array.isArray(local)?local:[])].filter(r=>Array.isArray(r)&&r[0]).map(r=>normalize(r[4])).filter(Boolean));
-  const list=drivers.filter(e=>!checked.has(normalize(e.name))).sort((a,b)=>a.name.localeCompare(b.name));
+  const names=new Set(checks.filter(r=>!r.num).map(r=>r.name)),nums=new Set(checks.map(r=>r.num).filter(Boolean));
+  const unique=[...new Map(roster.map(e=>[number(e.employeeNumber),e])).values()];
+  const list=unique.filter(e=>!nums.has(number(e.employeeNumber))&&!names.has(normalize(e.name))&&!names.has(normalize(e.employeeNumber))).sort((a,b)=>a.name.localeCompare(b.name));
   const query=normalize($('homeUncheckedQuery').value);
-  const visible=list.filter(e=>(!select.value||String(e.depot||'').trim()===select.value)&&(!query||normalize(e.name).includes(query)||normalize(e.employeeNumber).includes(query)));
-  count.textContent='('+list.length+')';
-  box.innerHTML=(error?'<p>Refresh failed; showing last verified records.</p>':'')+'<p style="font-size:12px">'+visible.length+' of '+list.length+' drivers with no recorded check</p>'+(visible.map(e=>'<div class="homeDriverResult"><b>'+esc(e.name)+'</b><small>Employee '+esc(e.employeeNumber||'-')+' • '+esc(e.depot||'Depot not recorded')+'</small><small>Never checked (on record)</small></div>').join('')||'<p>No matching drivers.</p>');
+  const visible=list.filter(e=>(!select.value||e.depot===select.value)&&(!query||normalize(e.name).includes(query)||normalize(e.employeeNumber).includes(query)));
+  count.textContent=list.length+' never checked • '+(unique.length-list.length)+' checked • '+unique.length+' employees compared';
+  box.innerHTML=(error?'<p>'+esc(error)+' — showing last successful comparison.</p>':'')+'<p>'+visible.length+' matching results • '+checks.length+' inspection records read</p>'+(visible.map(e=>'<div class="homeDriverResult"><b>'+esc(e.name)+'</b><small>Employee '+esc(e.employeeNumber)+' • '+esc(e.depot||'Depot not recorded')+'</small></div>').join('')||'<p>No matching drivers.</p>');
  }
- async function refresh(){if(busy)return;busy=true;error=false;renderUnchecked();try{if(typeof fetchCloudSheet!=='function')throw Error('Unavailable');await fetchCloudSheet('Inspections');verified=true;}catch(e){error=true;}finally{busy=false;renderUnchecked();}}
- section.addEventListener('toggle',()=>{if(section.open)refresh();});
+ async function getSheet(sheet){
+  const url=WEB_APP_URL+(WEB_APP_URL.includes('?')?'&':'?')+'sheet='+encodeURIComponent(sheet)+'&_='+Date.now();
+  const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw Error(sheet+' HTTP '+response.status);
+  const json=await response.json();if(!Array.isArray(json.data))throw Error(sheet+' did not return a valid list');return json.data;
+ }
+ async function refresh(){if(busy)return;busy=true;error='';$('homeUncheckedRefresh').disabled=true;renderUnchecked();try{const [e,c]=await Promise.all([getSheet('Employees'),getSheet('Inspections')]);const nextRoster=parseEmployees(e),nextChecks=parseChecks(c);if(!nextRoster.length)throw Error('No employee records could be parsed');roster=nextRoster;checks=nextChecks;}catch(e){error='Google Sheets comparison failed: '+e.message;}finally{busy=false;$('homeUncheckedRefresh').disabled=false;renderUnchecked();}}
+ btn.addEventListener('click',refresh);
  $('homeUncheckedRefresh').onclick=refresh;$('homeUncheckedDepot').onchange=renderUnchecked;$('homeUncheckedQuery').oninput=renderUnchecked;
- document.addEventListener('employee-directory-ready',()=>{if(section.open)renderUnchecked();});
- setInterval(()=>{if(section.open&&!document.hidden)refresh();},30000);
- document.addEventListener('click',e=>{if(e.target.closest('#saveCheckSheetBtn'))setTimeout(()=>{if(section.open)refresh();},3000);});
+ setInterval(()=>{if(section.classList.contains('active')&&!document.hidden)refresh();},30000);
+ return true;
 }
 
-function init(){addStyles();let tries=0;const timer=setInterval(()=>{tries++;if(ensureUi()){ensureUnchecked();clearInterval(timer);}else if(tries>30)clearInterval(timer);},250);}
+
+function init(){addStyles();let tries=0;const timer=setInterval(()=>{tries++;const homeReady=ensureUi(),reportReady=ensureUnchecked();if((homeReady&&reportReady)||tries>80)clearInterval(timer);},250);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
