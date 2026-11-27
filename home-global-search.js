@@ -10,6 +10,38 @@ function employees(){const out=[],seen=new Set(),sources=[window.SHARED_EMPLOYEE
 function driverHistory(name){const key=norm(name);const checks=rows('Inspections').filter(r=>norm(r[4])===key);const actions=checks.filter(r=>norm(r[13])==='offence report submitted'||norm(r[13])==='advised');const offence=actions.filter(r=>norm(r[13])==='offence report submitted').length;const advised=actions.filter(r=>norm(r[13])==='advised').length;let cls='first',text='🔵 1ST TIME CHECK',sub='No previous inspector checks were found for this driver.';if(offence){cls='reported';text='🔴 PREVIOUS OFFENCE REPORT SUBMITTED';sub=`${offence} offence report${offence===1?'':'s'} • ${advised} advised record${advised===1?'':'s'}`;}else if(advised){cls='advised';text='🟡 PREVIOUSLY ADVISED';sub=`${advised} advised record${advised===1?'':'s'} • ${checks.length} previous check${checks.length===1?'':'s'}`;}else if(checks.length){cls='clear';text='🟢 PREVIOUSLY CHECKED — NO ISSUES';sub=`Previously checked ${checks.length} time${checks.length===1?'':'s'}`;}return{cls,text,sub,checks,actions};}
 function detailsHtml(h){const items=[];h.checks.slice().reverse().forEach(r=>{const action=norm(r[13]);const isReport=action==='offence report submitted'||action==='advised';const type=action==='offence report submitted'?'report':action==='advised'?'advice':'check';items.push(`<div class="homeHistoryItem ${type}"><b>${isReport?esc(r[13]):'Inspector Check'} — ${esc(r[0]||'Date not recorded')}</b><div>Service ${esc(r[5]||'-')} • Fleet ${esc(r[6]||'-')}</div><div>${esc(r[3]||'-')} • ${esc(r[8]||'-')} to ${esc(r[9]||'-')} • ${esc(r[2]||'-')}</div>${isReport?`<div class="homeHistoryReason">${esc(r[14]||'No reason entered')}</div>`:''}</div>`);});return items.join('')||'<div class="homeHistoryItem">No previous report details available.</div>';}
 function render(){const input=$('homeGlobalSearch'),box=$('homeSearchResults');if(!input||!box)return;const q=norm(input.value);if(!q){box.classList.remove('show');box.innerHTML='';return;}const matches=employees().filter(e=>norm(e.name).includes(q)||norm(e.employeeNumber).includes(q)).sort((a,b)=>a.name.localeCompare(b.name)).slice(0,20);if(!matches.length){box.innerHTML='<div class="homeSearchEmpty">No matching driver found.</div>';box.classList.add('show');return;}box.innerHTML=matches.map((e,i)=>{const h=driverHistory(e.name),count=h.checks.length;return `<div class="homeDriverResult ${h.cls}"><b>${esc(e.name||'Unknown driver')}</b><small>Employee ${esc(e.employeeNumber||'-')}${e.depot?' • '+esc(e.depot):''}</small><div class="homeDriverStatus">${h.text}</div><small>${esc(h.sub)}</small>${count?`<button type="button" class="homeDriverExpand" data-expand-driver="${i}">SHOW REPORT DETAILS</button><div class="homeDriverDetails" id="homeDriverDetails${i}">${detailsHtml(h)}</div>`:''}</div>`;}).join('');box.classList.add('show');box.querySelectorAll('[data-expand-driver]').forEach(btn=>btn.onclick=()=>{const d=$('homeDriverDetails'+btn.dataset.expandDriver),open=d?.classList.toggle('show');btn.textContent=open?'HIDE REPORT DETAILS':'SHOW REPORT DETAILS';});}
-function init(){addStyles();let tries=0;const timer=setInterval(()=>{tries++;if(ensureUi()||tries>30)clearInterval(timer);},250);}
+
+function ensureUnchecked(){
+ const wrap=$('homeSearchWrap');if(!wrap||$('homeUncheckedDrivers'))return;
+ const section=document.createElement('details');section.id='homeUncheckedDrivers';section.style.cssText='margin-top:10px;padding:12px;border:1px solid #416783;border-radius:12px;background:#102b40;color:#fff';
+ section.innerHTML='<summary style="cursor:pointer;font-weight:800">Drivers never checked <span id="homeUncheckedCount"></span></summary><p style="font-size:12px">Drivers with no matching inspection record. Based on the shared employee directory and recorded inspector checks.</p><select id="homeUncheckedDepot" aria-label="Filter by depot" style="width:100%;margin-bottom:8px"><option value="">All depots</option></select><input id="homeUncheckedQuery" type="search" placeholder="Search name or employee number" style="width:100%;box-sizing:border-box"><button id="homeUncheckedRefresh" type="button" style="margin-top:8px">Refresh checks</button><div id="homeUncheckedResults" style="max-height:440px;overflow:auto;margin-top:8px" aria-live="polite"></div>';
+ wrap.insertAdjacentElement('afterend',section);
+ let verified=false,busy=false,error=false;
+ const normalize=v=>norm(v).replace(/\s+/g,' ');
+ function renderUnchecked(){
+  const roster=Array.isArray(window.SHARED_EMPLOYEE_DIRECTORY)?window.SHARED_EMPLOYEE_DIRECTORY:[];
+  const drivers=roster.filter(e=>e&&e.name&&/\bdriver\b/i.test(e.jobTitle||''));
+  const box=$('homeUncheckedResults'),count=$('homeUncheckedCount'),select=$('homeUncheckedDepot');
+  if(!verified||!roster.length){count.textContent='';box.textContent=busy?'Refreshing inspection records…':error?'Unable to verify inspection records. Please refresh.':'Waiting for shared employee directory and inspection records…';return;}
+  const selected=select.value;const depots=[...new Set(drivers.map(e=>String(e.depot||'').trim()).filter(Boolean))].sort();
+  const opts=['<option value="">All depots</option>',...depots.map(d=>'<option value="'+esc(d)+'">'+esc(d)+'</option>')].join('');
+  if(select.dataset.options!==opts){select.innerHTML=opts;select.dataset.options=opts;select.value=selected;}
+  let local=[];try{local=JSON.parse(localStorage.getItem('local_Inspections')||'[]');}catch(e){}
+  const checked=new Set([...rows('Inspections'),...(Array.isArray(local)?local:[])].filter(r=>Array.isArray(r)&&r[0]).map(r=>normalize(r[4])).filter(Boolean));
+  const list=drivers.filter(e=>!checked.has(normalize(e.name))).sort((a,b)=>a.name.localeCompare(b.name));
+  const query=normalize($('homeUncheckedQuery').value);
+  const visible=list.filter(e=>(!select.value||String(e.depot||'').trim()===select.value)&&(!query||normalize(e.name).includes(query)||normalize(e.employeeNumber).includes(query)));
+  count.textContent='('+list.length+')';
+  box.innerHTML=(error?'<p>Refresh failed; showing last verified records.</p>':'')+'<p style="font-size:12px">'+visible.length+' of '+list.length+' drivers with no recorded check</p>'+(visible.map(e=>'<div class="homeDriverResult"><b>'+esc(e.name)+'</b><small>Employee '+esc(e.employeeNumber||'-')+' • '+esc(e.depot||'Depot not recorded')+'</small><small>Never checked (on record)</small></div>').join('')||'<p>No matching drivers.</p>');
+ }
+ async function refresh(){if(busy)return;busy=true;error=false;renderUnchecked();try{if(typeof fetchCloudSheet!=='function')throw Error('Unavailable');await fetchCloudSheet('Inspections');verified=true;}catch(e){error=true;}finally{busy=false;renderUnchecked();}}
+ section.addEventListener('toggle',()=>{if(section.open)refresh();});
+ $('homeUncheckedRefresh').onclick=refresh;$('homeUncheckedDepot').onchange=renderUnchecked;$('homeUncheckedQuery').oninput=renderUnchecked;
+ document.addEventListener('employee-directory-ready',()=>{if(section.open)renderUnchecked();});
+ setInterval(()=>{if(section.open&&!document.hidden)refresh();},30000);
+ document.addEventListener('click',e=>{if(e.target.closest('#saveCheckSheetBtn'))setTimeout(()=>{if(section.open)refresh();},3000);});
+}
+
+function init(){addStyles();let tries=0;const timer=setInterval(()=>{tries++;if(ensureUi()){ensureUnchecked();clearInterval(timer);}else if(tries>30)clearInterval(timer);},250);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
